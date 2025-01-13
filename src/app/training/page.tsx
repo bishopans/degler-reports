@@ -202,6 +202,24 @@ Jane Doe
               className="w-full p-2 border rounded"
             />
           </div>
+           {/* Photo Upload Section */}
+           <div className="space-y-2">
+            <label className="block mb-1">Upload Photos:</label>
+            <p className="text-sm text-gray-600 mb-2">
+              Please upload any pictures of training or equipment turnover
+            </p>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => {
+                const files = Array.from(e.target.files || []);
+                // Handle file upload logic here
+                console.log('Files selected:', files);
+              }}
+              className="w-full p-2 border rounded"
+            />
+          </div>
         </form>
       </div>
     </div>
