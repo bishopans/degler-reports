@@ -2,14 +2,44 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import SignaturePad from 'react-signature-canvas';
+
+// Define equipment type
+type Equipment = string;
+
+// Define the form data structure
+interface FormData {
+  date: string;
+  jobName: string;
+  technicianName: string;
+  jobNumber: string;
+  attendanceList: string;
+  selectedEquipment: Equipment[];
+  signature: string;
+  equipmentTurnover: string;
+  notes: string;
+}
+
+// Define initial state
+const initialFormData: FormData = {
+  date: '',
+  jobName: '',
+  technicianName: '',
+  jobNumber: '',
+  attendanceList: '',
+  selectedEquipment: [],
+  signature: '',
+  equipmentTurnover: '',
+  notes: ''
+};
 
 export default function TrainingForm() {
-  const [formData, setFormData] = useState({
-    date: '',
-    jobName: '',
-    technicianName: '',
-    jobNumber: ''
-  });
+  const [formData, setFormData] = useState<FormData>(initialFormData);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log(formData);
+  };
 
   return (
     <div className="min-h-screen p-6">
@@ -36,15 +66,17 @@ export default function TrainingForm() {
       </h1>
 
       <div className="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-md">
-        <form className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Top row of form fields */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block mb-1">Service Date</label>
+              <label className="block mb-1">Training Date</label>
               <input
                 type="date"
                 value={formData.date}
                 onChange={e => setFormData({...formData, date: e.target.value})}
                 className="w-full p-2 border rounded"
+                required
               />
             </div>
             
@@ -55,6 +87,7 @@ export default function TrainingForm() {
                 value={formData.jobName}
                 onChange={e => setFormData({...formData, jobName: e.target.value})}
                 className="w-full p-2 border rounded"
+                required
               />
             </div>
           </div>
@@ -67,6 +100,7 @@ export default function TrainingForm() {
                 value={formData.technicianName}
                 onChange={e => setFormData({...formData, technicianName: e.target.value})}
                 className="w-full p-2 border rounded"
+                required
               />
             </div>
             
@@ -77,12 +111,96 @@ export default function TrainingForm() {
                 value={formData.jobNumber}
                 onChange={e => setFormData({...formData, jobNumber: e.target.value})}
                 className="w-full p-2 border rounded"
+                required
               />
             </div>
           </div>
 
-          <div className="text-center p-8 bg-gray-50 rounded mt-8">
-            <p className="text-gray-500 text-lg">Form Under Construction</p>
+          {/* Attendance List Section */}
+          <div className="space-y-2">
+            <label className="block mb-1">Attendance List: Who was trained?</label>
+            <div className="relative">
+              <textarea
+                value={formData.attendanceList}
+                onChange={e => setFormData({...formData, attendanceList: e.target.value})}
+                className="w-full p-2 border rounded min-h-[100px]"
+                placeholder="Enter names (one per line):
+John Smith
+Jane Doe
+..."
+              />
+              <div className="text-sm text-gray-500 mt-1">
+                Enter each name on a new line
+              </div>
+            </div>
+          </div>
+{/* Equipment Selection */}
+<div className="space-y-2">
+            <label className="block mb-2 font-medium">Select all trained equipment:</label>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                'Bleachers',
+                'Basketball Backstops',
+                'Divider Curtains',
+                'Mat Hoists',
+                'Batting Cages',
+                'Volleyball',
+                'Scoreboards',
+                'Folding Partitions'
+              ].map((equipment) => (
+                <button
+                  key={equipment}
+                  type="button"
+                  onClick={() => {
+                    setFormData(prev => ({
+                      ...prev,
+                      selectedEquipment: prev.selectedEquipment.includes(equipment)
+                        ? prev.selectedEquipment.filter(e => e !== equipment)
+                        : [...prev.selectedEquipment, equipment]
+                    }));
+                  }}
+                  className={`p-4 border-2 rounded-lg text-left ${
+                    formData.selectedEquipment.includes(equipment)
+                      ? 'bg-blue-100 border-blue-500'
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  {equipment}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Equipment Turnover Section */}
+          <div className="space-y-2">
+            <label className="block mb-1">Equipment Turnover:</label>
+            <p className="text-sm text-gray-600 mb-2">
+              Did you leave scoreboard controller, key switch keys, or bleacher controller
+              any place or with anyone?
+            </p>
+            <textarea
+              value={formData.equipmentTurnover}
+              onChange={e => setFormData({...formData, equipmentTurnover: e.target.value})}
+              className="w-full p-2 border rounded min-h-[80px]"
+              placeholder="Describe any equipment left and with whom..."
+            />
+          </div>
+          {/* Photo Upload Section */}
+          <div className="space-y-2">
+            <label className="block mb-1">Upload Photos:</label>
+            <p className="text-sm text-gray-600 mb-2">
+              Please upload any pictures of training or equipment turnover
+            </p>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => {
+                const files = Array.from(e.target.files || []);
+                // Handle file upload logic here
+                console.log('Files selected:', files);
+              }}
+              className="w-full p-2 border rounded"
+            />
           </div>
         </form>
       </div>
