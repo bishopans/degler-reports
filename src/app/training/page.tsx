@@ -2,7 +2,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import SignaturePad from 'react-signature-canvas';
+import dynamic from 'next/dynamic';
+const SignaturePad = dynamic(() => import('react-signature-canvas'), {
+  ssr: false
+});
 
 // Define equipment type
 type Equipment = string;
