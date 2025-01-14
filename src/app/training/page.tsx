@@ -193,6 +193,43 @@ Jane Doe
               placeholder="Describe any equipment left and with whom..."
             />
           </div>
+         {/* Signature Section */}
+         <div className="space-y-2">
+            <label className="block mb-1">Signature of main attendee:</label>
+            <div className="border rounded p-2 bg-white">
+              <div id="signature-pad" className="border rounded h-40">
+                <SignaturePad
+                  canvasProps={{
+                    className: 'w-full h-full'
+                  }}
+                  onEnd={() => {
+                    const canvas = document.querySelector('canvas');
+                    if (canvas) {
+                      const dataUrl = canvas.toDataURL();
+                      setFormData({
+                        ...formData,
+                        signature: dataUrl
+                      });
+                    }
+                  }}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const canvas = document.querySelector('canvas');
+                  if (canvas) {
+                    const context = canvas.getContext('2d');
+                    context?.clearRect(0, 0, canvas.width, canvas.height);
+                  }
+                  setFormData({...formData, signature: ''});
+                }}
+                className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+              >
+                Clear Signature
+              </button>
+            </div>
+          </div>
           {/* Photo Upload Section */}
           <div className="space-y-2">
             <label className="block mb-1">Upload Photos:</label>
