@@ -39,6 +39,12 @@ export default function TrainingForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log(formData);
+    
+    // Clear form
+    setFormData(initialFormData);
+    
+    // Show message
+    alert('Your report has been submitted');
   };
 
   return (
@@ -202,23 +208,28 @@ Jane Doe
               className="w-full p-2 border rounded"
             />
           </div>
-           {/* Photo Upload Section */}
-           <div className="space-y-2">
-            <label className="block mb-1">Upload Photos:</label>
+          {/* Notes Section */}
+          <div className="space-y-2">
+            <label className="block mb-1">Any other notes?</label>
             <p className="text-sm text-gray-600 mb-2">
-              Please upload any pictures of training or equipment turnover
+              i.e. equipment was not working or anything worth mentioning
             </p>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={(e) => {
-                const files = Array.from(e.target.files || []);
-                // Handle file upload logic here
-                console.log('Files selected:', files);
-              }}
-              className="w-full p-2 border rounded"
+            <textarea
+              value={formData.notes}
+              onChange={e => setFormData({...formData, notes: e.target.value})}
+              className="w-full p-2 border rounded min-h-[100px]"
+              placeholder="Enter any additional notes here..."
             />
+          </div>
+
+          {/* Submit Button */}
+          <div className="pt-4">
+            <button
+              type="submit"
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
+            >
+              Submit Report
+            </button>
           </div>
         </form>
       </div>
