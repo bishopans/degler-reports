@@ -57,19 +57,6 @@ export default function Home() {
           Training
         </Link>
 
-        <Link 
-          href="/jobsite-progress" 
-          className="p-8 border-2 rounded-lg hover:bg-blue-50 text-center shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[100px]"
-        >
-          Job Site Progress
-        </Link>
-
-        <Link 
-          href="/time-sheets" 
-          className="p-8 border-2 rounded-lg hover:bg-blue-50 text-center shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[100px]"
-        >
-          Time Sheets
-        </Link>
 
         <Link 
           href="/other" 
