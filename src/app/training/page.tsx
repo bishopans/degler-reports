@@ -3,14 +3,15 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+
 const SignaturePad = dynamic(() => import('react-signature-canvas'), {
   ssr: false
 });
 
-// Define equipment type
 type Equipment = string;
 
-// Define the form data structure
 interface FormData {
   date: string;
   jobName: string;
@@ -21,9 +22,9 @@ interface FormData {
   signature: string;
   equipmentTurnover: string;
   notes: string;
+  photos: File[];
 }
 
-// Define initial state
 const initialFormData: FormData = {
   date: '',
   jobName: '',
@@ -33,6 +34,7 @@ const initialFormData: FormData = {
   selectedEquipment: [],
   signature: '',
   equipmentTurnover: '',
+  photos: [],
   notes: ''
 };
 
@@ -41,13 +43,73 @@ export default function TrainingForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(formData);
     
-    // Clear form
-    setFormData(initialFormData);
+    // Create PDF
+    const doc = new jsPDF();
+    const fileName = `${formData.jobNumber}-${formData.jobName}-Report.pdf`;
+
+    // Add company logo (coordinates and size may need adjustment)
+    doc.addImage('/images/logo.png', 'PNG', 15, 15, 60, 30);
     
-    // Show message
-    alert('Your report has been submitted');
+    // Add title
+    doc.setFontSize(20);
+    doc.text('Training Report', 105, 40, { align: 'center' });
+
+    // Add basic info
+    doc.setFontSize(12);
+    doc.text(`Date: ${formData.date}`, 20, 60);
+    doc.text(`Job Number: ${formData.jobNumber}`, 20, 70);
+    doc.text(`Job Name: ${formData.jobName}`, 20, 80);
+    doc.text(`Technician: ${formData.technicianName}`, 20, 90);
+
+    // Add Attendance List
+    doc.text('Attendance:', 20, 110);
+    const attendees = formData.attendanceList.split('\n');
+    attendees.forEach((attendee, index) => {
+        doc.text(`• ${attendee}`, 30, 120 + (index * 10));
+    });
+
+    // Add Equipment Trained
+    const yPos = 120 + (attendees.length * 10) + 10;
+    doc.text('Equipment Trained:', 20, yPos);
+    formData.selectedEquipment.forEach((equipment, index) => {
+        doc.text(`• ${equipment}`, 30, yPos + 10 + (index * 10));
+    });
+
+    // Add signature if exists
+    if (formData.signature) {
+        const signatureYPos = yPos + 20 + (formData.selectedEquipment.length * 10);
+        doc.text('Signature:', 20, signatureYPos);
+        doc.addImage(formData.signature, 'PNG', 20, signatureYPos + 5, 50, 20);
+    }
+
+    // Convert PDF to blob
+    const pdfBlob = doc.output('blob');
+
+    // Create form data for sending
+    const sendData = new FormData();
+    sendData.append('pdf', pdfBlob, fileName);
+    sendData.append('subject', `${formData.jobNumber}-${formData.jobName}-Report`);
+    sendData.append('emailTo', 'andrew@deglerwhiting.com');
+
+    try {
+      const response = await fetch('/api/send-email', {
+          method: 'POST',
+          body: sendData,
+      });
+
+      if (response.ok) {
+          alert('Your report has been submitted');
+          setFormData(initialFormData);
+      } else {
+          const errorData = await response.json();
+          console.error('Server response:', errorData);
+          throw new Error(`Failed to send report: ${JSON.stringify(errorData)}`);
+      }
+  } catch (error) {
+      console.error('Detailed error:', error);
+      alert('Error sending report. Check console for details.');
+  }
   };
 
   return (
@@ -143,8 +205,9 @@ Jane Doe
               </div>
             </div>
           </div>
-{/* Equipment Selection */}
-<div className="space-y-2">
+
+          {/* Equipment Selection */}
+          <div className="space-y-2">
             <label className="block mb-2 font-medium">Select all trained equipment:</label>
             <div className="grid grid-cols-2 gap-4">
               {[
@@ -160,14 +223,12 @@ Jane Doe
                 <button
                   key={equipment}
                   type="button"
-                  onClick={() => {
-                    setFormData(prev => ({
-                      ...prev,
-                      selectedEquipment: prev.selectedEquipment.includes(equipment)
-                        ? prev.selectedEquipment.filter(e => e !== equipment)
-                        : [...prev.selectedEquipment, equipment]
-                    }));
-                  }}
+                  onClick={() => setFormData(prev => ({
+                    ...prev,
+                    selectedEquipment: prev.selectedEquipment.includes(equipment)
+                      ? prev.selectedEquipment.filter(e => e !== equipment)
+                      : [...prev.selectedEquipment, equipment]
+                  }))}
                   className={`p-4 border-2 rounded-lg text-left ${
                     formData.selectedEquipment.includes(equipment)
                       ? 'bg-blue-100 border-blue-500'
@@ -179,7 +240,48 @@ Jane Doe
               ))}
             </div>
           </div>
-          {/* Equipment Turnover Section */}
+
+          {/* Signature Section */}
+          <div className="space-y-2">
+            <label className="block mb-1">Signature of main attendee:</label>
+            <div className="border rounded p-2 bg-white">
+              <div className="border rounded h-40 bg-white">
+                <SignaturePad
+                  canvasProps={{
+                    className: 'w-full h-full signature-pad'
+                  }}
+                  onEnd={() => {
+                    const pad = document.querySelector('.signature-pad') as HTMLCanvasElement;
+                    if (pad) {
+                      const dataUrl = pad.toDataURL();
+                      setFormData(prev => ({
+                        ...prev,
+                        signature: dataUrl
+                      }));
+                    }
+                  }}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const pad = document.querySelector('.signature-pad') as HTMLCanvasElement;
+                  if (pad) {
+                    const context = pad.getContext('2d');
+                    context?.clearRect(0, 0, pad.width, pad.height);
+                  }
+                  setFormData(prev => ({
+                    ...prev,
+                    signature: ''
+                  }));
+                }}
+                className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+              >
+                Clear Signature
+              </button>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <label className="block mb-1">Equipment Turnover:</label>
             <p className="text-sm text-gray-600 mb-2">
@@ -193,46 +295,10 @@ Jane Doe
               placeholder="Describe any equipment left and with whom..."
             />
           </div>
-         {/* Signature Section */}
-         <div className="space-y-2">
-            <label className="block mb-1">Signature of main attendee:</label>
-            <div className="border rounded p-2 bg-white">
-              <div id="signature-pad" className="border rounded h-40">
-                <SignaturePad
-                  canvasProps={{
-                    className: 'w-full h-full'
-                  }}
-                  onEnd={() => {
-                    const canvas = document.querySelector('canvas');
-                    if (canvas) {
-                      const dataUrl = canvas.toDataURL();
-                      setFormData({
-                        ...formData,
-                        signature: dataUrl
-                      });
-                    }
-                  }}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const canvas = document.querySelector('canvas');
-                  if (canvas) {
-                    const context = canvas.getContext('2d');
-                    context?.clearRect(0, 0, canvas.width, canvas.height);
-                  }
-                  setFormData({...formData, signature: ''});
-                }}
-                className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-              >
-                Clear Signature
-              </button>
-            </div>
-          </div>
-          {/* Photo Upload Section */}
-          <div className="space-y-2">
-            <label className="block mb-1">Upload Photos:</label>
+
+{/* Photo Upload Section */}
+<div className="space-y-2">
+            <label className="block mb-1">Upload Photos</label>
             <p className="text-sm text-gray-600 mb-2">
               Please upload any pictures of training or equipment turnover
             </p>
@@ -242,24 +308,16 @@ Jane Doe
               multiple
               onChange={(e) => {
                 const files = Array.from(e.target.files || []);
-                // Handle file upload logic here
-                console.log('Files selected:', files);
+                setFormData(prev => ({
+                  ...prev,
+                  photos: files
+                }));
               }}
               className="w-full p-2 border rounded"
             />
-          </div>
-          {/* Notes Section */}
-          <div className="space-y-2">
-            <label className="block mb-1">Any other notes?</label>
-            <p className="text-sm text-gray-600 mb-2">
-              i.e. equipment was not working or anything worth mentioning
-            </p>
-            <textarea
-              value={formData.notes}
-              onChange={e => setFormData({...formData, notes: e.target.value})}
-              className="w-full p-2 border rounded min-h-[100px]"
-              placeholder="Enter any additional notes here..."
-            />
+            <div className="text-sm text-gray-500 mt-1">
+              {formData.photos?.length || 0} photos selected
+            </div>
           </div>
 
           {/* Submit Button */}
