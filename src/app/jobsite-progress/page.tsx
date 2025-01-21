@@ -9,6 +9,7 @@ export default function JobSiteProgressForm() {
     jobName: '',
     installerName: '',
     jobNumber: '',
+    equipment: '',  // Add this line
     notes: '',
     estimatedCompletionDate: '',
     photos: [] as File[]
@@ -23,6 +24,7 @@ export default function JobSiteProgressForm() {
       jobName: '',
       installerName: '',
       jobNumber: '',
+      equipment: '',  // Add this line
       notes: '',
       estimatedCompletionDate: '',
       photos: []
@@ -103,14 +105,14 @@ export default function JobSiteProgressForm() {
             </div>
           </div>
 
-          {/* Notes Section */}
-          <div className="space-y-2">
-            <label className="block mb-1">Notes</label>
+         {/* Equipment Section */}
+         <div className="space-y-2">
+            <label className="block mb-1">Equipment Being Installed</label>
             <textarea
-              value={formData.notes}
-              onChange={e => setFormData({...formData, notes: e.target.value})}
+              value={formData.equipment}
+              onChange={e => setFormData({...formData, equipment: e.target.value})}
               className="w-full p-2 border rounded min-h-[150px]"
-              placeholder="Install progress notes; site conditions, equipment being worked on, issues found onsite, etc"
+              placeholder="List what equipment is being installed"
               required
             />
           </div>
