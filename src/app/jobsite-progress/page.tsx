@@ -10,6 +10,7 @@ export default function JobSiteProgressForm() {
     installerName: '',
     jobNumber: '',
     notes: '',
+    estimatedCompletionDate: '',
     photos: [] as File[]
   });
 
@@ -23,6 +24,7 @@ export default function JobSiteProgressForm() {
       installerName: '',
       jobNumber: '',
       notes: '',
+      estimatedCompletionDate: '',
       photos: []
     });
   };
@@ -110,6 +112,29 @@ export default function JobSiteProgressForm() {
               className="w-full p-2 border rounded min-h-[150px]"
               placeholder="Install progress notes; site conditions, equipment being worked on, issues found onsite, etc"
               required
+            />
+          </div>
+
+{/* Notes Section */}
+<div className="space-y-2">
+            <label className="block mb-1">Notes</label>
+            <textarea
+              value={formData.notes}
+              onChange={e => setFormData({...formData, notes: e.target.value})}
+              className="w-full p-2 border rounded min-h-[150px]"
+              placeholder="Install progress notes; site conditions, equipment being worked on, issues found onsite, etc"
+              required
+            />
+          </div>
+
+          {/* Estimated Completion Date */}
+          <div className="space-y-2">
+            <label className="block mb-1">Estimated Completion Date</label>
+            <input
+              type="date"
+              value={formData.estimatedCompletionDate}
+              onChange={e => setFormData({...formData, estimatedCompletionDate: e.target.value})}
+              className="w-full p-2 border rounded"
             />
           </div>
 
