@@ -17,6 +17,7 @@ export default function MaterialTurnoverForm() {
    turnoverItems: '',
    recipientName: '',
    recipientType: '',
+   otherSpecification: '',
    signature: '',
    photos: [] as File[]
  });
@@ -33,6 +34,7 @@ export default function MaterialTurnoverForm() {
      turnoverItems: '',
      recipientName: '',
      recipientType: '',
+     otherSpecification: '',
      signature: '',
      photos: []
    });
@@ -153,6 +155,18 @@ export default function MaterialTurnoverForm() {
                </button>
              ))}
            </div>
+           {formData.recipientType === 'Other' && (
+             <div className="mt-2">
+               <label className="block mb-1">Please specify:</label>
+               <input
+                 type="text"
+                 value={formData.otherSpecification}
+                 onChange={e => setFormData({...formData, otherSpecification: e.target.value})}
+                 className="w-full p-2 border rounded"
+                 required
+               />
+             </div>
+           )}
          </div>
 
          {/* Signature Section */}
@@ -195,9 +209,9 @@ export default function MaterialTurnoverForm() {
              </button>
            </div>
            <p className="text-sm text-gray-600 italic mt-2">
-              &ldquo;Signer assumes responsibility and ownership of listed equipment from this day forth and Degler 
-              Whiting will no longer be liable or obligated to provide listed equipment.&rdquo;
-            </p>
+             &ldquo;Signer assumes responsibility and ownership of listed equipment from this day forth and Degler 
+             Whiting will no longer be liable or obligated to provide listed equipment.&rdquo;
+           </p>
          </div>
 
          {/* Photo Upload Section */}
