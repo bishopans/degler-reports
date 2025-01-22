@@ -70,7 +70,7 @@ export default function TimeSheetForm() {
     }));
   };
 
-  const updateEntry = (id: string, field: keyof TimeEntry, value: any) => {
+  const updateEntry = (id: string, field: keyof TimeEntry, value: string | number) => {
     setFormData(prev => ({
       ...prev,
       entries: prev.entries.map(entry => 
