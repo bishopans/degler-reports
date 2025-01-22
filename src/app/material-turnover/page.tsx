@@ -195,9 +195,9 @@ export default function MaterialTurnoverForm() {
              </button>
            </div>
            <p className="text-sm text-gray-600 italic mt-2">
-             "Signer assumes responsibility and ownership of listed equipment from this day forth and Degler 
-             Whiting will no longer be liable or obligated to provide listed equipment."
-           </p>
+              &ldquo;Signer assumes responsibility and ownership of listed equipment from this day forth and Degler 
+              Whiting will no longer be liable or obligated to provide listed equipment.&rdquo;
+            </p>
          </div>
 
          {/* Photo Upload Section */}
