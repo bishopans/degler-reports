@@ -128,7 +128,7 @@ export default function MaterialTurnoverForm() {
 
          {/* Recipient Section */}
          <div>
-           <label className="block mb-1">Full Name of recipient:</label>
+           <label className="block mb-1">Full name of recipient:</label>
            <input
              type="text"
              value={formData.recipientName}
