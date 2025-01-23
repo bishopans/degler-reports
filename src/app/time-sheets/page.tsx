@@ -9,12 +9,14 @@ interface TimeEntry {
  date: string;
  jobNameNumber: string;
  scopeOfWork: string;
+ isForeman: boolean;
  regularHours: number;
  overtimeHours: number;
  doubleHours: number;
  miles: number;
  expenses: number;
  expenseDescription: string;
+ photos?: File[];
 }
 
 interface FormData {
@@ -32,12 +34,14 @@ const initialFormData: FormData = {
    date: '',
    jobNameNumber: '',
    scopeOfWork: '',
+   isForeman: false,
    regularHours: 0,
    overtimeHours: 0,
    doubleHours: 0,
    miles: 0,
    expenses: 0,
-   expenseDescription: ''
+   expenseDescription: '',
+   photos: []
  }]
 };
 
@@ -52,6 +56,7 @@ const rankOptions = [
 
 export default function TimeSheetForm() {
  const [formData, setFormData] = useState<FormData>(initialFormData);
+ const [receiptPhotos, setReceiptPhotos] = useState<File[]>([]);
 
  const addRow = () => {
    setFormData(prev => ({
@@ -62,12 +67,14 @@ export default function TimeSheetForm() {
        date: '',
        jobNameNumber: '',
        scopeOfWork: '',
+       isForeman: false,
        regularHours: 0,
        overtimeHours: 0,
        doubleHours: 0,
        miles: 0,
        expenses: 0,
-       expenseDescription: ''
+       expenseDescription: '',
+       photos: []
      }]
    }));
  };
@@ -82,7 +89,7 @@ export default function TimeSheetForm() {
    }));
  };
 
- const updateEntry = (id: string, field: keyof TimeEntry, value: string | number) => {
+ const updateEntry = (id: string, field: keyof TimeEntry, value: any) => {
    setFormData(prev => ({
      ...prev,
      entries: prev.entries.map(entry => 
@@ -92,20 +99,41 @@ export default function TimeSheetForm() {
  };
 
  const calculateTotals = () => {
-   return formData.entries.reduce((acc, entry) => ({
-     regularHours: acc.regularHours + (Number(entry.regularHours) || 0),
-     overtimeHours: acc.overtimeHours + (Number(entry.overtimeHours) || 0),
-     doubleHours: acc.doubleHours + (Number(entry.doubleHours) || 0),
-     miles: acc.miles + (Number(entry.miles) || 0),
-     expenses: acc.expenses + (Number(entry.expenses) || 0)
-   }), { regularHours: 0, overtimeHours: 0, doubleHours: 0, miles: 0, expenses: 0 });
+   const initial = {
+     regularHours: { foreman: 0, regular: 0 },
+     overtimeHours: { foreman: 0, regular: 0 },
+     doubleHours: { foreman: 0, regular: 0 },
+     miles: 0,
+     expenses: 0
+   };
+
+   return formData.entries.reduce((acc, entry) => {
+     const type = entry.isForeman ? 'foreman' : 'regular';
+     return {
+       regularHours: {
+         ...acc.regularHours,
+         [type]: acc.regularHours[type] + (Number(entry.regularHours) || 0)
+       },
+       overtimeHours: {
+         ...acc.overtimeHours,
+         [type]: acc.overtimeHours[type] + (Number(entry.overtimeHours) || 0)
+       },
+       doubleHours: {
+         ...acc.doubleHours,
+         [type]: acc.doubleHours[type] + (Number(entry.doubleHours) || 0)
+       },
+       miles: acc.miles + (Number(entry.miles) || 0),
+       expenses: acc.expenses + (Number(entry.expenses) || 0)
+     };
+   }, initial);
  };
 
  const handleSubmit = async (e: React.FormEvent) => {
    e.preventDefault();
-   console.log(formData);
+   console.log({ ...formData, receiptPhotos });
    alert('Time Sheet submitted successfully');
    setFormData(initialFormData);
+   setReceiptPhotos([]);
  };
 
  const totals = calculateTotals();
@@ -144,7 +172,7 @@ export default function TimeSheetForm() {
            </div>
            
            <div>
-             <label className="block mb-1">Rank</label>
+             <label className="block mb-1">Primary Rank</label>
              <select
                value={formData.rank}
                onChange={e => setFormData({...formData, rank: e.target.value})}
@@ -194,6 +222,16 @@ export default function TimeSheetForm() {
                  className="w-full p-2 border rounded"
                  required
                />
+             </div>
+
+             <div className="flex items-center space-x-2 mb-4">
+               <input
+                 type="checkbox"
+                 checked={entry.isForeman}
+                 onChange={e => updateEntry(entry.id, 'isForeman', e.target.checked)}
+                 className="h-4 w-4"
+               />
+               <label>Working as Foreman</label>
              </div>
 
              <div className="grid grid-cols-3 gap-4">
@@ -304,29 +342,74 @@ export default function TimeSheetForm() {
            </div>
          ))}
 
-         <div className="bg-gray-50 p-4 rounded-lg">
+         <div className="bg-gray-50 p-4 rounded-lg space-y-4">
            <h3 className="font-bold mb-2">Week Totals</h3>
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+           
+           <div className="space-y-4">
              <div>
-               <label className="block text-sm">Regular Hours</label>
-               <div className="font-bold text-lg">{totals.regularHours}</div>
+               <h4 className="font-semibold mb-2">Foreman Hours</h4>
+               <div className="grid grid-cols-3 gap-4">
+                 <div>
+                   <label className="block text-sm">Regular</label>
+                   <div className="font-bold text-lg">{totals.regularHours.foreman}</div>
+                 </div>
+                 <div>
+                   <label className="block text-sm">1.5X</label>
+                   <div className="font-bold text-lg">{totals.overtimeHours.foreman}</div>
+                 </div>
+                 <div>
+                   <label className="block text-sm">2X</label>
+                   <div className="font-bold text-lg">{totals.doubleHours.foreman}</div>
+                 </div>
+               </div>
              </div>
+
              <div>
-               <label className="block text-sm">1.5X Hours</label>
-               <div className="font-bold text-lg">{totals.overtimeHours}</div>
+               <h4 className="font-semibold mb-2">Regular Hours</h4>
+               <div className="grid grid-cols-3 gap-4">
+                 <div>
+                   <label className="block text-sm">Regular</label>
+                   <div className="font-bold text-lg">{totals.regularHours.regular}</div>
+                 </div>
+                 <div>
+                   <label className="block text-sm">1.5X</label>
+                   <div className="font-bold text-lg">{totals.overtimeHours.regular}</div>
+                 </div>
+                 <div>
+                   <label className="block text-sm">2X</label>
+                   <div className="font-bold text-lg">{totals.doubleHours.regular}</div>
+                 </div>
+               </div>
              </div>
-             <div>
-               <label className="block text-sm">2X Hours</label>
-               <div className="font-bold text-lg">{totals.doubleHours}</div>
+
+             <div className="grid grid-cols-2 gap-4">
+               <div>
+                 <label className="block text-sm">Total Miles</label>
+                 <div className="font-bold text-lg">{totals.miles}</div>
+               </div>
+               <div>
+                 <label className="block text-sm">Total Expenses</label>
+                 <div className="font-bold text-lg">${totals.expenses.toFixed(2)}</div>
+               </div>
              </div>
-             <div>
-               <label className="block text-sm">Total Miles</label>
-               <div className="font-bold text-lg">{totals.miles}</div>
-             </div>
-             <div>
-               <label className="block text-sm">Total Expenses</label>
-               <div className="font-bold text-lg">${totals.expenses.toFixed(2)}</div>
-             </div>
+           </div>
+         </div>
+
+         <div className="space-y-4">
+           <label className="block mb-1">Upload Receipt Photos</label>
+           <p className="text-sm text-gray-600">Please upload any pictures of receipts</p>
+           <input
+             type="file"
+             accept="image/*"
+             multiple
+             onChange={(e) => {
+               const files = Array.from(e.target.files || []);
+               setReceiptPhotos(files);
+             }}
+             className="w-full p-2 border rounded"
+           />
+           <div className="text-sm text-gray-500">
+             {receiptPhotos.length} photos selected
            </div>
          </div>
 
