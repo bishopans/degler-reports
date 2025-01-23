@@ -16,7 +16,7 @@ interface TimeEntry {
  miles: number;
  expenses: number;
  expenseDescription: string;
- photos?: File[];
+ photos: File[];
 }
 
 interface FormData {
@@ -89,7 +89,7 @@ export default function TimeSheetForm() {
    }));
  };
 
- const updateEntry = (id: string, field: keyof TimeEntry, value: any) => {
+ const updateEntry = (id: string, field: keyof TimeEntry, value: string | number | boolean | File[]) => {
    setFormData(prev => ({
      ...prev,
      entries: prev.entries.map(entry => 
