@@ -46,12 +46,12 @@ const initialFormData: FormData = {
 };
 
 const rankOptions = [
- 'Foreman',
  'Journeyman',
  'Apprentice 1st Yr',
  'Apprentice 2nd Yr',
  'Apprentice 3rd Yr',
- 'Apprentice 4th Yr'
+ 'Apprentice 4th Yr',
+ 'Apprentice 5th Yr'
 ];
 
 export default function TimeSheetForm() {
@@ -342,6 +342,16 @@ export default function TimeSheetForm() {
            </div>
          ))}
 
+         <div className="flex justify-center pt-4 pb-8">
+           <button
+             type="button"
+             onClick={addRow}
+             className="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600"
+           >
+             Add Entry
+           </button>
+         </div>
+
          <div className="bg-gray-50 p-4 rounded-lg space-y-4">
            <h3 className="font-bold mb-2">Week Totals</h3>
            
@@ -411,16 +421,6 @@ export default function TimeSheetForm() {
            <div className="text-sm text-gray-500">
              {receiptPhotos.length} photos selected
            </div>
-         </div>
-
-         <div className="flex justify-center">
-           <button
-             type="button"
-             onClick={addRow}
-             className="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600"
-           >
-             Add Entry
-           </button>
          </div>
 
          <div className="pt-4">
