@@ -5,6 +5,7 @@ import Image from 'next/image';
 
 interface TimeEntry {
  id: string;
+ entryNumber: number;
  date: string;
  jobNameNumber: string;
  scopeOfWork: string;
@@ -25,6 +26,7 @@ const initialFormData: FormData = {
  rank: '',
  entries: [{
    id: '1',
+   entryNumber: 1,
    date: '',
    jobNameNumber: '',
    scopeOfWork: '',
@@ -52,6 +54,7 @@ export default function TimeSheetForm() {
      ...prev,
      entries: [...prev.entries, {
        id: Date.now().toString(),
+       entryNumber: prev.entries.length + 1,
        date: '',
        jobNameNumber: '',
        scopeOfWork: '',
@@ -66,7 +69,10 @@ export default function TimeSheetForm() {
  const removeRow = (id: string) => {
    setFormData(prev => ({
      ...prev,
-     entries: prev.entries.filter(entry => entry.id !== id)
+     entries: prev.entries.filter(entry => entry.id !== id).map((entry, index) => ({
+       ...entry,
+       entryNumber: index + 1
+     }))
    }));
  };
 
@@ -122,7 +128,6 @@ export default function TimeSheetForm() {
 
      <div className="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-md">
        <form onSubmit={handleSubmit} className="space-y-6">
-         {/* Header Information */}
          <div className="grid grid-cols-2 gap-4">
            <div>
              <label className="block mb-1">Name</label>
@@ -151,9 +156,9 @@ export default function TimeSheetForm() {
            </div>
          </div>
 
-         {/* Time Entries Section */}
          {formData.entries.map((entry) => (
            <div key={entry.id} className="mb-6 border rounded p-4">
+             <div className="text-lg font-bold mb-2">Entry #{entry.entryNumber}</div>
              <div className="grid gap-3">
                <div>
                  <label className="block mb-1">Date</label>
@@ -194,7 +199,17 @@ export default function TimeSheetForm() {
                    <input
                      type="number"
                      value={entry.hours || ''}
-                     onChange={e => updateEntry(entry.id, 'hours', Number(e.target.value))}
+                     onChange={e => {
+                       const value = e.target.value;
+                       if (/^\d*\.?\d*$/.test(value)) {
+                         updateEntry(entry.id, 'hours', Number(value));
+                       }
+                     }}
+                     onKeyDown={e => {
+                       if (!/[\d.]/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
+                         e.preventDefault();
+                       }
+                     }}
                      className="w-full p-2 border rounded"
                      min="0"
                      step="0.5"
@@ -206,7 +221,17 @@ export default function TimeSheetForm() {
                    <input
                      type="number"
                      value={entry.miles || ''}
-                     onChange={e => updateEntry(entry.id, 'miles', Number(e.target.value))}
+                     onChange={e => {
+                       const value = e.target.value;
+                       if (/^\d*\.?\d*$/.test(value)) {
+                         updateEntry(entry.id, 'miles', Number(value));
+                       }
+                     }}
+                     onKeyDown={e => {
+                       if (!/[\d]/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
+                         e.preventDefault();
+                       }
+                     }}
                      className="w-full p-2 border rounded"
                      min="0"
                      required
@@ -219,7 +244,17 @@ export default function TimeSheetForm() {
                  <input
                    type="number"
                    value={entry.expenses || ''}
-                   onChange={e => updateEntry(entry.id, 'expenses', Number(e.target.value))}
+                   onChange={e => {
+                     const value = e.target.value;
+                     if (/^\d*\.?\d*$/.test(value)) {
+                       updateEntry(entry.id, 'expenses', Number(value));
+                     }
+                   }}
+                   onKeyDown={e => {
+                     if (!/[\d.]/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
+                       e.preventDefault();
+                     }
+                   }}
                    className="w-full p-2 border rounded"
                    min="0"
                    step="0.01"
@@ -248,7 +283,6 @@ export default function TimeSheetForm() {
            </div>
          ))}
 
-         {/* Totals Section */}
          <div className="bg-gray-50 p-4 rounded-lg mt-4">
            <h3 className="font-bold mb-2">Totals</h3>
            <div className="grid grid-cols-3 gap-4">
@@ -267,7 +301,6 @@ export default function TimeSheetForm() {
            </div>
          </div>
 
-         {/* Add Row Button */}
          <div className="flex justify-center">
            <button
              type="button"
@@ -278,7 +311,6 @@ export default function TimeSheetForm() {
            </button>
          </div>
 
-         {/* Submit Button */}
          <div className="pt-4">
            <button
              type="submit"
