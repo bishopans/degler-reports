@@ -1,7 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { generatePDF, PDFDownloadButton } from '../../utils/pdfGenerator';
 
 export default function JobSiteProgressForm() {
   const [formData, setFormData] = useState({
@@ -9,26 +10,35 @@ export default function JobSiteProgressForm() {
     jobName: '',
     installerName: '',
     jobNumber: '',
-    equipment: '',  // Add this line
+    equipment: '',
     notes: '',
     estimatedCompletionDate: '',
     photos: [] as File[]
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    console.log(formData);
-    alert('Your report has been submitted');
-    setFormData({
-      date: '',
-      jobName: '',
-      installerName: '',
-      jobNumber: '',
-      equipment: '',  // Add this line
-      notes: '',
-      estimatedCompletionDate: '',
-      photos: []
-    });
+    try {
+      // Generate PDF
+      const filename = await generatePDF(formData, 'Job Site Progress');
+      console.log(`PDF generated and saved as: ${filename}`);
+      
+      // Reset form
+      setFormData({
+        date: '',
+        jobName: '',
+        installerName: '',
+        jobNumber: '',
+        equipment: '',
+        notes: '',
+        estimatedCompletionDate: '',
+        photos: []
+      });
+      alert('Job Site Progress report submitted successfully');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Error generating PDF. Please try again.');
+    }
   };
 
   return (
@@ -162,13 +172,17 @@ export default function JobSiteProgressForm() {
           </div>
 
           {/* Submit Button */}
-          <div className="pt-4">
+          <div className="flex space-x-4 mt-6">
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
+              className="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
             >
               Submit Report
             </button>
+            
+            <div className="inline-flex items-center">
+              <PDFDownloadButton formData={formData} title="Job Site Progress" />
+            </div>
           </div>
         </form>
       </div>
