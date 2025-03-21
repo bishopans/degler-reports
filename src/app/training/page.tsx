@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+
 
 const SignaturePad = dynamic(() => import('react-signature-canvas'), {
  ssr: false

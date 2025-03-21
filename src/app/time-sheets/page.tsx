@@ -2,7 +2,6 @@
 import React, { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { generatePDF, PDFDownloadButton } from '../../utils/pdfGenerator';
 
 interface TimeEntry {
   id: string;
@@ -131,19 +130,16 @@ export default function TimeSheetForm() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    try {
-      // Generate PDF
-      const filename = await generatePDF(formData, 'Time Sheet');
-      console.log(`PDF generated and saved as: ${filename}`);
-      
-      // Reset form
-      setFormData(initialFormData);
-      setReceiptPhotos([]);
-      alert('Time Sheet submitted successfully');
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Error generating PDF. Please try again.');
-    }
+    
+    // Log form data for debugging
+    console.log({...formData, receiptPhotos});
+    
+    // Reset form
+    setFormData(initialFormData);
+    setReceiptPhotos([]);
+    
+    // Show success message
+    alert('Time Sheet submitted successfully');
   };
 
   const totals = calculateTotals();
@@ -438,17 +434,13 @@ export default function TimeSheetForm() {
             </div>
           </div>
 
-          <div className="flex space-x-4 mt-6">
+          <div className="pt-4">
             <button
               type="submit"
-              className="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
             >
               Submit Time Sheet
             </button>
-            
-            <div className="inline-flex items-center">
-              <PDFDownloadButton formData={formData} title="Time Sheet" />
-            </div>
           </div>
         </form>
       </div>
