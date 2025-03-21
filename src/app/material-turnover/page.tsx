@@ -1,9 +1,8 @@
 'use client';
-import { useState, FormEvent } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import { generatePDF, PDFDownloadButton } from '../../utils/pdfGenerator';
 
 const SignaturePad = dynamic(() => import('react-signature-canvas'), {
  ssr: false
@@ -23,31 +22,24 @@ export default function MaterialTurnoverForm() {
    photos: [] as File[]
  });
 
- const handleSubmit = async (e: FormEvent) => {
+ const handleSubmit = async (e: React.FormEvent) => {
    e.preventDefault();
-   try {
-     // Generate PDF
-     const filename = await generatePDF(formData, 'Material Turnover');
-     console.log(`PDF generated and saved as: ${filename}`);
-     
-     // Reset form
-     setFormData({
-       date: '',
-       jobName: '',
-       installerName: '',
-       jobNumber: '',
-       turnoverItems: '',
-       recipientName: '',
-       recipientType: '',
-       otherSpecification: '',
-       signature: '',
-       photos: []
-     });
-     alert('Material Turnover report submitted successfully');
-   } catch (error) {
-     console.error('Error generating PDF:', error);
-     alert('Error generating PDF. Please try again.');
-   }
+   // Just log the data to console and show a success message
+   console.log(formData);
+   alert('Your report has been submitted');
+   // Reset form data
+   setFormData({
+     date: '',
+     jobName: '',
+     installerName: '',
+     jobNumber: '',
+     turnoverItems: '',
+     recipientName: '',
+     recipientType: '',
+     otherSpecification: '',
+     signature: '',
+     photos: []
+   });
  };
 
  return (
@@ -246,17 +238,13 @@ export default function MaterialTurnoverForm() {
          </div>
 
          {/* Submit Button */}
-         <div className="flex space-x-4 mt-6">
+         <div className="pt-4">
            <button
              type="submit"
-             className="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
+             className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
            >
              Submit Report
            </button>
-           
-           <div className="inline-flex items-center">
-             <PDFDownloadButton formData={formData} title="Material Turnover" />
-           </div>
          </div>
        </form>
      </div>
