@@ -1,7 +1,12 @@
-import type { NextConfig } from "next";
+import { compilerOptions } from './tsconfig.json'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
 
-const nextConfig: NextConfig = {
-  /* config options here */
-};
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
-export default nextConfig;
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+}
+
+export default nextConfig
