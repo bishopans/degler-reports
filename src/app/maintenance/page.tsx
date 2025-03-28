@@ -24,7 +24,7 @@ interface FormData {
   jobNumber: string;
   selectedEquipment: EquipmentType[];
   equipmentChecks: Record<EquipmentType, boolean[]>;
-  additionalRepairs: Record<EquipmentType, string>;
+  additionalRepairs: Record<EquipmentType | string, string>;
   equipmentTurnover: string;
   otherNotes: string;
   photos: File[];
@@ -164,10 +164,7 @@ const equipmentChecklists = {
     'Inspect all cables and pulleys and foundation structures for signs of fatigue',
     'Ensure equipment is safe for everyday use and operation under normal conditions'
   ],
-  'Other': [
-    'What equipment was serviced?',
-    'What tasks were performed?'
-  ]
+  'Other': [] // No checklist for Other, we'll use separate text fields
 };
 
 // Additional questions for outdoor bleachers
@@ -419,24 +416,26 @@ export default function MaintenanceForm() {
                   <div key={equipment} className="p-4 border rounded-lg bg-gray-50 space-y-4">
                     <h3 className="font-bold text-lg">{equipment} Checklist</h3>
                     
-                    <div className="space-y-2">
-                      {equipmentChecklists[equipment].map((item, index) => (
-                        <div key={index} className="flex items-start">
-                          <div className="flex-shrink-0 mt-0.5">
-                            <input 
-                              type="checkbox" 
-                              id={`${equipment}-checklist-${index}`} 
-                              checked={formData.equipmentChecks[equipment][index]}
-                              onChange={() => handleCheckboxChange(equipment, index)}
-                              className="h-4 w-4" 
-                            />
+                    {equipment !== 'Other' && (
+                      <div className="space-y-2">
+                        {equipmentChecklists[equipment].map((item, index) => (
+                          <div key={index} className="flex items-start">
+                            <div className="flex-shrink-0 mt-0.5">
+                              <input 
+                                type="checkbox" 
+                                id={`${equipment}-checklist-${index}`} 
+                                checked={formData.equipmentChecks[equipment][index]}
+                                onChange={() => handleCheckboxChange(equipment, index)}
+                                className="h-4 w-4" 
+                              />
+                            </div>
+                            <label htmlFor={`${equipment}-checklist-${index}`} className="ml-2 text-sm">
+                              {item}
+                            </label>
                           </div>
-                          <label htmlFor={`${equipment}-checklist-${index}`} className="ml-2 text-sm">
-                            {item}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                     
                     {equipment === 'Outdoor Bleachers/Grandstands' && (
                       <div className="mt-4 space-y-4">
@@ -502,21 +501,56 @@ export default function MaintenanceForm() {
                         </div>
                       </div>
                     )}
+                    
+                    {equipment === 'Other' && (
+                      <div className="mt-4 space-y-4">
+                        <div>
+                          <label className="block mb-1">What equipment was serviced?</label>
+                          <textarea
+                            value={formData.additionalRepairs['Other-Equipment'] || ''}
+                            onChange={(e) => handleAdditionalRepairsChange('Other-Equipment' as any, e.target.value)}
+                            onInput={(e) => handleTextAreaInput(e as React.ChangeEvent<HTMLTextAreaElement>, 'other-equipment')}
+                            className="w-full p-2 border rounded"
+                            style={{ 
+                              minHeight: '80px',
+                              height: textareaHeights['other-equipment'] ? `${textareaHeights['other-equipment']}px` : 'auto',
+                              resize: 'none'
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label className="block mb-1">What tasks were performed?</label>
+                          <textarea
+                            value={formData.additionalRepairs['Other-Tasks'] || ''}
+                            onChange={(e) => handleAdditionalRepairsChange('Other-Tasks' as any, e.target.value)}
+                            onInput={(e) => handleTextAreaInput(e as React.ChangeEvent<HTMLTextAreaElement>, 'other-tasks')}
+                            className="w-full p-2 border rounded"
+                            style={{ 
+                              minHeight: '80px',
+                              height: textareaHeights['other-tasks'] ? `${textareaHeights['other-tasks']}px` : 'auto',
+                              resize: 'none'
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
 
-                    <div>
-                      <label className="block mb-1">List any other repairs made and if any other parts are recommended:</label>
-                      <textarea
-                        value={formData.additionalRepairs[equipment]}
-                        onChange={(e) => handleAdditionalRepairsChange(equipment, e.target.value)}
-                        onInput={(e) => handleTextAreaInput(e as React.ChangeEvent<HTMLTextAreaElement>, `repairs-${equipment}`)}
-                        className="w-full p-2 border rounded"
-                        style={{ 
-                          minHeight: '100px',
-                          height: textareaHeights[`repairs-${equipment}`] ? `${textareaHeights[`repairs-${equipment}`]}px` : 'auto',
-                          resize: 'none'
-                        }}
-                      />
-                    </div>
+                    {equipment !== 'Other' && (
+                      <div>
+                        <label className="block mb-1">List any other repairs made and if any other parts are recommended:</label>
+                        <textarea
+                          value={formData.additionalRepairs[equipment]}
+                          onChange={(e) => handleAdditionalRepairsChange(equipment, e.target.value)}
+                          onInput={(e) => handleTextAreaInput(e as React.ChangeEvent<HTMLTextAreaElement>, `repairs-${equipment}`)}
+                          className="w-full p-2 border rounded"
+                          style={{ 
+                            minHeight: '100px',
+                            height: textareaHeights[`repairs-${equipment}`] ? `${textareaHeights[`repairs-${equipment}`]}px` : 'auto',
+                            resize: 'none'
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
