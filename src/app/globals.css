@@ -1,4 +1,4 @@
-/* Preserve your original content */
+/* Enhanced styles to fix layout issues for ALL pages */
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -15,32 +15,301 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
 }
 
-/* Mobile optimizations */
-@media (max-width: 768px) {
-  /* Reduce font sizes on mobile */
-  .text-xl {
-    font-size: 1rem !important;
+/* Layout styles */
+.min-h-screen { min-height: 100vh; }
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.flex-row { flex-direction: row; }
+.flex-wrap { flex-wrap: wrap; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.justify-start { justify-content: flex-start; }
+.p-6 { padding: 1.5rem; }
+.p-8 { padding: 2rem; }
+.p-4 { padding: 1rem; }
+.p-2 { padding: 0.5rem; }
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.pt-4 { padding-top: 1rem; }
+.pb-6 { padding-bottom: 1.5rem; }
+
+/* Text styles */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.font-bold { font-weight: bold; }
+.font-medium { font-weight: 500; }
+.text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+.text-2xl { font-size: 1.5rem; line-height: 2rem; }
+.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.text-xs { font-size: 0.75rem; line-height: 1rem; }
+.text-black { color: black; }
+.text-white { color: white; }
+.text-gray-500 { color: #6b7280; }
+.text-gray-600 { color: #4b5563; }
+.text-blue-600 { color: #2563eb; }
+.text-blue-800 { color: #1e40af; }
+.text-red-500 { color: #ef4444; }
+.text-green-600 { color: #16a34a; }
+
+/* Spacing */
+.m-2 { margin: 0.5rem; }
+.m-4 { margin: 1rem; }
+.mb-8 { margin-bottom: 2rem; }
+.mb-12 { margin-bottom: 3rem; }
+.mb-6 { margin-bottom: 1.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-1 { margin-bottom: 0.25rem; }
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-4 { margin-top: 1rem; }
+.mr-2 { margin-right: 0.5rem; }
+.ml-2 { margin-left: 0.5rem; }
+.gap-6 { gap: 1.5rem; }
+.gap-4 { gap: 1rem; }
+.gap-2 { gap: 0.5rem; }
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+.space-y-2 > * + * { margin-top: 0.5rem; }
+.space-x-4 > * + * { margin-left: 1rem; }
+.space-x-2 > * + * { margin-left: 0.5rem; }
+
+/* Dimensions */
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.max-w-5xl { max-width: 64rem; }
+.max-w-3xl { max-width: 48rem; }
+.max-w-2xl { max-width: 42rem; }
+.max-w-md { max-width: 28rem; }
+.h-40 { height: 10rem; }
+.h-4 { height: 1rem; }
+.h-5 { height: 1.25rem; }
+.h-6 { height: 1.5rem; }
+.w-4 { width: 1rem; }
+.w-5 { width: 1.25rem; }
+.w-6 { width: 1.5rem; }
+
+/* Special widths */
+.w-\[300px\] { width: 300px; }
+.w-\[100px\] { width: 100px; }
+
+/* Special min-heights */
+.min-h-\[100px\] { min-height: 100px; }
+.min-h-\[80px\] { min-height: 80px; }
+.min-h-\[150px\] { min-height: 150px; }
+
+/* Grid */
+.grid { display: grid; grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (min-width: 640px) {
+  .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 768px) {
+  .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+  .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* Components */
+.bg-white { background-color: white; }
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-gray-100 { background-color: #f3f4f6; }
+.bg-blue-50 { background-color: #eff6ff; }
+.bg-blue-100 { background-color: #dbeafe; }
+.bg-blue-500 { background-color: #3b82f6; }
+.bg-blue-600 { background-color: #2563eb; }
+.bg-blue-700 { background-color: #1d4ed8; }
+.bg-red-100 { background-color: #fee2e2; }
+.bg-red-500 { background-color: #ef4444; }
+.bg-red-600 { background-color: #dc2626; }
+.bg-green-500 { background-color: #22c55e; }
+.bg-green-600 { background-color: #16a34a; }
+
+.rounded { border-radius: 0.25rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-full { border-radius: 9999px; }
+.shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+.shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+.border { border-width: 1px; border-style: solid; border-color: #e5e7eb; }
+.border-2 { border-width: 2px; border-style: solid; border-color: #e5e7eb; }
+.border-blue-500 { border-color: #3b82f6; }
+.border-dashed { border-style: dashed; }
+.border-t { border-top-width: 1px; border-top-style: solid; border-color: #e5e7eb; }
+.border-b { border-bottom-width: 1px; border-bottom-style: solid; border-color: #e5e7eb; }
+
+/* Form elements */
+input, textarea, select {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.25rem;
+  padding: 0.5rem;
+  width: 100%;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+input[type="checkbox"], input[type="radio"] {
+  width: auto;
+  margin-right: 0.5rem;
+}
+
+label {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 0.25rem;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+}
+
+.hidden {
+  display: none;
+}
+
+/* Interactions */
+.hover\:bg-blue-50:hover { background-color: #eff6ff; }
+.hover\:bg-blue-700:hover { background-color: #1d4ed8; }
+.hover\:bg-blue-600:hover { background-color: #2563eb; }
+.hover\:bg-gray-50:hover { background-color: #f9fafb; }
+.hover\:bg-gray-100:hover { background-color: #f3f4f6; }
+.hover\:bg-red-700:hover { background-color: #b91c1c; }
+.hover\:shadow-md:hover { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+.hover\:text-blue-800:hover { color: #1e40af; }
+.hover\:text-red-700:hover { color: #b91c1c; }
+.disabled\:opacity-50:disabled { opacity: 0.5; }
+.transition-colors { transition-property: background-color, border-color, color, fill, stroke; transition-duration: 150ms; }
+.transition-all { transition-property: all; transition-duration: 150ms; }
+
+/* Links */
+a { color: inherit; text-decoration: none; }
+a.inline-block { display: inline-block; }
+
+/* Aspect ratio */
+.aspect-square { aspect-ratio: 1 / 1; }
+
+/* Positioning */
+.relative { position: relative; }
+.absolute { position: absolute; }
+.inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+.top-0 { top: 0; }
+.left-0 { left: 0; }
+.-top-2 { top: -0.5rem; }
+.-right-2 { right: -0.5rem; }
+
+/* Add these additional rules to ensure proper centering and responsive behavior */
+
+/* Container centering */
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Improved flex centering */
+.flex.items-center.justify-center {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Better form element layout */
+form.space-y-6 > * {
+  margin-bottom: 1.5rem;
+}
+
+/* Enhanced responsive classes */
+@media (max-width: 640px) {
+  .p-6 { padding: 1rem; }
+  .p-8 { padding: 1rem; }
+  .gap-6 { gap: 0.75rem; }
+  .min-h-\[100px\] { min-height: 80px; }
+  .w-\[300px\] { width: 200px; }
+  .text-3xl { font-size: 1.5rem; }
+  .text-xl { font-size: 1rem; }
+  .mb-12 { margin-bottom: 2rem; }
+}
+
+/* Ensure form fields stack properly on mobile */
+@media (max-width: 640px) {
+  .grid-cols-2 {
+    grid-template-columns: 1fr;
   }
   
-  /* Ensure form labels are visible */
-  label, input, textarea {
-    color: #333 !important;
+  .grid-cols-2 > * {
+    margin-bottom: 1rem;
   }
-  
-  /* Reduce padding on mobile */
-  .p-8 {
-    padding: 1rem !important;
+}
+
+/* Better button alignment on mobile */
+@media (max-width: 640px) {
+  .flex.items-center.justify-center {
+    padding: 0.75rem;
   }
-  
-  /* Improve button sizing on mobile */
-  .min-h-\[100px\] {
-    min-height: 80px !important;
-  }
-  
-  /* Make sure input fields are easier to tap and see */
-  input, textarea, select {
-    font-size: 16px !important; /* Prevents iOS zoom on focus */
-  }
+}
+
+/* Explicit positioning for absolutely positioned elements */
+.absolute.-top-2.-right-2 {
+  top: -0.5rem;
+  right: -0.5rem;
+}
+
+/* Fix for flex children sometimes not behaving correctly */
+.flex > * {
+  min-width: 0;
+}
+
+/* Improved image handling */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Object fit */
+.object-cover { object-fit: cover; }
+
+/* Overflow */
+.overflow-hidden { overflow: hidden; }
+.overflow-y-auto { overflow-y: auto; }
+.overflow-x-auto { overflow-x: auto; }
+
+/* Special utilities */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Fix for text fields */
+input, select, textarea {
+  color: black;
+}
+
+/* Fixed z-index for modals */
+.z-50 { z-index: 50; }
+
+/* Text resizing */
+textarea {
+  resize: none;
 }
