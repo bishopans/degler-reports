@@ -528,6 +528,20 @@ export default function MaintenanceForm() {
                             }}
                           />
                         </div>
+                        <div>
+                          <label className="block mb-1">List any other repairs made and if any other parts are recommended:</label>
+                          <textarea
+                            value={formData.additionalRepairs['Other'] || ''}
+                            onChange={(e) => handleAdditionalRepairsChange('Other', e.target.value)}
+                            onInput={(e) => handleTextAreaInput(e as React.ChangeEvent<HTMLTextAreaElement>, 'other-repairs')}
+                            className="w-full p-2 border rounded"
+                            style={{ 
+                              minHeight: '100px',
+                              height: textareaHeights['other-repairs'] ? `${textareaHeights['other-repairs']}px` : 'auto',
+                              resize: 'none'
+                            }}
+                          />
+                        </div>
                       </div>
                     )}
 
