@@ -72,10 +72,10 @@ export default function Home() {
        </Link>
 
        <Link 
-         href="/other" 
+         href="/accident" 
          className="p-8 border-2 rounded-lg hover:bg-blue-50 text-center shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[100px]"
        >
-         Other
+         Accident/Incident
        </Link>
      </div>
    </div>
