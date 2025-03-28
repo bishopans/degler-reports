@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -274,7 +274,7 @@ export default function MaintenanceForm() {
   };
 
   // Handle additional repairs text change
-  const handleAdditionalRepairsChange = (equipment: EquipmentType, value: string) => {
+  const handleAdditionalRepairsChange = (equipment: EquipmentType | string, value: string) => {
     setFormData(prev => {
       const newAdditionalRepairs = {...prev.additionalRepairs};
       newAdditionalRepairs[equipment] = value;
@@ -387,11 +387,7 @@ export default function MaintenanceForm() {
               <label className="block mb-2 font-medium">Select Equipment Type(s):</label>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {(Object.keys(equipmentChecklists) as EquipmentType[]).map((equipment) => {
-                  // Find the longest equipment name to calculate min height
-                  const longestName = Object.keys(equipmentChecklists).reduce((a, b) => 
-                    a.length > b.length ? a : b
-                  );
-                  
+                  // Button height calculation
                   return (
                     <button
                       key={equipment}
@@ -508,7 +504,7 @@ export default function MaintenanceForm() {
                           <label className="block mb-1">What equipment was serviced?</label>
                           <textarea
                             value={formData.additionalRepairs['Other-Equipment'] || ''}
-                            onChange={(e) => handleAdditionalRepairsChange('Other-Equipment' as any, e.target.value)}
+                            onChange={(e) => handleAdditionalRepairsChange('Other-Equipment', e.target.value)}
                             onInput={(e) => handleTextAreaInput(e as React.ChangeEvent<HTMLTextAreaElement>, 'other-equipment')}
                             className="w-full p-2 border rounded"
                             style={{ 
@@ -522,7 +518,7 @@ export default function MaintenanceForm() {
                           <label className="block mb-1">What tasks were performed?</label>
                           <textarea
                             value={formData.additionalRepairs['Other-Tasks'] || ''}
-                            onChange={(e) => handleAdditionalRepairsChange('Other-Tasks' as any, e.target.value)}
+                            onChange={(e) => handleAdditionalRepairsChange('Other-Tasks', e.target.value)}
                             onInput={(e) => handleTextAreaInput(e as React.ChangeEvent<HTMLTextAreaElement>, 'other-tasks')}
                             className="w-full p-2 border rounded"
                             style={{ 
