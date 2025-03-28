@@ -1,7 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
+/* Preserve your original content */
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -18,4 +15,32 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  /* Reduce font sizes on mobile */
+  .text-xl {
+    font-size: 1rem !important;
+  }
+  
+  /* Ensure form labels are visible */
+  label, input, textarea {
+    color: #333 !important;
+  }
+  
+  /* Reduce padding on mobile */
+  .p-8 {
+    padding: 1rem !important;
+  }
+  
+  /* Improve button sizing on mobile */
+  .min-h-\[100px\] {
+    min-height: 80px !important;
+  }
+  
+  /* Make sure input fields are easier to tap and see */
+  input, textarea, select {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
 }
