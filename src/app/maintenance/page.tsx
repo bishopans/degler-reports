@@ -24,7 +24,7 @@ interface FormData {
   jobNumber: string;
   selectedEquipment: EquipmentType[];
   equipmentChecks: Record<EquipmentType, boolean[]>;
-  additionalRepairs: Record<EquipmentType | string, string>;
+  additionalRepairs: Record<string, string>;
   equipmentTurnover: string;
   otherNotes: string;
   photos: File[];
@@ -183,7 +183,7 @@ export default function MaintenanceForm() {
     const equipmentTypes = Object.keys(equipmentChecklists) as EquipmentType[];
     
     const initialEquipmentChecks: Record<EquipmentType, boolean[]> = {} as Record<EquipmentType, boolean[]>;
-    const initialAdditionalRepairs: Record<EquipmentType, string> = {} as Record<EquipmentType, string>;
+    const initialAdditionalRepairs: Record<string, string> = {};
     
     equipmentTypes.forEach(type => {
       initialEquipmentChecks[type] = Array(equipmentChecklists[type].length).fill(true);
@@ -274,10 +274,10 @@ export default function MaintenanceForm() {
   };
 
   // Handle additional repairs text change
-  const handleAdditionalRepairsChange = (equipment: EquipmentType | string, value: string) => {
+  const handleAdditionalRepairsChange = (key: string, value: string) => {
     setFormData(prev => {
       const newAdditionalRepairs = {...prev.additionalRepairs};
-      newAdditionalRepairs[equipment] = value;
+      newAdditionalRepairs[key] = value;
       
       return {
         ...prev,
@@ -386,23 +386,20 @@ export default function MaintenanceForm() {
             <div>
               <label className="block mb-2 font-medium">Select Equipment Type(s):</label>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {(Object.keys(equipmentChecklists) as EquipmentType[]).map((equipment) => {
-                  // Button height calculation
-                  return (
-                    <button
-                      key={equipment}
-                      type="button"
-                      onClick={() => toggleEquipmentSelection(equipment)}
-                      className={`p-4 border-2 rounded-lg text-center flex items-center justify-center min-h-[4rem] ${
-                        formData.selectedEquipment.includes(equipment)
-                          ? 'bg-blue-100 border-blue-500'
-                          : 'hover:bg-gray-50'
-                      }`}
-                    >
-                      <span>{equipment}</span>
-                    </button>
-                  );
-                })}
+                {(Object.keys(equipmentChecklists) as EquipmentType[]).map((equipment) => (
+                  <button
+                    key={equipment}
+                    type="button"
+                    onClick={() => toggleEquipmentSelection(equipment)}
+                    className={`p-4 border-2 rounded-lg text-center flex items-center justify-center min-h-[4rem] ${
+                      formData.selectedEquipment.includes(equipment)
+                        ? 'bg-blue-100 border-blue-500'
+                        : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    <span>{equipment}</span>
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -502,7 +499,7 @@ export default function MaintenanceForm() {
                       <div className="mt-4 space-y-4">
                         <div>
                           <label className="block mb-1">What equipment was serviced?</label>
-                          <textarea
+                                                      <textarea
                             value={formData.additionalRepairs['Other-Equipment'] || ''}
                             onChange={(e) => handleAdditionalRepairsChange('Other-Equipment', e.target.value)}
                             onInput={(e) => handleTextAreaInput(e as React.ChangeEvent<HTMLTextAreaElement>, 'other-equipment')}
@@ -516,7 +513,7 @@ export default function MaintenanceForm() {
                         </div>
                         <div>
                           <label className="block mb-1">What tasks were performed?</label>
-                          <textarea
+                                                      <textarea
                             value={formData.additionalRepairs['Other-Tasks'] || ''}
                             onChange={(e) => handleAdditionalRepairsChange('Other-Tasks', e.target.value)}
                             onInput={(e) => handleTextAreaInput(e as React.ChangeEvent<HTMLTextAreaElement>, 'other-tasks')}
@@ -530,7 +527,7 @@ export default function MaintenanceForm() {
                         </div>
                         <div>
                           <label className="block mb-1">List any other repairs made and if any other parts are recommended:</label>
-                          <textarea
+                                                      <textarea
                             value={formData.additionalRepairs['Other'] || ''}
                             onChange={(e) => handleAdditionalRepairsChange('Other', e.target.value)}
                             onInput={(e) => handleTextAreaInput(e as React.ChangeEvent<HTMLTextAreaElement>, 'other-repairs')}
@@ -549,7 +546,7 @@ export default function MaintenanceForm() {
                       <div>
                         <label className="block mb-1">List any other repairs made and if any other parts are recommended:</label>
                         <textarea
-                          value={formData.additionalRepairs[equipment]}
+                          value={formData.additionalRepairs[equipment] || ''}
                           onChange={(e) => handleAdditionalRepairsChange(equipment, e.target.value)}
                           onInput={(e) => handleTextAreaInput(e as React.ChangeEvent<HTMLTextAreaElement>, `repairs-${equipment}`)}
                           className="w-full p-2 border rounded"
