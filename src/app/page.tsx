@@ -23,7 +23,7 @@ export default function Home() {
          href="/maintenance" 
          className="p-8 border-2 rounded-lg hover:bg-blue-50 text-center shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[100px]"
        >
-         <div className="text-center">
+         <div className="text-center text-xl font-medium">
            <div>Preventative Maintenance</div>
            <div>/Inspection</div>
          </div>
@@ -33,56 +33,56 @@ export default function Home() {
          href="/repair" 
          className="p-8 border-2 rounded-lg hover:bg-blue-50 text-center shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[100px]"
        >
-         Repair
+         <span className="text-xl font-medium">Repair</span>
        </Link>
        
        <Link 
          href="/material-delivery" 
          className="p-8 border-2 rounded-lg hover:bg-blue-50 text-center shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[100px]"
        >
-         Material Delivery
+         <span className="text-xl font-medium">Material Delivery</span>
        </Link>
        
        <Link 
          href="/material-turnover" 
          className="p-8 border-2 rounded-lg hover:bg-blue-50 text-center shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[100px]"
        >
-         Material Turnover
+         <span className="text-xl font-medium">Material Turnover</span>
        </Link>
        
        <Link 
          href="/training" 
          className="p-8 border-2 rounded-lg hover:bg-blue-50 text-center shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[100px]"
        >
-         Training
+         <span className="text-xl font-medium">Training</span>
        </Link>
 
        <Link 
          href="/jobsite-progress" 
          className="p-8 border-2 rounded-lg hover:bg-blue-50 text-center shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[100px]"
        >
-         Job Site Progress
+         <span className="text-xl font-medium">Job Site Progress</span>
        </Link>
 
        <Link 
          href="/time-sheets" 
          className="p-8 border-2 rounded-lg hover:bg-blue-50 text-center shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[100px]"
        >
-         Time Sheets
+         <span className="text-xl font-medium">Time Sheets</span>
        </Link>
 
        <Link 
          href="/accident" 
          className="p-8 border-2 rounded-lg hover:bg-blue-50 text-center shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[100px]"
        >
-         Accident/Incident
+         <span className="text-xl font-medium">Accident/Incident</span>
        </Link>
-
+       
        <Link 
          href="/photo-upload" 
          className="p-8 border-2 rounded-lg hover:bg-blue-50 text-center shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[100px]"
        >
-         Photo Upload
+         <span className="text-xl font-medium">Photo Upload</span>
        </Link>
      </div>
    </div>
