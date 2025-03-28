@@ -148,7 +148,7 @@ export default function IncidentReportForm() {
               <h2 className="text-lg font-medium mb-4">Report Information</h2>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block mb-1">Today's Date</label>
+                  <label className="block mb-1">Today&apos;s Date</label>
                   <input
                     type="date"
                     value={formData.date}
