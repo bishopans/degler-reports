@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -22,24 +22,22 @@ interface FormData {
   jobName: string;
   technicianName: string;
   jobNumber: string;
-  selectedEquipment: EquipmentType | null;
-  additionalRepairs: string;
+  selectedEquipment: EquipmentType[];
+  equipmentChecks: Record<EquipmentType, boolean[]>;
+  additionalRepairs: Record<EquipmentType, string>;
   equipmentTurnover: string;
   otherNotes: string;
   photos: File[];
 }
 
-const initialFormData: FormData = {
-  date: '',
-  jobName: '',
-  technicianName: '',
-  jobNumber: '',
-  selectedEquipment: null,
-  additionalRepairs: '',
-  equipmentTurnover: '',
-  otherNotes: '',
-  photos: []
-};
+interface OutdoorBleacherData {
+  location: string;
+  manufacturer: string;
+  height: string;
+  length: string;
+  meetCode: string;
+  codeIssues: string;
+}
 
 // Equipment checklists
 const equipmentChecklists = {
@@ -183,22 +181,124 @@ const outdoorBleacherQuestions = [
 ];
 
 export default function MaintenanceForm() {
-  const [formData, setFormData] = useState<FormData>(initialFormData);
-  const [outdoorBleacherAnswers, setOutdoorBleacherAnswers] = useState<string[]>(Array(outdoorBleacherQuestions.length).fill(''));
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  // Initialize form data
+  const createInitialFormData = (): FormData => {
+    const equipmentTypes = Object.keys(equipmentChecklists) as EquipmentType[];
+    
+    const initialEquipmentChecks: Record<EquipmentType, boolean[]> = {} as Record<EquipmentType, boolean[]>;
+    const initialAdditionalRepairs: Record<EquipmentType, string> = {} as Record<EquipmentType, string>;
+    
+    equipmentTypes.forEach(type => {
+      initialEquipmentChecks[type] = Array(equipmentChecklists[type].length).fill(true);
+      initialAdditionalRepairs[type] = '';
+    });
+    
+    return {
+      date: '',
+      jobName: '',
+      technicianName: '',
+      jobNumber: '',
+      selectedEquipment: [],
+      equipmentChecks: initialEquipmentChecks,
+      additionalRepairs: initialAdditionalRepairs,
+      equipmentTurnover: '',
+      otherNotes: '',
+      photos: []
+    };
+  };
 
+  const [formData, setFormData] = useState<FormData>(createInitialFormData);
+  const [outdoorBleacherData, setOutdoorBleacherData] = useState<OutdoorBleacherData>({
+    location: '',
+    manufacturer: '',
+    height: '',
+    length: '',
+    meetCode: '',
+    codeIssues: ''
+  });
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [textareaHeights, setTextareaHeights] = useState<Record<string, number>>({});
+
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log('Form data:', formData);
-    console.log('Outdoor bleacher answers:', outdoorBleacherAnswers);
+    console.log('Outdoor bleacher data:', outdoorBleacherData);
     
     // Display success message
     alert('Your report has been submitted successfully');
     
     // Reset form
-    setFormData(initialFormData);
-    setOutdoorBleacherAnswers(Array(outdoorBleacherQuestions.length).fill(''));
+    setFormData(createInitialFormData);
+    setOutdoorBleacherData({
+      location: '',
+      manufacturer: '',
+      height: '',
+      length: '',
+      meetCode: '',
+      codeIssues: ''
+    });
     setIsSubmitted(true);
+  };
+
+  // Toggle equipment selection
+  const toggleEquipmentSelection = (equipment: EquipmentType) => {
+    setFormData(prev => {
+      const isSelected = prev.selectedEquipment.includes(equipment);
+      
+      if (isSelected) {
+        // Remove from selection
+        return {
+          ...prev,
+          selectedEquipment: prev.selectedEquipment.filter(e => e !== equipment)
+        };
+      } else {
+        // Add to selection
+        return {
+          ...prev,
+          selectedEquipment: [...prev.selectedEquipment, equipment]
+        };
+      }
+    });
+  };
+
+  // Handle checkbox change
+  const handleCheckboxChange = (equipment: EquipmentType, index: number) => {
+    setFormData(prev => {
+      const newChecks = {...prev.equipmentChecks};
+      newChecks[equipment] = [...newChecks[equipment]];
+      newChecks[equipment][index] = !newChecks[equipment][index];
+      
+      return {
+        ...prev,
+        equipmentChecks: newChecks
+      };
+    });
+  };
+
+  // Handle additional repairs text change
+  const handleAdditionalRepairsChange = (equipment: EquipmentType, value: string) => {
+    setFormData(prev => {
+      const newAdditionalRepairs = {...prev.additionalRepairs};
+      newAdditionalRepairs[equipment] = value;
+      
+      return {
+        ...prev,
+        additionalRepairs: newAdditionalRepairs
+      };
+    });
+  };
+
+  // Auto-resize textarea
+  const handleTextAreaInput = (e: React.ChangeEvent<HTMLTextAreaElement>, id: string) => {
+    const textarea = e.target;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
+    
+    setTextareaHeights(prev => ({
+      ...prev,
+      [id]: textarea.scrollHeight
+    }));
   };
 
   return (
@@ -287,81 +387,138 @@ export default function MaintenanceForm() {
             </div>
 
             <div>
-              <label className="block mb-2 font-medium">Select Equipment Type:</label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {(Object.keys(equipmentChecklists) as EquipmentType[]).map((equipment) => (
-                  <button
-                    key={equipment}
-                    type="button"
-                    onClick={() => setFormData(prev => ({
-                      ...prev,
-                      selectedEquipment: equipment
-                    }))}
-                    className={`p-4 border-2 rounded-lg text-left ${
-                      formData.selectedEquipment === equipment
-                        ? 'bg-blue-100 border-blue-500'
-                        : 'hover:bg-gray-50'
-                    }`}
-                  >
-                    {equipment}
-                  </button>
-                ))}
+              <label className="block mb-2 font-medium">Select Equipment Type(s):</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(Object.keys(equipmentChecklists) as EquipmentType[]).map((equipment) => {
+                  // Find the longest equipment name to calculate min height
+                  const longestName = Object.keys(equipmentChecklists).reduce((a, b) => 
+                    a.length > b.length ? a : b
+                  );
+                  
+                  return (
+                    <button
+                      key={equipment}
+                      type="button"
+                      onClick={() => toggleEquipmentSelection(equipment)}
+                      className={`p-4 border-2 rounded-lg text-center flex items-center justify-center min-h-[4rem] ${
+                        formData.selectedEquipment.includes(equipment)
+                          ? 'bg-blue-100 border-blue-500'
+                          : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      <span>{equipment}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {formData.selectedEquipment && (
-              <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
-                <h3 className="font-bold text-lg">{formData.selectedEquipment} Checklist</h3>
-                
-                <div className="space-y-2">
-                  {equipmentChecklists[formData.selectedEquipment].map((item, index) => (
-                    <div key={index} className="flex items-start">
-                      <div className="flex-shrink-0 mt-0.5">
-                        <input 
-                          type="checkbox" 
-                          id={`checklist-${index}`} 
-                          checked={true}
-                          readOnly
-                          className="h-4 w-4" 
-                        />
-                      </div>
-                      <label htmlFor={`checklist-${index}`} className="ml-2 text-sm">
-                        {item}
-                      </label>
+            {formData.selectedEquipment.length > 0 && (
+              <div className="space-y-8">
+                {formData.selectedEquipment.map((equipment) => (
+                  <div key={equipment} className="p-4 border rounded-lg bg-gray-50 space-y-4">
+                    <h3 className="font-bold text-lg">{equipment} Checklist</h3>
+                    
+                    <div className="space-y-2">
+                      {equipmentChecklists[equipment].map((item, index) => (
+                        <div key={index} className="flex items-start">
+                          <div className="flex-shrink-0 mt-0.5">
+                            <input 
+                              type="checkbox" 
+                              id={`${equipment}-checklist-${index}`} 
+                              checked={formData.equipmentChecks[equipment][index]}
+                              onChange={() => handleCheckboxChange(equipment, index)}
+                              className="h-4 w-4" 
+                            />
+                          </div>
+                          <label htmlFor={`${equipment}-checklist-${index}`} className="ml-2 text-sm">
+                            {item}
+                          </label>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-                
-                {formData.selectedEquipment === 'Outdoor Bleachers/Grandstands' && (
-                  <div className="mt-4 space-y-4">
-                    <h4 className="font-medium">Additional Information:</h4>
-                    {outdoorBleacherQuestions.map((question, index) => (
-                      <div key={index}>
-                        <label className="block mb-1">{question}</label>
-                        <input
-                          type="text"
-                          value={outdoorBleacherAnswers[index]}
-                          onChange={(e) => {
-                            const newAnswers = [...outdoorBleacherAnswers];
-                            newAnswers[index] = e.target.value;
-                            setOutdoorBleacherAnswers(newAnswers);
-                          }}
-                          className="w-full p-2 border rounded"
-                        />
+                    
+                    {equipment === 'Outdoor Bleachers/Grandstands' && (
+                      <div className="mt-4 space-y-4">
+                        <h4 className="font-medium">Additional Information:</h4>
+                        <div>
+                          <label className="block mb-1">{outdoorBleacherQuestions[0]}</label>
+                          <input
+                            type="text"
+                            value={outdoorBleacherData.location}
+                            onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, location: e.target.value})}
+                            className="w-full p-2 border rounded"
+                          />
+                        </div>
+                        <div>
+                          <label className="block mb-1">{outdoorBleacherQuestions[1]}</label>
+                          <input
+                            type="text"
+                            value={outdoorBleacherData.manufacturer}
+                            onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, manufacturer: e.target.value})}
+                            className="w-full p-2 border rounded"
+                          />
+                        </div>
+                        <div>
+                          <label className="block mb-1">{outdoorBleacherQuestions[2]}</label>
+                          <input
+                            type="text"
+                            value={outdoorBleacherData.height}
+                            onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, height: e.target.value})}
+                            className="w-full p-2 border rounded"
+                          />
+                        </div>
+                        <div>
+                          <label className="block mb-1">{outdoorBleacherQuestions[3]}</label>
+                          <input
+                            type="text"
+                            value={outdoorBleacherData.length}
+                            onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, length: e.target.value})}
+                            className="w-full p-2 border rounded"
+                          />
+                        </div>
+                        <div>
+                          <label className="block mb-1">{outdoorBleacherQuestions[4]}</label>
+                          <input
+                            type="text"
+                            value={outdoorBleacherData.meetCode}
+                            onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, meetCode: e.target.value})}
+                            className="w-full p-2 border rounded"
+                          />
+                        </div>
+                        <div>
+                          <label className="block mb-1">{outdoorBleacherQuestions[5]}</label>
+                          <textarea
+                            value={outdoorBleacherData.codeIssues}
+                            onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, codeIssues: e.target.value})}
+                            onInput={(e) => handleTextAreaInput(e as React.ChangeEvent<HTMLTextAreaElement>, 'outdoor-code-issues')}
+                            className="w-full p-2 border rounded"
+                            style={{ 
+                              minHeight: '80px',
+                              height: textareaHeights['outdoor-code-issues'] ? `${textareaHeights['outdoor-code-issues']}px` : 'auto',
+                              resize: 'none'
+                            }}
+                          />
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    )}
 
-                <div>
-                  <label className="block mb-1">List any other repairs made and if any other parts are recommended:</label>
-                  <textarea
-                    value={formData.additionalRepairs}
-                    onChange={e => setFormData({...formData, additionalRepairs: e.target.value})}
-                    className="w-full p-2 border rounded min-h-[100px]"
-                    placeholder="Detail any repairs made or parts recommended..."
-                  />
-                </div>
+                    <div>
+                      <label className="block mb-1">List any other repairs made and if any other parts are recommended:</label>
+                      <textarea
+                        value={formData.additionalRepairs[equipment]}
+                        onChange={(e) => handleAdditionalRepairsChange(equipment, e.target.value)}
+                        onInput={(e) => handleTextAreaInput(e as React.ChangeEvent<HTMLTextAreaElement>, `repairs-${equipment}`)}
+                        className="w-full p-2 border rounded"
+                        style={{ 
+                          minHeight: '100px',
+                          height: textareaHeights[`repairs-${equipment}`] ? `${textareaHeights[`repairs-${equipment}`]}px` : 'auto',
+                          resize: 'none'
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -374,7 +531,13 @@ export default function MaintenanceForm() {
               <textarea
                 value={formData.equipmentTurnover}
                 onChange={e => setFormData({...formData, equipmentTurnover: e.target.value})}
-                className="w-full p-2 border rounded min-h-[80px]"
+                onInput={(e) => handleTextAreaInput(e as React.ChangeEvent<HTMLTextAreaElement>, 'equipment-turnover')}
+                className="w-full p-2 border rounded"
+                style={{ 
+                  minHeight: '80px',
+                  height: textareaHeights['equipment-turnover'] ? `${textareaHeights['equipment-turnover']}px` : 'auto',
+                  resize: 'none'
+                }}
                 placeholder="Describe any equipment left and with whom..."
               />
             </div>
@@ -384,7 +547,13 @@ export default function MaintenanceForm() {
               <textarea
                 value={formData.otherNotes}
                 onChange={e => setFormData({...formData, otherNotes: e.target.value})}
-                className="w-full p-2 border rounded min-h-[100px]"
+                onInput={(e) => handleTextAreaInput(e as React.ChangeEvent<HTMLTextAreaElement>, 'other-notes')}
+                className="w-full p-2 border rounded"
+                style={{ 
+                  minHeight: '100px',
+                  height: textareaHeights['other-notes'] ? `${textareaHeights['other-notes']}px` : 'auto',
+                  resize: 'none'
+                }}
                 placeholder="Enter any additional notes or observations..."
               />
             </div>
