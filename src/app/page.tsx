@@ -77,6 +77,13 @@ export default function Home() {
        >
          Accident/Incident
        </Link>
+
+       <Link 
+         href="/photo-upload" 
+         className="p-8 border-2 rounded-lg hover:bg-blue-50 text-center shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[100px]"
+       >
+         Photo Upload
+       </Link>
      </div>
    </div>
  );
