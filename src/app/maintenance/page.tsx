@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
+// Define equipment types
 type EquipmentType = 
   | 'Backstops' 
   | 'Bleachers' 
@@ -17,19 +18,21 @@ type EquipmentType =
   | 'Climbing Ropes/Volleyball/Gymnastics'
   | 'Other';
 
+// Form data interface
 interface FormData {
   date: string;
   jobName: string;
   technicianName: string;
   jobNumber: string;
   selectedEquipment: EquipmentType[];
-  equipmentChecks: Record<EquipmentType, boolean[]>;
+  equipmentChecks: Record<string, boolean[]>;
   additionalRepairs: Record<string, string>;
   equipmentTurnover: string;
   otherNotes: string;
   photos: File[];
 }
 
+// Outdoor bleacher data interface
 interface OutdoorBleacherData {
   location: string;
   manufacturer: string;
@@ -40,7 +43,7 @@ interface OutdoorBleacherData {
 }
 
 // Equipment checklists
-const equipmentChecklists = {
+const equipmentChecklists: Record<string, string[]> = {
   'Backstops': [
     'Inspect and tighten all building point attachments and fasteners',
     'Inspect and tighten all integral connections',
@@ -164,7 +167,7 @@ const equipmentChecklists = {
     'Inspect all cables and pulleys and foundation structures for signs of fatigue',
     'Ensure equipment is safe for everyday use and operation under normal conditions'
   ],
-  'Other': [] // No checklist for Other, we'll use separate text fields
+  'Other': [] // No checklist for Other, using separate text fields
 };
 
 // Additional questions for outdoor bleachers
@@ -182,7 +185,7 @@ export default function MaintenanceForm() {
   const createInitialFormData = (): FormData => {
     const equipmentTypes = Object.keys(equipmentChecklists) as EquipmentType[];
     
-    const initialEquipmentChecks: Record<EquipmentType, boolean[]> = {} as Record<EquipmentType, boolean[]>;
+    const initialEquipmentChecks: Record<string, boolean[]> = {};
     const initialAdditionalRepairs: Record<string, string> = {};
     
     equipmentTypes.forEach(type => {
@@ -217,7 +220,7 @@ export default function MaintenanceForm() {
   const [textareaHeights, setTextareaHeights] = useState<Record<string, number>>({});
 
   // Handle form submission
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log('Form data:', formData);
     console.log('Outdoor bleacher data:', outdoorBleacherData);
@@ -260,7 +263,7 @@ export default function MaintenanceForm() {
   };
 
   // Handle checkbox change
-  const handleCheckboxChange = (equipment: EquipmentType, index: number) => {
+  const handleCheckboxChange = (equipment: string, index: number) => {
     setFormData(prev => {
       const newChecks = {...prev.equipmentChecks};
       newChecks[equipment] = [...newChecks[equipment]];
@@ -287,8 +290,8 @@ export default function MaintenanceForm() {
   };
 
   // Auto-resize textarea
-  const handleTextAreaInput = (e: React.ChangeEvent<HTMLTextAreaElement>, id: string) => {
-    const textarea = e.target;
+  const handleTextAreaInput = (e: React.FormEvent<HTMLTextAreaElement>, id: string) => {
+    const textarea = e.currentTarget;
     textarea.style.height = 'auto';
     textarea.style.height = `${textarea.scrollHeight}px`;
     
@@ -483,7 +486,7 @@ export default function MaintenanceForm() {
                           <textarea
                             value={outdoorBleacherData.codeIssues}
                             onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, codeIssues: e.target.value})}
-                            onInput={(e) => handleTextAreaInput(e as React.ChangeEvent<HTMLTextAreaElement>, 'outdoor-code-issues')}
+                            onInput={(e) => handleTextAreaInput(e, 'outdoor-code-issues')}
                             className="w-full p-2 border rounded"
                             style={{ 
                               minHeight: '80px',
@@ -499,10 +502,10 @@ export default function MaintenanceForm() {
                       <div className="mt-4 space-y-4">
                         <div>
                           <label className="block mb-1">What equipment was serviced?</label>
-                                                      <textarea
+                          <textarea
                             value={formData.additionalRepairs['Other-Equipment'] || ''}
                             onChange={(e) => handleAdditionalRepairsChange('Other-Equipment', e.target.value)}
-                            onInput={(e) => handleTextAreaInput(e as React.ChangeEvent<HTMLTextAreaElement>, 'other-equipment')}
+                            onInput={(e) => handleTextAreaInput(e, 'other-equipment')}
                             className="w-full p-2 border rounded"
                             style={{ 
                               minHeight: '80px',
@@ -513,10 +516,10 @@ export default function MaintenanceForm() {
                         </div>
                         <div>
                           <label className="block mb-1">What tasks were performed?</label>
-                                                      <textarea
+                          <textarea
                             value={formData.additionalRepairs['Other-Tasks'] || ''}
                             onChange={(e) => handleAdditionalRepairsChange('Other-Tasks', e.target.value)}
-                            onInput={(e) => handleTextAreaInput(e as React.ChangeEvent<HTMLTextAreaElement>, 'other-tasks')}
+                            onInput={(e) => handleTextAreaInput(e, 'other-tasks')}
                             className="w-full p-2 border rounded"
                             style={{ 
                               minHeight: '80px',
@@ -527,10 +530,10 @@ export default function MaintenanceForm() {
                         </div>
                         <div>
                           <label className="block mb-1">List any other repairs made and if any other parts are recommended:</label>
-                                                      <textarea
+                          <textarea
                             value={formData.additionalRepairs['Other'] || ''}
                             onChange={(e) => handleAdditionalRepairsChange('Other', e.target.value)}
-                            onInput={(e) => handleTextAreaInput(e as React.ChangeEvent<HTMLTextAreaElement>, 'other-repairs')}
+                            onInput={(e) => handleTextAreaInput(e, 'other-repairs')}
                             className="w-full p-2 border rounded"
                             style={{ 
                               minHeight: '100px',
@@ -548,7 +551,7 @@ export default function MaintenanceForm() {
                         <textarea
                           value={formData.additionalRepairs[equipment] || ''}
                           onChange={(e) => handleAdditionalRepairsChange(equipment, e.target.value)}
-                          onInput={(e) => handleTextAreaInput(e as React.ChangeEvent<HTMLTextAreaElement>, `repairs-${equipment}`)}
+                          onInput={(e) => handleTextAreaInput(e, `repairs-${equipment}`)}
                           className="w-full p-2 border rounded"
                           style={{ 
                             minHeight: '100px',
@@ -572,7 +575,7 @@ export default function MaintenanceForm() {
               <textarea
                 value={formData.equipmentTurnover}
                 onChange={e => setFormData({...formData, equipmentTurnover: e.target.value})}
-                onInput={(e) => handleTextAreaInput(e as React.ChangeEvent<HTMLTextAreaElement>, 'equipment-turnover')}
+                onInput={(e) => handleTextAreaInput(e, 'equipment-turnover')}
                 className="w-full p-2 border rounded"
                 style={{ 
                   minHeight: '80px',
@@ -588,7 +591,7 @@ export default function MaintenanceForm() {
               <textarea
                 value={formData.otherNotes}
                 onChange={e => setFormData({...formData, otherNotes: e.target.value})}
-                onInput={(e) => handleTextAreaInput(e as React.ChangeEvent<HTMLTextAreaElement>, 'other-notes')}
+                onInput={(e) => handleTextAreaInput(e, 'other-notes')}
                 className="w-full p-2 border rounded"
                 style={{ 
                   minHeight: '100px',
