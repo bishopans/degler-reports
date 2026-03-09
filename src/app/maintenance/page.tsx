@@ -1,7 +1,10 @@
 'use client';
 import { useState } from 'react';
+import { generatePdf, generatePdfBlob } from '@/lib/generatePdf';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useDraftSave } from '@/hooks/useDraftSave';
+import { DraftBanner } from '@/components/DraftBanner';
 
 // Define equipment types
 type EquipmentType = 
@@ -27,6 +30,7 @@ interface FormData {
   selectedEquipment: EquipmentType[];
   equipmentChecks: Record<string, boolean[]>;
   additionalRepairs: Record<string, string>;
+  futurePartsNeeded: Record<string, string>;
   equipmentTurnover: string;
   otherNotes: string;
   photos: File[];
@@ -187,12 +191,14 @@ export default function MaintenanceForm() {
     
     const initialEquipmentChecks: Record<string, boolean[]> = {};
     const initialAdditionalRepairs: Record<string, string> = {};
-    
+    const initialFuturePartsNeeded: Record<string, string> = {};
+
     equipmentTypes.forEach(type => {
       initialEquipmentChecks[type] = Array(equipmentChecklists[type].length).fill(true);
       initialAdditionalRepairs[type] = '';
+      initialFuturePartsNeeded[type] = '';
     });
-    
+
     return {
       date: '',
       jobName: '',
@@ -201,6 +207,7 @@ export default function MaintenanceForm() {
       selectedEquipment: [],
       equipmentChecks: initialEquipmentChecks,
       additionalRepairs: initialAdditionalRepairs,
+      futurePartsNeeded: initialFuturePartsNeeded,
       equipmentTurnover: '',
       otherNotes: '',
       photos: []
@@ -217,28 +224,152 @@ export default function MaintenanceForm() {
     codeIssues: ''
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [submittedSnapshot, setSubmittedSnapshot] = useState<Record<string, unknown> | null>(null);
   const [textareaHeights, setTextareaHeights] = useState<Record<string, number>>({});
 
+  const { draftRestored, draftTimestamp, lastSaveTime, clearDraft, dismissDraftBanner } = useDraftSave('maintenance', formData, setFormData, isSubmitted);
+
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('Form data:', formData);
-    console.log('Outdoor bleacher data:', outdoorBleacherData);
-    
-    // Display success message
-    alert('Your report has been submitted successfully');
-    
-    // Reset form
-    setFormData(createInitialFormData);
-    setOutdoorBleacherData({
-      location: '',
-      manufacturer: '',
-      height: '',
-      length: '',
-      meetCode: '',
-      codeIssues: ''
-    });
-    setIsSubmitted(true);
+    setIsSubmitting(true);
+
+    try {
+      const submitData = new FormData();
+      submitData.append('report_type', 'maintenance');
+      submitData.append('date', formData.date);
+      submitData.append('job_name', formData.jobName);
+      submitData.append('job_number', formData.jobNumber);
+      submitData.append('technician_name', formData.technicianName);
+      // Only include checks, repairs, and future parts for selected equipment
+      const filteredChecks: Record<string, boolean[]> = {};
+      const filteredRepairs: Record<string, string> = {};
+      const filteredFutureParts: Record<string, string> = {};
+      formData.selectedEquipment.forEach(equip => {
+        if (formData.equipmentChecks[equip]) {
+          filteredChecks[equip] = formData.equipmentChecks[equip];
+        }
+        if (formData.additionalRepairs[equip]?.trim()) {
+          filteredRepairs[equip] = formData.additionalRepairs[equip];
+        }
+        if (formData.futurePartsNeeded[equip]?.trim()) {
+          filteredFutureParts[equip] = formData.futurePartsNeeded[equip];
+        }
+      });
+      // Also include Other sub-fields if Other is selected
+      if (formData.selectedEquipment.includes('Other' as EquipmentType)) {
+        if (formData.additionalRepairs['Other-Equipment']?.trim()) {
+          filteredRepairs['Other-Equipment'] = formData.additionalRepairs['Other-Equipment'];
+        }
+        if (formData.additionalRepairs['Other-Tasks']?.trim()) {
+          filteredRepairs['Other-Tasks'] = formData.additionalRepairs['Other-Tasks'];
+        }
+      }
+
+      // Only include outdoor bleacher data if that equipment is selected
+      const includeOutdoorBleacher = formData.selectedEquipment.includes('Outdoor Bleachers/Grandstands' as EquipmentType);
+
+      submitData.append('form_data', JSON.stringify({
+        selectedEquipment: formData.selectedEquipment,
+        equipmentChecks: filteredChecks,
+        additionalRepairs: filteredRepairs,
+        futurePartsNeeded: filteredFutureParts,
+        equipmentTurnover: formData.equipmentTurnover,
+        otherNotes: formData.otherNotes,
+        ...(includeOutdoorBleacher ? { outdoorBleacherData: outdoorBleacherData } : {})
+      }));
+
+      // Append photos
+      formData.photos.forEach(photo => {
+        submitData.append('photos', photo);
+      });
+
+      const response = await fetch('/api/submit-report', {
+        method: 'POST',
+        body: submitData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit report');
+      }
+
+      const result = await response.json();
+
+      // Capture snapshot for PDF before resetting
+      const photoBlobUrls = formData.photos.map(p => URL.createObjectURL(p));
+      setSubmittedSnapshot({
+        id: result.submission_id,
+        created_at: new Date().toISOString(),
+        report_type: 'maintenance',
+        date: formData.date,
+        job_name: formData.jobName,
+        job_number: formData.jobNumber,
+        technician_name: formData.technicianName,
+        status: 'submitted',
+        photo_urls: photoBlobUrls,
+        signature_urls: [],
+        notes: null,
+        form_data: {
+          selectedEquipment: formData.selectedEquipment,
+          equipmentChecks: filteredChecks,
+          additionalRepairs: filteredRepairs,
+          futurePartsNeeded: filteredFutureParts,
+          equipmentTurnover: formData.equipmentTurnover,
+          otherNotes: formData.otherNotes,
+          ...(includeOutdoorBleacher ? { outdoorBleacherData: outdoorBleacherData } : {})
+        },
+      });
+
+      // Reset form
+      setFormData(createInitialFormData);
+      setOutdoorBleacherData({
+        location: '',
+        manufacturer: '',
+        height: '',
+        length: '',
+        meetCode: '',
+        codeIssues: ''
+      });
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error('Submission error:', error);
+      alert('Error submitting report. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!submittedSnapshot) return;
+    setIsGeneratingPdf(true);
+    try {
+      await generatePdf(submittedSnapshot as any);
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      alert('Error generating PDF. Please try again.');
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
+  const handleSharePdf = async () => {
+    if (!submittedSnapshot) return;
+    setIsSharing(true);
+    try {
+      const { blob, filename } = await generatePdfBlob(submittedSnapshot as any);
+      const file = new File([blob], filename, { type: 'application/pdf' });
+      await navigator.share({ files: [file], title: filename });
+    } catch (error) {
+      if ((error as Error).name !== 'AbortError') {
+        console.error('Share error:', error);
+        alert('Error sharing PDF. Please try again.');
+      }
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   // Toggle equipment selection
@@ -278,15 +409,18 @@ export default function MaintenanceForm() {
 
   // Handle additional repairs text change
   const handleAdditionalRepairsChange = (key: string, value: string) => {
-    setFormData(prev => {
-      const newAdditionalRepairs = {...prev.additionalRepairs};
-      newAdditionalRepairs[key] = value;
-      
-      return {
-        ...prev,
-        additionalRepairs: newAdditionalRepairs
-      };
-    });
+    setFormData(prev => ({
+      ...prev,
+      additionalRepairs: { ...prev.additionalRepairs, [key]: value }
+    }));
+  };
+
+  // Handle future parts needed text change
+  const handleFuturePartsChange = (key: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      futurePartsNeeded: { ...prev.futurePartsNeeded, [key]: value }
+    }));
   };
 
   // Auto-resize textarea
@@ -328,19 +462,43 @@ export default function MaintenanceForm() {
       <div className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-md">
         {isSubmitted ? (
           <div className="text-center p-8">
-            <div className="text-green-600 text-xl mb-4">Report Submitted Successfully!</div>
-            <button
-              onClick={() => setIsSubmitted(false)}
-              className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
-            >
-              Create Another Report
-            </button>
+            <div className="text-green-600 text-xl font-semibold mb-6">Report Submitted Successfully!</div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: '320px', margin: '0 auto' }}>
+              <button
+                onClick={handleDownloadPdf}
+                disabled={isGeneratingPdf}
+                className="w-full py-3 px-4 rounded text-white font-medium transition-colors disabled:opacity-50"
+                style={{ backgroundColor: '#16a34a' }}
+              >
+                {isGeneratingPdf ? 'Generating PDF...' : 'Download PDF'}
+              </button>
+
+              {typeof navigator !== 'undefined' && 'share' in navigator && (
+                <button
+                  onClick={handleSharePdf}
+                  disabled={isSharing}
+                  className="w-full py-3 px-4 rounded text-white font-medium transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: '#7c3aed' }}
+                >
+                  {isSharing ? 'Preparing...' : 'Share / Save to Phone'}
+                </button>
+              )}
+
+              <button
+                onClick={() => { setIsSubmitted(false); setSubmittedSnapshot(null); }}
+                className="w-full bg-blue-600 text-white py-3 px-4 rounded hover:bg-blue-700 transition-colors font-medium"
+              >
+                Create Another Report
+              </button>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
+            <DraftBanner draftRestored={draftRestored} draftTimestamp={draftTimestamp} lastSaveTime={lastSaveTime} onDismiss={dismissDraftBanner} onClear={() => { clearDraft(); setFormData(createInitialFormData()); }} />
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block mb-1">Date</label>
+                <label className="block mb-1">Date of Service</label>
                 <input
                   type="date"
                   value={formData.date}
@@ -501,13 +659,14 @@ export default function MaintenanceForm() {
                     {equipment === 'Other' && (
                       <div className="mt-4 space-y-4">
                         <div>
-                          <label className="block mb-1">What equipment was serviced?</label>
+                          <label className="block mb-1 font-medium">What equipment was serviced?</label>
                           <textarea
                             value={formData.additionalRepairs['Other-Equipment'] || ''}
                             onChange={(e) => handleAdditionalRepairsChange('Other-Equipment', e.target.value)}
                             onInput={(e) => handleTextAreaInput(e, 'other-equipment')}
                             className="w-full p-2 border rounded"
-                            style={{ 
+                            placeholder="Describe the equipment..."
+                            style={{
                               minHeight: '80px',
                               height: textareaHeights['other-equipment'] ? `${textareaHeights['other-equipment']}px` : 'auto',
                               resize: 'none'
@@ -515,13 +674,14 @@ export default function MaintenanceForm() {
                           />
                         </div>
                         <div>
-                          <label className="block mb-1">What tasks were performed?</label>
+                          <label className="block mb-1 font-medium">What tasks were performed?</label>
                           <textarea
                             value={formData.additionalRepairs['Other-Tasks'] || ''}
                             onChange={(e) => handleAdditionalRepairsChange('Other-Tasks', e.target.value)}
                             onInput={(e) => handleTextAreaInput(e, 'other-tasks')}
                             className="w-full p-2 border rounded"
-                            style={{ 
+                            placeholder="Describe the tasks..."
+                            style={{
                               minHeight: '80px',
                               height: textareaHeights['other-tasks'] ? `${textareaHeights['other-tasks']}px` : 'auto',
                               resize: 'none'
@@ -529,15 +689,16 @@ export default function MaintenanceForm() {
                           />
                         </div>
                         <div>
-                          <label className="block mb-1">List any other repairs made and if any other parts are recommended:</label>
+                          <label className="block mb-1 font-medium">List any future parts or service needed:</label>
                           <textarea
-                            value={formData.additionalRepairs['Other'] || ''}
-                            onChange={(e) => handleAdditionalRepairsChange('Other', e.target.value)}
-                            onInput={(e) => handleTextAreaInput(e, 'other-repairs')}
+                            value={formData.futurePartsNeeded['Other'] || ''}
+                            onChange={(e) => handleFuturePartsChange('Other', e.target.value)}
+                            onInput={(e) => handleTextAreaInput(e, 'other-future')}
                             className="w-full p-2 border rounded"
-                            style={{ 
-                              minHeight: '100px',
-                              height: textareaHeights['other-repairs'] ? `${textareaHeights['other-repairs']}px` : 'auto',
+                            placeholder="Describe any parts or service recommended..."
+                            style={{
+                              minHeight: '80px',
+                              height: textareaHeights['other-future'] ? `${textareaHeights['other-future']}px` : 'auto',
                               resize: 'none'
                             }}
                           />
@@ -546,19 +707,37 @@ export default function MaintenanceForm() {
                     )}
 
                     {equipment !== 'Other' && (
-                      <div>
-                        <label className="block mb-1">List any other repairs made and if any other parts are recommended:</label>
-                        <textarea
-                          value={formData.additionalRepairs[equipment] || ''}
-                          onChange={(e) => handleAdditionalRepairsChange(equipment, e.target.value)}
-                          onInput={(e) => handleTextAreaInput(e, `repairs-${equipment}`)}
-                          className="w-full p-2 border rounded"
-                          style={{ 
-                            minHeight: '100px',
-                            height: textareaHeights[`repairs-${equipment}`] ? `${textareaHeights[`repairs-${equipment}`]}px` : 'auto',
-                            resize: 'none'
-                          }}
-                        />
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block mb-1 font-medium">List any repairs made during this service:</label>
+                          <textarea
+                            value={formData.additionalRepairs[equipment] || ''}
+                            onChange={(e) => handleAdditionalRepairsChange(equipment, e.target.value)}
+                            onInput={(e) => handleTextAreaInput(e, `repairs-${equipment}`)}
+                            className="w-full p-2 border rounded"
+                            placeholder="Describe any repairs performed..."
+                            style={{
+                              minHeight: '80px',
+                              height: textareaHeights[`repairs-${equipment}`] ? `${textareaHeights[`repairs-${equipment}`]}px` : 'auto',
+                              resize: 'none'
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label className="block mb-1 font-medium">List any future parts or service needed:</label>
+                          <textarea
+                            value={formData.futurePartsNeeded[equipment] || ''}
+                            onChange={(e) => handleFuturePartsChange(equipment, e.target.value)}
+                            onInput={(e) => handleTextAreaInput(e, `future-${equipment}`)}
+                            className="w-full p-2 border rounded"
+                            placeholder="Describe any parts or service recommended..."
+                            style={{
+                              minHeight: '80px',
+                              height: textareaHeights[`future-${equipment}`] ? `${textareaHeights[`future-${equipment}`]}px` : 'auto',
+                              resize: 'none'
+                            }}
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -628,9 +807,10 @@ export default function MaintenanceForm() {
             <div className="pt-4">
               <button
                 type="submit"
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
+                disabled={isSubmitting}
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
-                Submit Report
+                {isSubmitting ? 'Submitting...' : 'Submit Report'}
               </button>
             </div>
           </form>

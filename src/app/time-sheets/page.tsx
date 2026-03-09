@@ -2,6 +2,9 @@
 import React, { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { generatePdf, generatePdfBlob } from '@/lib/generatePdf';
+import { useDraftSave } from '@/hooks/useDraftSave';
+import { DraftBanner } from '@/components/DraftBanner';
 
 interface TimeEntry {
   id: string;
@@ -51,12 +54,22 @@ const rankOptions = [
   'Apprentice 2nd Yr',
   'Apprentice 3rd Yr',
   'Apprentice 4th Yr',
-  'Apprentice 5th Yr'
+  'Apprentice 5th Yr',
+  'Other'
 ];
 
 export default function TimeSheetForm() {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [receiptPhotos, setReceiptPhotos] = useState<File[]>([]);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [submittedSnapshot, setSubmittedSnapshot] = useState<any>(null);
+
+  // Draft save — strip photos from entries before saving
+  const { draftRestored, draftTimestamp, lastSaveTime, clearDraft, dismissDraftBanner } = useDraftSave('time-sheets', formData, setFormData, isSubmitted, ['photos']);
 
   const addRow = () => {
     setFormData(prev => ({
@@ -92,7 +105,7 @@ export default function TimeSheetForm() {
   const updateEntry = (id: string, field: keyof TimeEntry, value: string | number | boolean | File[]) => {
     setFormData(prev => ({
       ...prev,
-      entries: prev.entries.map(entry => 
+      entries: prev.entries.map(entry =>
         entry.id === id ? { ...entry, [field]: value } : entry
       )
     }));
@@ -130,16 +143,68 @@ export default function TimeSheetForm() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
-    // Log form data for debugging
-    console.log({...formData, receiptPhotos});
-    
-    // Reset form
-    setFormData(initialFormData);
-    setReceiptPhotos([]);
-    
-    // Show success message
-    alert('Time Sheet submitted successfully');
+    setIsSubmitting(true);
+
+    try {
+      const submitData = new FormData();
+      submitData.append('report_type', 'time-sheets');
+      submitData.append('date', new Date().toISOString().split('T')[0]);
+      submitData.append('job_name', formData.name);
+      submitData.append('job_number', 'TIMESHEET');
+      submitData.append('technician_name', formData.name);
+      submitData.append('form_data', JSON.stringify({
+        name: formData.name,
+        rank: formData.rank,
+        entries: formData.entries.map(({photos, ...rest}) => rest),
+        totals: calculateTotals()
+      }));
+
+      // Append receipt photos
+      receiptPhotos.forEach(photo => {
+        submitData.append('photos', photo);
+      });
+
+      const response = await fetch('/api/submit-report', {
+        method: 'POST',
+        body: submitData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit report');
+      }
+
+      const result = await response.json();
+
+      // Save snapshot for PDF download
+      setSubmittedSnapshot({
+        id: result.submission_id,
+        created_at: new Date().toISOString(),
+        report_type: 'time-sheets',
+        date: new Date().toISOString().split('T')[0],
+        job_name: formData.name,
+        job_number: 'TIMESHEET',
+        technician_name: formData.name,
+        form_data: {
+          name: formData.name,
+          rank: formData.rank,
+          entries: formData.entries.map(({photos, ...rest}) => rest),
+          totals: calculateTotals()
+        },
+        photo_urls: [],
+        signature_urls: [],
+        status: 'submitted',
+        notes: null,
+      });
+
+      setIsSubmitted(true);
+      setFormData(initialFormData);
+      setReceiptPhotos([]);
+    } catch (error) {
+      console.error('Submission error:', error);
+      alert('Error submitting report. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const totals = calculateTotals();
@@ -164,8 +229,75 @@ export default function TimeSheetForm() {
       <h1 className="text-2xl font-bold text-center mb-8">Time Sheet</h1>
 
       <div className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-md">
+        {isSubmitted ? (
+          <div className="text-center p-8">
+            <div className="text-green-600 text-xl mb-4">Time Sheet Submitted Successfully!</div>
+            <p className="text-gray-600 mb-6">Would you like to download a copy for your records?</p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button
+                onClick={async () => {
+                  if (!submittedSnapshot) return;
+                  setIsGeneratingPdf(true);
+                  try {
+                    await generatePdf(submittedSnapshot);
+                  } catch (error) {
+                    console.error('PDF error:', error);
+                    alert('Error generating PDF.');
+                  } finally {
+                    setIsGeneratingPdf(false);
+                  }
+                }}
+                disabled={isGeneratingPdf || !submittedSnapshot}
+                className="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition-colors disabled:opacity-50"
+              >
+                {isGeneratingPdf ? 'Generating...' : 'Download PDF'}
+              </button>
+              {typeof navigator !== 'undefined' && !!navigator.share && (
+                <button
+                  onClick={async () => {
+                    if (!submittedSnapshot) return;
+                    setIsSharing(true);
+                    try {
+                      const { blob, filename } = await generatePdfBlob(submittedSnapshot);
+                      const file = new File([blob], filename, { type: 'application/pdf' });
+                      await navigator.share({ files: [file], title: 'Time Sheet' });
+                    } catch (error: unknown) {
+                      // User cancelled share — not an error
+                      if (error instanceof Error && error.name !== 'AbortError') {
+                        console.error('Share error:', error);
+                        alert('Error sharing PDF.');
+                      }
+                    } finally {
+                      setIsSharing(false);
+                    }
+                  }}
+                  disabled={isSharing || !submittedSnapshot}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#7c3aed',
+                    color: 'white',
+                    borderRadius: '0.375rem',
+                    border: 'none',
+                    cursor: isSharing ? 'not-allowed' : 'pointer',
+                    fontWeight: 500,
+                    opacity: isSharing ? 0.5 : 1,
+                  }}
+                >
+                  {isSharing ? 'Sharing...' : 'Share / Save to Phone'}
+                </button>
+              )}
+              <button
+                onClick={() => { setIsSubmitted(false); setSubmittedSnapshot(null); }}
+                className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
+              >
+                Create Another Time Sheet
+              </button>
+            </div>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4">
+          <DraftBanner draftRestored={draftRestored} draftTimestamp={draftTimestamp} lastSaveTime={lastSaveTime} onDismiss={dismissDraftBanner} onClear={() => { clearDraft(); setFormData(initialFormData); }} />
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block mb-1">Name</label>
               <input
@@ -176,7 +308,7 @@ export default function TimeSheetForm() {
                 required
               />
             </div>
-            
+
             <div>
               <label className="block mb-1">Primary Rank</label>
               <select
@@ -196,27 +328,29 @@ export default function TimeSheetForm() {
           {formData.entries.map((entry) => (
             <div key={entry.id} className="border rounded p-4 space-y-4">
               <div className="font-bold">Entry #{entry.entryNumber}</div>
-              
-              <div>
-                <label className="block mb-1">Date</label>
-                <input
-                  type="date"
-                  value={entry.date}
-                  onChange={e => updateEntry(entry.id, 'date', e.target.value)}
-                  className="w-full p-2 border rounded"
-                  required
-                />
-              </div>
 
-              <div>
-                <label className="block mb-1">Job Name and Number</label>
-                <input
-                  type="text"
-                  value={entry.jobNameNumber}
-                  onChange={e => updateEntry(entry.id, 'jobNameNumber', e.target.value)}
-                  className="w-full p-2 border rounded"
-                  required
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block mb-1">Date Worked</label>
+                  <input
+                    type="date"
+                    value={entry.date}
+                    onChange={e => updateEntry(entry.id, 'date', e.target.value)}
+                    className="w-full p-2 border rounded"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-1">Job Name and Number</label>
+                  <input
+                    type="text"
+                    value={entry.jobNameNumber}
+                    onChange={e => updateEntry(entry.id, 'jobNameNumber', e.target.value)}
+                    className="w-full p-2 border rounded"
+                    required
+                  />
+                </div>
               </div>
 
               <div>
@@ -230,7 +364,7 @@ export default function TimeSheetForm() {
                 />
               </div>
 
-              <div className="flex items-center space-x-2 mb-4">
+              <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
                   checked={entry.isForeman}
@@ -363,9 +497,10 @@ export default function TimeSheetForm() {
             </button>
           </div>
 
+          {/* Week Totals Summary */}
           <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-            <h3 className="font-bold mb-2">Week Totals</h3>
-            
+            <h3 className="font-bold mb-2">Timesheet Totals</h3>
+
             <div className="space-y-4">
               <div>
                 <h4 className="font-semibold mb-2">Foreman Hours</h4>
@@ -416,9 +551,10 @@ export default function TimeSheetForm() {
             </div>
           </div>
 
-          <div className="space-y-4">
+          {/* Receipt Photos */}
+          <div className="space-y-2">
             <label className="block mb-1">Upload Receipt Photos</label>
-            <p className="text-sm text-gray-600">Please upload any pictures of receipts</p>
+            <p className="text-sm text-gray-600 mb-2">Please upload any pictures of receipts</p>
             <input
               type="file"
               accept="image/*"
@@ -429,20 +565,23 @@ export default function TimeSheetForm() {
               }}
               className="w-full p-2 border rounded"
             />
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-gray-500 mt-1">
               {receiptPhotos.length} photos selected
             </div>
           </div>
 
+          {/* Submit Button */}
           <div className="pt-4">
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
+              disabled={isSubmitting}
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
-              Submit Time Sheet
+              {isSubmitting ? 'Submitting...' : 'Submit Time Sheet'}
             </button>
           </div>
         </form>
+        )}
       </div>
     </div>
   );

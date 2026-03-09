@@ -2,6 +2,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { generatePdf, generatePdfBlob } from '@/lib/generatePdf';
+import { useDraftSave } from '@/hooks/useDraftSave';
+import { DraftBanner } from '@/components/DraftBanner';
 
 // Form data interface
 interface FormData {
@@ -70,18 +73,104 @@ export default function IncidentReportForm() {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [textareaHeights, setTextareaHeights] = useState<Record<string, number>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [submittedSnapshot, setSubmittedSnapshot] = useState<any>(null);
+
+  const { draftRestored, draftTimestamp, lastSaveTime, clearDraft, dismissDraftBanner } = useDraftSave('accident', formData, setFormData, isSubmitted);
 
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('Form data:', formData);
-    
-    // Display success message
-    alert('Your incident report has been submitted successfully');
-    
-    // Reset form
-    setFormData(initialFormData);
-    setIsSubmitted(true);
+    setIsSubmitting(true);
+
+    try {
+      const submitData = new FormData();
+      submitData.append('report_type', 'accident');
+      submitData.append('date', formData.date);
+      submitData.append('job_name', formData.jobName);
+      submitData.append('job_number', formData.jobNumber);
+      submitData.append('technician_name', formData.technicianName);
+      submitData.append('form_data', JSON.stringify({
+        incidentDate: formData.incidentDate,
+        incidentTime: formData.incidentTime,
+        location: formData.location,
+        incidentType: formData.incidentType,
+        otherIncidentType: formData.otherIncidentType,
+        peopleInvolved: formData.peopleInvolved,
+        witness: formData.witness,
+        description: formData.description,
+        cause: formData.cause,
+        injuries: formData.injuries,
+        treatment: formData.treatment,
+        propertyDamage: formData.propertyDamage,
+        immediateActions: formData.immediateActions,
+        futurePreventionSteps: formData.futurePreventionSteps,
+        reportedTo: formData.reportedTo,
+        reportedDate: formData.reportedDate,
+        otherNotes: formData.otherNotes
+      }));
+
+      // Append photos
+      formData.photos.forEach(photo => {
+        submitData.append('photos', photo);
+      });
+
+      const response = await fetch('/api/submit-report', {
+        method: 'POST',
+        body: submitData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit report');
+      }
+
+      const result = await response.json();
+
+      // Save snapshot for PDF download
+      setSubmittedSnapshot({
+        id: result.submission_id,
+        created_at: new Date().toISOString(),
+        report_type: 'accident',
+        date: formData.date,
+        job_name: formData.jobName,
+        job_number: formData.jobNumber,
+        technician_name: formData.technicianName,
+        form_data: {
+          incidentDate: formData.incidentDate,
+          incidentTime: formData.incidentTime,
+          location: formData.location,
+          incidentType: formData.incidentType,
+          otherIncidentType: formData.otherIncidentType,
+          peopleInvolved: formData.peopleInvolved,
+          witness: formData.witness,
+          description: formData.description,
+          cause: formData.cause,
+          injuries: formData.injuries,
+          treatment: formData.treatment,
+          propertyDamage: formData.propertyDamage,
+          immediateActions: formData.immediateActions,
+          futurePreventionSteps: formData.futurePreventionSteps,
+          reportedTo: formData.reportedTo,
+          reportedDate: formData.reportedDate,
+          otherNotes: formData.otherNotes,
+        },
+        photo_urls: [],
+        signature_urls: [],
+        status: 'submitted',
+        notes: null,
+      });
+
+      setIsSubmitted(true);
+      setFormData(initialFormData);
+    } catch (error) {
+      console.error('Submission error:', error);
+      alert('Error submitting report. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Auto-resize textarea
@@ -133,16 +222,71 @@ export default function IncidentReportForm() {
       <div className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-md">
         {isSubmitted ? (
           <div className="text-center p-8">
-            <div className="text-green-600 text-xl mb-4">Report Submitted Successfully!</div>
-            <button
-              onClick={() => setIsSubmitted(false)}
-              className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
-            >
-              Create Another Report
-            </button>
+            <div className="text-green-600 text-xl mb-4">Incident Report Submitted Successfully!</div>
+            <p className="text-gray-600 mb-6">Would you like to download a copy for your records?</p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button
+                onClick={async () => {
+                  if (!submittedSnapshot) return;
+                  setIsGeneratingPdf(true);
+                  try {
+                    await generatePdf(submittedSnapshot);
+                  } catch (error) {
+                    console.error('PDF error:', error);
+                    alert('Error generating PDF.');
+                  } finally {
+                    setIsGeneratingPdf(false);
+                  }
+                }}
+                disabled={isGeneratingPdf || !submittedSnapshot}
+                className="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition-colors disabled:opacity-50"
+              >
+                {isGeneratingPdf ? 'Generating...' : 'Download PDF'}
+              </button>
+              {typeof navigator !== 'undefined' && !!navigator.share && (
+                <button
+                  onClick={async () => {
+                    if (!submittedSnapshot) return;
+                    setIsSharing(true);
+                    try {
+                      const { blob, filename } = await generatePdfBlob(submittedSnapshot);
+                      const file = new File([blob], filename, { type: 'application/pdf' });
+                      await navigator.share({ files: [file], title: 'Incident Report' });
+                    } catch (error: unknown) {
+                      if (error instanceof Error && error.name !== 'AbortError') {
+                        console.error('Share error:', error);
+                        alert('Error sharing PDF.');
+                      }
+                    } finally {
+                      setIsSharing(false);
+                    }
+                  }}
+                  disabled={isSharing || !submittedSnapshot}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#7c3aed',
+                    color: 'white',
+                    borderRadius: '0.375rem',
+                    border: 'none',
+                    cursor: isSharing ? 'not-allowed' : 'pointer',
+                    fontWeight: 500,
+                    opacity: isSharing ? 0.5 : 1,
+                  }}
+                >
+                  {isSharing ? 'Sharing...' : 'Share / Save to Phone'}
+                </button>
+              )}
+              <button
+                onClick={() => { setIsSubmitted(false); setSubmittedSnapshot(null); }}
+                className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
+              >
+                Create Another Report
+              </button>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
+            <DraftBanner draftRestored={draftRestored} draftTimestamp={draftTimestamp} lastSaveTime={lastSaveTime} onDismiss={dismissDraftBanner} onClear={() => { clearDraft(); setFormData(initialFormData); }} />
             {/* Header Information Section */}
             <div className="border-b pb-6">
               <h2 className="text-lg font-medium mb-4">Report Information</h2>
@@ -506,9 +650,10 @@ export default function IncidentReportForm() {
             <div className="pt-4">
               <button
                 type="submit"
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
+                disabled={isSubmitting}
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
-                Submit Incident Report
+                {isSubmitting ? 'Submitting...' : 'Submit Incident Report'}
               </button>
             </div>
           </form>
