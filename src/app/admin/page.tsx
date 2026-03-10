@@ -280,8 +280,8 @@ export default function AdminDashboard() {
       {/* Search and Filters */}
       <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
         <form onSubmit={handleSearch}>
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <div style={{ flex: '1 1 150px', maxWidth: '260px' }}>
+          <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div style={{ flex: '1 1 200px' }}>
               <label className="block text-sm mb-1">Search</label>
               <input
                 type="text"
@@ -292,7 +292,7 @@ export default function AdminDashboard() {
               />
             </div>
 
-            <div style={{ flex: '0 0 auto', width: '180px' }}>
+            <div style={{ flex: '0 0 180px' }}>
               <label className="block text-sm mb-1">Report Type</label>
               <select
                 value={reportTypeFilter}
@@ -306,7 +306,7 @@ export default function AdminDashboard() {
               </select>
             </div>
 
-            <div style={{ flex: '0 0 auto', width: '150px' }}>
+            <div style={{ flex: '0 0 155px' }}>
               <label className="block text-sm mb-1">From Date</label>
               <input
                 type="date"
@@ -316,7 +316,7 @@ export default function AdminDashboard() {
               />
             </div>
 
-            <div style={{ flex: '0 0 auto', width: '150px' }}>
+            <div style={{ flex: '0 0 155px' }}>
               <label className="block text-sm mb-1">To Date</label>
               <input
                 type="date"
