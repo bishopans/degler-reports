@@ -261,9 +261,9 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
             )}
           </div>
 
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
             {photos.map((photo, idx) => (
-              <div key={idx} className="relative group">
+              <div key={idx} className="relative group" style={{ paddingTop: '4px', paddingRight: '4px' }}>
                 <div className="aspect-square rounded overflow-hidden border bg-gray-100">
                   <img
                     src={photo.preview}
@@ -276,18 +276,29 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
 
                   {/* Overlay for in-progress */}
                   {(photo.status === 'compressing' || photo.status === 'uploading') && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30">
-                      <div className="w-8 h-8 border-3 border-white border-t-transparent rounded-full animate-spin" />
-                      <span className="text-white text-xs mt-1">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
+                      <div style={{ width: '2rem', height: '2rem', border: '3px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                      <span style={{ color: 'white', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                         {photo.status === 'compressing' ? 'Resizing...' : 'Uploading...'}
                       </span>
                     </div>
                   )}
 
-                  {/* Done checkmark */}
+                  {/* Done checkmark - bottom left corner */}
                   {photo.status === 'done' && (
-                    <div className="absolute top-1 right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '4px',
+                      left: '4px',
+                      width: '1.5rem',
+                      height: '1.5rem',
+                      backgroundColor: '#22c55e',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <svg style={{ width: '0.875rem', height: '0.875rem', color: 'white' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
@@ -295,14 +306,14 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
 
                   {/* Error indicator */}
                   {photo.status === 'error' && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30">
-                      <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center mb-1">
-                        <span className="text-white text-xs font-bold">!</span>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
+                      <div style={{ width: '1.75rem', height: '1.75rem', backgroundColor: '#ef4444', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.25rem' }}>
+                        <span style={{ color: 'white', fontSize: '0.8rem', fontWeight: 'bold' }}>!</span>
                       </div>
                       <button
                         type="button"
                         onClick={() => retryPhoto(idx)}
-                        className="text-white text-xs underline"
+                        style={{ color: 'white', fontSize: '0.75rem', textDecoration: 'underline', background: 'none', border: 'none', padding: '0.25rem 0.5rem', cursor: 'pointer' }}
                       >
                         Retry
                       </button>
@@ -310,12 +321,30 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
                   )}
                 </div>
 
-                {/* Remove button */}
+                {/* Remove button - top right, outside the image */}
                 <button
                   type="button"
                   onClick={() => removePhoto(idx)}
-                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ opacity: undefined }} // Always show on mobile via CSS below
+                  className="photo-remove-btn"
+                  style={{
+                    position: 'absolute',
+                    top: '-2px',
+                    right: '-2px',
+                    width: '1.625rem',
+                    height: '1.625rem',
+                    backgroundColor: '#ef4444',
+                    color: 'white',
+                    borderRadius: '50%',
+                    fontSize: '1rem',
+                    lineHeight: '1',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '2px solid white',
+                    cursor: 'pointer',
+                    padding: 0,
+                    zIndex: 10,
+                  }}
                 >
                   ×
                 </button>
@@ -325,12 +354,9 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
         </div>
       )}
 
-      {/* Mobile: always show remove buttons */}
       <style>{`
-        @media (hover: none) {
-          .group button[class*="opacity-0"] {
-            opacity: 1 !important;
-          }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>
