@@ -248,15 +248,15 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen p-6 bg-gray-50">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <Image src="/images/logo.png" alt="Logo" width={60} height={60} />
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <Image src="/images/logo.png" alt="Logo" width={50} height={50} />
           <div>
-            <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+            <h1 className="text-2xl font-bold" style={{ fontSize: 'clamp(1.125rem, 4vw, 1.5rem)' }}>Admin Dashboard</h1>
             <p className="text-gray-500 text-sm">{total} total reports</p>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <Link
             href="/admin/timesheets"
             style={{
@@ -271,7 +271,7 @@ export default function AdminDashboard() {
           >
             Timesheets
           </Link>
-          <Link href="/" className="text-blue-600 hover:text-blue-800">
+          <Link href="/" className="text-blue-600 hover:text-blue-800" style={{ fontSize: '0.875rem' }}>
             ← Back to Forms
           </Link>
         </div>
@@ -280,8 +280,8 @@ export default function AdminDashboard() {
       {/* Search and Filters */}
       <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
         <form onSubmit={handleSearch}>
-          <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-            <div style={{ flex: '1 1 200px', maxWidth: '280px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.75rem', alignItems: 'flex-end' }}>
+            <div style={{ gridColumn: 'span 1' }}>
               <label className="block text-sm mb-1">Search</label>
               <input
                 type="text"
@@ -292,7 +292,7 @@ export default function AdminDashboard() {
               />
             </div>
 
-            <div style={{ flex: '0 1 180px' }}>
+            <div>
               <label className="block text-sm mb-1">Report Type</label>
               <select
                 value={reportTypeFilter}
@@ -306,7 +306,7 @@ export default function AdminDashboard() {
               </select>
             </div>
 
-            <div style={{ flex: '0 1 160px' }}>
+            <div>
               <label className="block text-sm mb-1">From Date</label>
               <input
                 type="date"
@@ -316,7 +316,7 @@ export default function AdminDashboard() {
               />
             </div>
 
-            <div style={{ flex: '0 1 160px' }}>
+            <div>
               <label className="block text-sm mb-1">To Date</label>
               <input
                 type="date"
@@ -514,8 +514,8 @@ export default function AdminDashboard() {
         );
       })()}
 
-      {/* Reports Table */}
-      <div className="bg-white rounded-lg shadow-sm" style={{ overflowX: 'auto' }}>
+      {/* Reports Table (desktop) / Cards (mobile) */}
+      <div className="bg-white rounded-lg shadow-sm">
         {isFetching ? (
           <div className="p-8 text-center text-gray-500">Loading reports...</div>
         ) : submissions.length === 0 ? (
@@ -523,36 +523,124 @@ export default function AdminDashboard() {
             No reports found. {search || reportTypeFilter || dateFrom || dateTo ? 'Try adjusting your filters.' : 'Reports will appear here as they are submitted.'}
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-            <colgroup>
-              <col style={{ width: '8%' }} />
-              <col style={{ width: '14%' }} />
-              <col style={{ width: '20%' }} />
-              <col style={{ width: '14%' }} />
-              <col style={{ width: '14%' }} />
-              <col style={{ width: '8%' }} />
-              <col style={{ width: '10%' }} />
-              <col style={{ width: '8%' }} />
-            </colgroup>
-            <thead>
-              <tr style={{ borderBottom: '2px solid #e5e7eb', backgroundColor: '#f9fafb' }}>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Date</th>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Type</th>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Job Name</th>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Job #</th>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Technician</th>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Photos</th>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Status</th>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            {/* Desktop table - hidden on mobile */}
+            <div className="admin-table-desktop" style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                <colgroup>
+                  <col style={{ width: '8%' }} />
+                  <col style={{ width: '14%' }} />
+                  <col style={{ width: '20%' }} />
+                  <col style={{ width: '14%' }} />
+                  <col style={{ width: '14%' }} />
+                  <col style={{ width: '8%' }} />
+                  <col style={{ width: '10%' }} />
+                  <col style={{ width: '8%' }} />
+                </colgroup>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #e5e7eb', backgroundColor: '#f9fafb' }}>
+                    <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Date</th>
+                    <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Type</th>
+                    <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Job Name</th>
+                    <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Job #</th>
+                    <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Technician</th>
+                    <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Photos</th>
+                    <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Status</th>
+                    <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {submissions.map((sub) => (
+                    <tr key={sub.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                      <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.875rem' }}>
+                        {new Date(sub.date + 'T00:00:00').toLocaleDateString('en-US')}
+                      </td>
+                      <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.875rem' }}>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '0.125rem 0.5rem',
+                          borderRadius: '9999px',
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          backgroundColor: '#dbeafe',
+                          color: '#1e40af',
+                        }}>
+                          {REPORT_TYPE_LABELS[sub.report_type] || sub.report_type}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.875rem', fontWeight: 500 }}>{sub.job_name}</td>
+                      <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.875rem' }}>{sub.job_number}</td>
+                      <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.875rem' }}>{sub.technician_name}</td>
+                      <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.875rem' }}>
+                        {sub.photo_urls?.length || 0}
+                      </td>
+                      <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.875rem' }}>
+                        <select
+                          value={sub.status}
+                          onChange={(e) => updateReportStatus(sub.id, e.target.value)}
+                          style={{
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '9999px',
+                            fontSize: '0.75rem',
+                            fontWeight: 500,
+                            border: 'none',
+                            cursor: 'pointer',
+                            backgroundColor: sub.status === 'reviewed' ? '#dcfce7' : sub.status === 'archived' ? '#f3f4f6' : '#fef9c3',
+                            color: sub.status === 'reviewed' ? '#166534' : sub.status === 'archived' ? '#374151' : '#854d0e',
+                          }}
+                        >
+                          <option value="submitted">submitted</option>
+                          <option value="reviewed">reviewed</option>
+                          <option value="archived">archived</option>
+                        </select>
+                      </td>
+                      <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.875rem' }}>
+                        <Link
+                          href={`/admin/report/${sub.id}`}
+                          style={{
+                            color: '#2563eb',
+                            textDecoration: 'none',
+                            fontWeight: 500,
+                          }}
+                        >
+                          View →
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile cards - hidden on desktop */}
+            <div className="admin-cards-mobile">
               {submissions.map((sub) => (
-                <tr key={sub.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                  <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.875rem' }}>
-                    {new Date(sub.date + 'T00:00:00').toLocaleDateString('en-US')}
-                  </td>
-                  <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.875rem' }}>
+                <div key={sub.id} style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '0.9375rem', marginBottom: '0.25rem' }}>{sub.job_name}</div>
+                      <div style={{ fontSize: '0.8125rem', color: '#6b7280' }}>{sub.job_number} &middot; {sub.technician_name}</div>
+                    </div>
+                    <Link
+                      href={`/admin/report/${sub.id}`}
+                      style={{
+                        color: '#2563eb',
+                        textDecoration: 'none',
+                        fontWeight: 500,
+                        fontSize: '0.875rem',
+                        padding: '0.375rem 0.75rem',
+                        border: '1px solid #2563eb',
+                        borderRadius: '0.375rem',
+                        flexShrink: 0,
+                      }}
+                    >
+                      View
+                    </Link>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center', fontSize: '0.8125rem' }}>
+                    <span style={{ color: '#6b7280' }}>
+                      {new Date(sub.date + 'T00:00:00').toLocaleDateString('en-US')}
+                    </span>
                     <span style={{
                       display: 'inline-block',
                       padding: '0.125rem 0.5rem',
@@ -564,19 +652,14 @@ export default function AdminDashboard() {
                     }}>
                       {REPORT_TYPE_LABELS[sub.report_type] || sub.report_type}
                     </span>
-                  </td>
-                  <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.875rem', fontWeight: 500 }}>{sub.job_name}</td>
-                  <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.875rem' }}>{sub.job_number}</td>
-                  <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.875rem' }}>{sub.technician_name}</td>
-                  <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.875rem' }}>
-                    {sub.photo_urls?.length || 0}
-                  </td>
-                  <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.875rem' }}>
+                    {(sub.photo_urls?.length || 0) > 0 && (
+                      <span style={{ color: '#6b7280' }}>{sub.photo_urls.length} photos</span>
+                    )}
                     <select
                       value={sub.status}
                       onChange={(e) => updateReportStatus(sub.id, e.target.value)}
                       style={{
-                        padding: '0.125rem 0.25rem',
+                        padding: '0.25rem 0.5rem',
                         borderRadius: '9999px',
                         fontSize: '0.75rem',
                         fontWeight: 500,
@@ -590,23 +673,11 @@ export default function AdminDashboard() {
                       <option value="reviewed">reviewed</option>
                       <option value="archived">archived</option>
                     </select>
-                  </td>
-                  <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.875rem' }}>
-                    <Link
-                      href={`/admin/report/${sub.id}`}
-                      style={{
-                        color: '#2563eb',
-                        textDecoration: 'none',
-                        fontWeight: 500,
-                      }}
-                    >
-                      View →
-                    </Link>
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
 
         {/* Pagination */}

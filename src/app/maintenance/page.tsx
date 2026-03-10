@@ -585,20 +585,29 @@ export default function MaintenanceForm() {
                     {equipment !== 'Other' && (
                       <div className="space-y-2">
                         {equipmentChecklists[equipment].map((item, index) => (
-                          <div key={index} className="flex items-start">
-                            <div className="flex-shrink-0 mt-0.5">
-                              <input 
-                                type="checkbox" 
-                                id={`${equipment}-checklist-${index}`} 
-                                checked={formData.equipmentChecks[equipment][index]}
-                                onChange={() => handleCheckboxChange(equipment, index)}
-                                className="h-4 w-4" 
-                              />
-                            </div>
-                            <label htmlFor={`${equipment}-checklist-${index}`} className="ml-2 text-sm">
-                              {item}
-                            </label>
-                          </div>
+                          <label
+                            key={index}
+                            htmlFor={`${equipment}-checklist-${index}`}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: '0.75rem',
+                              padding: '0.5rem 0.25rem',
+                              cursor: 'pointer',
+                              borderRadius: '0.375rem',
+                              fontSize: '0.875rem',
+                              lineHeight: '1.4',
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              id={`${equipment}-checklist-${index}`}
+                              checked={formData.equipmentChecks[equipment][index]}
+                              onChange={() => handleCheckboxChange(equipment, index)}
+                              style={{ flexShrink: 0, marginTop: '0.125rem' }}
+                            />
+                            <span>{item}</span>
+                          </label>
                         ))}
                       </div>
                     )}

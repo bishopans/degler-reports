@@ -250,9 +250,20 @@ form.space-y-6 > * {
   .grid-cols-2 {
     grid-template-columns: 1fr;
   }
-  
-  .grid-cols-2 > * {
-    margin-bottom: 1rem;
+  .grid-cols-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Improve checkbox touch targets on mobile */
+@media (max-width: 640px) {
+  input[type="checkbox"], input[type="radio"] {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-right: 0.625rem;
+  }
+  .flex.items-start input[type="checkbox"] {
+    margin-top: 0.125rem;
   }
 }
 
@@ -312,4 +323,13 @@ input, select, textarea {
 /* Text resizing */
 textarea {
   resize: none;
+}
+
+/* Admin dashboard responsive table/cards */
+.admin-table-desktop { display: block; }
+.admin-cards-mobile { display: none; }
+
+@media (max-width: 768px) {
+  .admin-table-desktop { display: none; }
+  .admin-cards-mobile { display: block; }
 }
