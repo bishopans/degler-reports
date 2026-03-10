@@ -1,11 +1,12 @@
 'use client';
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { generatePdf, generatePdfBlob } from '@/lib/generatePdf';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
+import PhotoUploader from '@/components/PhotoUploader';
 
 const SignaturePad = dynamic(() => import('react-signature-canvas'), {
   ssr: false
@@ -30,6 +31,12 @@ export default function MaterialTurnoverForm() {
   const [isSharing, setIsSharing] = useState(false);
   const [submittedSnapshot, setSubmittedSnapshot] = useState<Record<string, unknown> | null>(null);
 
+  const uploadId = useMemo(() => crypto.randomUUID(), []);
+  const [uploadedPhotoUrls, setUploadedPhotoUrls] = useState<string[]>([]);
+  const [localPhotoFiles, setLocalPhotoFiles] = useState<File[]>([]);
+  const handlePhotosChange = useCallback((urls: string[]) => { setUploadedPhotoUrls(urls); }, []);
+  const handleLocalFilesChange = useCallback((files: File[]) => { setLocalPhotoFiles(files); }, []);
+
   const { draftRestored, draftTimestamp, lastSaveTime, clearDraft, dismissDraftBanner } = useDraftSave('material-turnover', formData, setFormData, isSubmitted, ['photos', 'signature']);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,10 +57,9 @@ export default function MaterialTurnoverForm() {
         otherSpecification: formData.otherSpecification
       }));
 
-      // Append photos
-      formData.photos.forEach(photo => {
-        submitData.append('photos', photo);
-      });
+      // Send pre-uploaded photo URLs
+      submitData.append('upload_id', uploadId);
+      submitData.append('photo_urls', JSON.stringify(uploadedPhotoUrls));
 
       // Append signature if exists
       if (formData.signature) {
@@ -72,7 +78,7 @@ export default function MaterialTurnoverForm() {
       const result = await response.json();
 
       // Capture snapshot for PDF before resetting
-      const photoBlobUrls = formData.photos.map(p => URL.createObjectURL(p));
+      const photoBlobUrls = localPhotoFiles.map(p => URL.createObjectURL(p));
       setSubmittedSnapshot({
         id: result.submission_id,
         created_at: new Date().toISOString(),
@@ -371,28 +377,11 @@ export default function MaterialTurnoverForm() {
           </div>
 
           {/* Photo Upload Section */}
-          <div className="space-y-2">
-            <label className="block mb-1">Upload Turnover Photos</label>
-            <p className="text-sm text-gray-600 mb-2">
-              Take pictures of all equipment being turned over
-            </p>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={(e) => {
-                const files = Array.from(e.target.files || []);
-                setFormData(prev => ({
-                  ...prev,
-                  photos: files
-                }));
-              }}
-              className="w-full p-2 border rounded"
-            />
-            <div className="text-sm text-gray-500 mt-1">
-              {formData.photos.length} photos selected
-            </div>
-          </div>
+          <PhotoUploader
+            uploadId={uploadId}
+            onPhotosChange={handlePhotosChange}
+            onLocalFilesChange={handleLocalFilesChange}
+          />
 
           {/* Submit Button */}
           <div className="pt-4">

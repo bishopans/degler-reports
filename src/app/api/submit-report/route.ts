@@ -32,11 +32,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate a submission ID upfront for organizing storage files
-    const submissionId = crypto.randomUUID();
+    // Use upload_id from client if provided (photos already uploaded), otherwise generate new
+    const submissionId = (formData.get('upload_id') as string) || crypto.randomUUID();
 
-    // Upload photos to Supabase Storage
-    const photoUrls: string[] = [];
+    // Photos: accept pre-uploaded URLs (new way) or fall back to file uploads (legacy)
+    let photoUrls: string[] = [];
+    const photoUrlsJson = formData.get('photo_urls') as string;
+    if (photoUrlsJson) {
+      try {
+        photoUrls = JSON.parse(photoUrlsJson);
+      } catch {
+        // ignore parse errors
+      }
+    }
+
+    // Legacy: also handle file uploads for backwards compatibility
     const photoFiles = formData.getAll('photos') as File[];
     for (let i = 0; i < photoFiles.length; i++) {
       const file = photoFiles[i];

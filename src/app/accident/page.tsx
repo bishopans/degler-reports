@@ -1,7 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import PhotoUploader from '@/components/PhotoUploader';
 import { generatePdf, generatePdfBlob } from '@/lib/generatePdf';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
@@ -79,6 +80,12 @@ export default function IncidentReportForm() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [submittedSnapshot, setSubmittedSnapshot] = useState<any>(null);
 
+  const uploadId = useMemo(() => crypto.randomUUID(), []);
+  const [uploadedPhotoUrls, setUploadedPhotoUrls] = useState<string[]>([]);
+  const [localPhotoFiles, setLocalPhotoFiles] = useState<File[]>([]);
+  const handlePhotosChange = useCallback((urls: string[]) => { setUploadedPhotoUrls(urls); }, []);
+  const handleLocalFilesChange = useCallback((files: File[]) => { setLocalPhotoFiles(files); }, []);
+
   const { draftRestored, draftTimestamp, lastSaveTime, clearDraft, dismissDraftBanner } = useDraftSave('accident', formData, setFormData, isSubmitted);
 
   // Handle form submission
@@ -113,10 +120,9 @@ export default function IncidentReportForm() {
         otherNotes: formData.otherNotes
       }));
 
-      // Append photos
-      formData.photos.forEach(photo => {
-        submitData.append('photos', photo);
-      });
+      // Send pre-uploaded photo URLs
+      submitData.append('upload_id', uploadId);
+      submitData.append('photo_urls', JSON.stringify(uploadedPhotoUrls));
 
       const response = await fetch('/api/submit-report', {
         method: 'POST',
@@ -157,7 +163,7 @@ export default function IncidentReportForm() {
           reportedDate: formData.reportedDate,
           otherNotes: formData.otherNotes,
         },
-        photo_urls: [],
+        photo_urls: localPhotoFiles.map(p => URL.createObjectURL(p)),
         signature_urls: [],
         status: 'submitted',
         notes: null,
@@ -623,28 +629,11 @@ export default function IncidentReportForm() {
                 />
               </div>
 
-              <div>
-                <label className="block mb-1">Upload Photos</label>
-                <p className="text-sm text-gray-600 mb-2">
-                  Please upload any photos of the incident scene, injuries, or damage
-                </p>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    setFormData(prev => ({
-                      ...prev,
-                      photos: files
-                    }));
-                  }}
-                  className="w-full p-2 border rounded"
-                />
-                <div className="text-sm text-gray-500 mt-1">
-                  {formData.photos.length} photos selected
-                </div>
-              </div>
+              <PhotoUploader
+                uploadId={uploadId}
+                onPhotosChange={handlePhotosChange}
+                onLocalFilesChange={handleLocalFilesChange}
+              />
             </div>
 
             <div className="pt-4">

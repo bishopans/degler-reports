@@ -1,10 +1,11 @@
 'use client';
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { generatePdf, generatePdfBlob } from '@/lib/generatePdf';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
+import PhotoUploader from '@/components/PhotoUploader';
 
 // Define equipment types
 type EquipmentType = 
@@ -230,7 +231,19 @@ export default function MaintenanceForm() {
   const [submittedSnapshot, setSubmittedSnapshot] = useState<Record<string, unknown> | null>(null);
   const [textareaHeights, setTextareaHeights] = useState<Record<string, number>>({});
 
+  const uploadId = useMemo(() => crypto.randomUUID(), []);
+  const [uploadedPhotoUrls, setUploadedPhotoUrls] = useState<string[]>([]);
+  const [localPhotoFiles, setLocalPhotoFiles] = useState<File[]>([]);
+
   const { draftRestored, draftTimestamp, lastSaveTime, clearDraft, dismissDraftBanner } = useDraftSave('maintenance', formData, setFormData, isSubmitted);
+
+  const handlePhotosChange = useCallback((urls: string[]) => {
+    setUploadedPhotoUrls(urls);
+  }, []);
+
+  const handleLocalFilesChange = useCallback((files: File[]) => {
+    setLocalPhotoFiles(files);
+  }, []);
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -282,10 +295,9 @@ export default function MaintenanceForm() {
         ...(includeOutdoorBleacher ? { outdoorBleacherData: outdoorBleacherData } : {})
       }));
 
-      // Append photos
-      formData.photos.forEach(photo => {
-        submitData.append('photos', photo);
-      });
+      // Send pre-uploaded photo URLs
+      submitData.append('upload_id', uploadId);
+      submitData.append('photo_urls', JSON.stringify(uploadedPhotoUrls));
 
       const response = await fetch('/api/submit-report', {
         method: 'POST',
@@ -299,7 +311,7 @@ export default function MaintenanceForm() {
       const result = await response.json();
 
       // Capture snapshot for PDF before resetting
-      const photoBlobUrls = formData.photos.map(p => URL.createObjectURL(p));
+      const photoBlobUrls = localPhotoFiles.map(p => URL.createObjectURL(p));
       setSubmittedSnapshot({
         id: result.submission_id,
         created_at: new Date().toISOString(),
@@ -781,28 +793,11 @@ export default function MaintenanceForm() {
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="block mb-1">Upload Photos</label>
-              <p className="text-sm text-gray-600 mb-2">
-                Please upload any pictures of equipment or maintenance performed
-              </p>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(e) => {
-                  const files = Array.from(e.target.files || []);
-                  setFormData(prev => ({
-                    ...prev,
-                    photos: files
-                  }));
-                }}
-                className="w-full p-2 border rounded"
-              />
-              <div className="text-sm text-gray-500 mt-1">
-                {formData.photos.length} photos selected
-              </div>
-            </div>
+            <PhotoUploader
+              uploadId={uploadId}
+              onPhotosChange={handlePhotosChange}
+              onLocalFilesChange={handleLocalFilesChange}
+            />
 
             <div className="pt-4">
               <button
