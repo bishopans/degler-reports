@@ -1,10 +1,11 @@
 'use client';
-import React, { useState, FormEvent } from 'react';
+import React, { useState, FormEvent, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { generatePdf, generatePdfBlob } from '@/lib/generatePdf';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
+import PhotoUploader from '@/components/PhotoUploader';
 
 interface TimeEntry {
   id: string;
@@ -60,13 +61,16 @@ const rankOptions = [
 
 export default function TimeSheetForm() {
   const [formData, setFormData] = useState<FormData>(initialFormData);
-  const [receiptPhotos, setReceiptPhotos] = useState<File[]>([]);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [submittedSnapshot, setSubmittedSnapshot] = useState<any>(null);
+
+  const uploadId = useMemo(() => crypto.randomUUID(), []);
+  const [uploadedPhotoUrls, setUploadedPhotoUrls] = useState<string[]>([]);
+  const handlePhotosChange = useCallback((urls: string[]) => { setUploadedPhotoUrls(urls); }, []);
 
   // Draft save — strip photos from entries before saving
   const { draftRestored, draftTimestamp, lastSaveTime, clearDraft, dismissDraftBanner } = useDraftSave('time-sheets', formData, setFormData, isSubmitted, ['photos']);
@@ -159,10 +163,9 @@ export default function TimeSheetForm() {
         totals: calculateTotals()
       }));
 
-      // Append receipt photos
-      receiptPhotos.forEach(photo => {
-        submitData.append('photos', photo);
-      });
+      // Send pre-uploaded photo URLs
+      submitData.append('upload_id', uploadId);
+      submitData.append('photo_urls', JSON.stringify(uploadedPhotoUrls));
 
       const response = await fetch('/api/submit-report', {
         method: 'POST',
@@ -198,7 +201,6 @@ export default function TimeSheetForm() {
 
       setIsSubmitted(true);
       setFormData(initialFormData);
-      setReceiptPhotos([]);
     } catch (error) {
       console.error('Submission error:', error);
       alert('Error submitting report. Please try again.');
@@ -555,19 +557,10 @@ export default function TimeSheetForm() {
           <div className="space-y-2">
             <label className="block mb-1">Upload Receipt Photos</label>
             <p className="text-sm text-gray-600 mb-2">Please upload any pictures of receipts</p>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={(e) => {
-                const files = Array.from(e.target.files || []);
-                setReceiptPhotos(files);
-              }}
-              className="w-full p-2 border rounded"
+            <PhotoUploader
+              uploadId={uploadId}
+              onPhotosChange={handlePhotosChange}
             />
-            <div className="text-sm text-gray-500 mt-1">
-              {receiptPhotos.length} photos selected
-            </div>
           </div>
 
           {/* Submit Button */}
