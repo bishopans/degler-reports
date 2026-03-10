@@ -332,4 +332,7 @@ textarea {
 @media (max-width: 768px) {
   .admin-table-desktop { display: none; }
   .admin-cards-mobile { display: block; }
+  .admin-report-info-grid {
+    grid-template-columns: 1fr !important;
+  }
 }

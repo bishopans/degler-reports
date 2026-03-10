@@ -492,7 +492,7 @@ export default function ReportDetailPage() {
       {/* Common Fields */}
       <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
         <h2 className="font-bold mb-4" style={{ fontSize: '1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>Report Information</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <div className="admin-report-info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <FieldDisplay
             label={['maintenance','repair','material-delivery','material-turnover','training','jobsite-progress'].includes(data.report_type) ? 'Date of Service' : 'Date'}
             value={data.date}
