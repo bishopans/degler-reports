@@ -292,6 +292,45 @@ function addLabeledNote(doc: jsPDF, label: string, value: string) {
   currentY += 3;
 }
 
+// Equipment safe status with green checkmark or red X icon
+function addSafeStatusNote(doc: jsPDF, label: string, value: string) {
+  if (!value || !value.trim()) return;
+  checkPageBreak(doc, 14);
+  currentY += 2;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(BRAND_BLUE.r, BRAND_BLUE.g, BRAND_BLUE.b);
+  doc.text(label, MARGIN_LEFT + 2, currentY);
+  currentY += 5;
+
+  // Draw icon
+  const iconX = MARGIN_LEFT + 4;
+  const iconCenterY = currentY - 2;
+  const iconSize = 3;
+  doc.setLineWidth(0.6);
+  if (value.toLowerCase() === 'yes') {
+    // Green checkmark
+    doc.setDrawColor(0, 150, 0);
+    doc.line(iconX, iconCenterY, iconX + iconSize * 0.35, iconCenterY + iconSize * 0.5);
+    doc.line(iconX + iconSize * 0.35, iconCenterY + iconSize * 0.5, iconX + iconSize, iconCenterY - iconSize * 0.5);
+    doc.setTextColor(0, 130, 0);
+  } else {
+    // Red X
+    doc.setDrawColor(200, 0, 0);
+    doc.line(iconX, iconCenterY - iconSize * 0.4, iconX + iconSize, iconCenterY + iconSize * 0.4);
+    doc.line(iconX + iconSize, iconCenterY - iconSize * 0.4, iconX, iconCenterY + iconSize * 0.4);
+    doc.setTextColor(200, 0, 0);
+  }
+  doc.setLineWidth(0.2);
+
+  // Value text next to icon
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text(value, MARGIN_LEFT + 4 + iconSize + 3, currentY);
+  doc.setTextColor(0, 0, 0);
+  currentY += 6;
+}
+
 function addSpacer(height = SECTION_SPACING) {
   currentY += height;
 }
@@ -521,7 +560,7 @@ function handleMaintenanceReport(doc: jsPDF, submission: Submission) {
     // Equipment Working & Safe for Use
     const safe = equipmentSafe[equipment];
     if (safe) {
-      addLabeledNote(doc, 'Equipment Working & Safe for Use:', safe);
+      addSafeStatusNote(doc, 'Equipment Working & Safe for Use:', safe);
     }
 
     // Outdoor bleacher extra data
@@ -612,7 +651,7 @@ function handleRepairReport(doc: jsPDF, submission: Submission) {
     // 4. Equipment Working & Safe for Use
     const safe = equipmentSafe[equipment];
     if (safe) {
-      addLabeledNote(doc, 'Equipment Working & Safe for Use:', safe);
+      addSafeStatusNote(doc, 'Equipment Working & Safe for Use:', safe);
     }
   });
 

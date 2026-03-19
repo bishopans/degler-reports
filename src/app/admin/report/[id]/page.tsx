@@ -962,7 +962,9 @@ function FormDataDisplay({
                         <option value="No">No</option>
                       </select>
                     ) : (
-                      <p className="text-sm" style={{ color: maintEquipSafe[equipment] === 'No' ? '#dc2626' : '#16a34a', fontWeight: 600 }}>{maintEquipSafe[equipment]}</p>
+                      <p className="text-sm" style={{ color: maintEquipSafe[equipment] === 'No' ? '#dc2626' : '#16a34a', fontWeight: 600 }}>
+                        {maintEquipSafe[equipment] === 'Yes' ? '✅ ' : maintEquipSafe[equipment] === 'No' ? '❌ ' : ''}{maintEquipSafe[equipment]}
+                      </p>
                     )}
                   </div>
                 )}
@@ -1082,7 +1084,9 @@ function FormDataDisplay({
                       <option value="No">No</option>
                     </select>
                   ) : (
-                    <p className="text-sm" style={{ color: maintEquipSafe['Other'] === 'No' ? '#dc2626' : '#16a34a', fontWeight: 600 }}>{maintEquipSafe['Other']}</p>
+                    <p className="text-sm" style={{ color: maintEquipSafe['Other'] === 'No' ? '#dc2626' : '#16a34a', fontWeight: 600 }}>
+                      {maintEquipSafe['Other'] === 'Yes' ? '✅ ' : maintEquipSafe['Other'] === 'No' ? '❌ ' : ''}{maintEquipSafe['Other']}
+                    </p>
                   )}
                 </div>
               )}
@@ -1173,7 +1177,9 @@ function FormDataDisplay({
                           <option value="No">No</option>
                         </select>
                       ) : (
-                        <p className="text-sm" style={{ color: equipmentSafe[equip] === 'No' ? '#dc2626' : '#16a34a', fontWeight: 600 }}>{equipmentSafe[equip]}</p>
+                        <p className="text-sm" style={{ color: equipmentSafe[equip] === 'No' ? '#dc2626' : '#16a34a', fontWeight: 600 }}>
+                          {equipmentSafe[equip] === 'Yes' ? '✅ ' : equipmentSafe[equip] === 'No' ? '❌ ' : ''}{equipmentSafe[equip]}
+                        </p>
                       )}
                     </div>
                   )}
