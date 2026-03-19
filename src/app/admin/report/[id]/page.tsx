@@ -861,6 +861,7 @@ function FormDataDisplay({
       const checks = (formData.equipmentChecks as Record<string, boolean[]>) || {};
       const repairs = (formData.additionalRepairs as Record<string, string>) || {};
       const futureParts = (formData.futurePartsNeeded as Record<string, string>) || {};
+      const maintEquipSafe = (formData.equipmentSafe as Record<string, string>) || {};
       const bleacherData = formData.outdoorBleacherData as Record<string, string> | undefined;
       const bleacherLabels: Record<string, string> = {
         location: 'Location of Outdoor Bleachers',
@@ -942,6 +943,26 @@ function FormDataDisplay({
                       />
                     ) : (
                       <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{futureParts[equipment] || '—'}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Equipment Safe for Use */}
+                {(maintEquipSafe[equipment] || isEditing) && (
+                  <div style={{ marginTop: '0.5rem', paddingLeft: '0.5rem' }}>
+                    <span className="text-xs font-medium text-gray-500">Equipment Safe for Use</span>
+                    {isEditing ? (
+                      <select
+                        value={maintEquipSafe[equipment] || ''}
+                        onChange={(e) => onUpdate('equipmentSafe', { ...maintEquipSafe, [equipment]: e.target.value })}
+                        className="w-full p-2 border rounded mt-1"
+                      >
+                        <option value="">—</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                      </select>
+                    ) : (
+                      <p className="text-sm" style={{ color: maintEquipSafe[equipment] === 'No' ? '#dc2626' : '#16a34a', fontWeight: 600 }}>{maintEquipSafe[equipment]}</p>
                     )}
                   </div>
                 )}
@@ -1045,6 +1066,26 @@ function FormDataDisplay({
                   <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{futureParts['Other'] || '—'}</p>
                 )}
               </div>
+
+              {/* Equipment Safe for Use — Other */}
+              {(maintEquipSafe['Other'] || isEditing) && (
+                <div style={{ marginTop: '0.5rem', paddingLeft: '0.5rem' }}>
+                  <span className="text-xs font-medium text-gray-500">Equipment Safe for Use</span>
+                  {isEditing ? (
+                    <select
+                      value={maintEquipSafe['Other'] || ''}
+                      onChange={(e) => onUpdate('equipmentSafe', { ...maintEquipSafe, ['Other']: e.target.value })}
+                      className="w-full p-2 border rounded mt-1"
+                    >
+                      <option value="">—</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  ) : (
+                    <p className="text-sm" style={{ color: maintEquipSafe['Other'] === 'No' ? '#dc2626' : '#16a34a', fontWeight: 600 }}>{maintEquipSafe['Other']}</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

@@ -32,6 +32,7 @@ interface FormData {
   equipmentChecks: Record<string, boolean[]>;
   additionalRepairs: Record<string, string>;
   futurePartsNeeded: Record<string, string>;
+  equipmentSafe: Record<string, string>;
   equipmentTurnover: string;
   otherNotes: string;
   photos: File[];
@@ -193,11 +194,13 @@ export default function MaintenanceForm() {
     const initialEquipmentChecks: Record<string, boolean[]> = {};
     const initialAdditionalRepairs: Record<string, string> = {};
     const initialFuturePartsNeeded: Record<string, string> = {};
+    const initialEquipmentSafe: Record<string, string> = {};
 
     equipmentTypes.forEach(type => {
       initialEquipmentChecks[type] = Array(equipmentChecklists[type].length).fill(true);
       initialAdditionalRepairs[type] = '';
       initialFuturePartsNeeded[type] = '';
+      initialEquipmentSafe[type] = '';
     });
 
     return {
@@ -209,6 +212,7 @@ export default function MaintenanceForm() {
       equipmentChecks: initialEquipmentChecks,
       additionalRepairs: initialAdditionalRepairs,
       futurePartsNeeded: initialFuturePartsNeeded,
+      equipmentSafe: initialEquipmentSafe,
       equipmentTurnover: '',
       otherNotes: '',
       photos: []
@@ -257,10 +261,11 @@ export default function MaintenanceForm() {
       submitData.append('job_name', formData.jobName);
       submitData.append('job_number', formData.jobNumber);
       submitData.append('technician_name', formData.technicianName);
-      // Only include checks, repairs, and future parts for selected equipment
+      // Only include checks, repairs, future parts, and safe status for selected equipment
       const filteredChecks: Record<string, boolean[]> = {};
       const filteredRepairs: Record<string, string> = {};
       const filteredFutureParts: Record<string, string> = {};
+      const filteredEquipmentSafe: Record<string, string> = {};
       formData.selectedEquipment.forEach(equip => {
         if (formData.equipmentChecks[equip]) {
           filteredChecks[equip] = formData.equipmentChecks[equip];
@@ -270,6 +275,9 @@ export default function MaintenanceForm() {
         }
         if (formData.futurePartsNeeded[equip]?.trim()) {
           filteredFutureParts[equip] = formData.futurePartsNeeded[equip];
+        }
+        if (formData.equipmentSafe[equip]) {
+          filteredEquipmentSafe[equip] = formData.equipmentSafe[equip];
         }
       });
       // Also include Other sub-fields if Other is selected
@@ -290,6 +298,7 @@ export default function MaintenanceForm() {
         equipmentChecks: filteredChecks,
         additionalRepairs: filteredRepairs,
         futurePartsNeeded: filteredFutureParts,
+        equipmentSafe: filteredEquipmentSafe,
         equipmentTurnover: formData.equipmentTurnover,
         otherNotes: formData.otherNotes,
         ...(includeOutdoorBleacher ? { outdoorBleacherData: outdoorBleacherData } : {})
@@ -329,6 +338,7 @@ export default function MaintenanceForm() {
           equipmentChecks: filteredChecks,
           additionalRepairs: filteredRepairs,
           futurePartsNeeded: filteredFutureParts,
+          equipmentSafe: filteredEquipmentSafe,
           equipmentTurnover: formData.equipmentTurnover,
           otherNotes: formData.otherNotes,
           ...(includeOutdoorBleacher ? { outdoorBleacherData: outdoorBleacherData } : {})
@@ -432,6 +442,17 @@ export default function MaintenanceForm() {
     setFormData(prev => ({
       ...prev,
       futurePartsNeeded: { ...prev.futurePartsNeeded, [key]: value }
+    }));
+  };
+
+  // Handle equipment safe change
+  const handleEquipmentSafeChange = (equipment: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      equipmentSafe: {
+        ...prev.equipmentSafe,
+        [equipment]: value
+      }
     }));
   };
 
@@ -724,6 +745,33 @@ export default function MaintenanceForm() {
                             }}
                           />
                         </div>
+                        <div>
+                          <label className="block mb-1 font-medium">Equipment Working & Safe for Use?</label>
+                          <div className="flex gap-6 mt-2">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name="safe-Other"
+                                value="Yes"
+                                checked={formData.equipmentSafe['Other'] === 'Yes'}
+                                onChange={() => handleEquipmentSafeChange('Other', 'Yes')}
+                                className="w-5 h-5"
+                              />
+                              <span className="text-base">Yes</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name="safe-Other"
+                                value="No"
+                                checked={formData.equipmentSafe['Other'] === 'No'}
+                                onChange={() => handleEquipmentSafeChange('Other', 'No')}
+                                className="w-5 h-5"
+                              />
+                              <span className="text-base">No</span>
+                            </label>
+                          </div>
+                        </div>
                       </div>
                     )}
 
@@ -758,6 +806,33 @@ export default function MaintenanceForm() {
                               resize: 'none'
                             }}
                           />
+                        </div>
+                        <div>
+                          <label className="block mb-1 font-medium">Equipment Working & Safe for Use?</label>
+                          <div className="flex gap-6 mt-2">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name={`safe-${equipment}`}
+                                value="Yes"
+                                checked={formData.equipmentSafe[equipment] === 'Yes'}
+                                onChange={() => handleEquipmentSafeChange(equipment, 'Yes')}
+                                className="w-5 h-5"
+                              />
+                              <span className="text-base">Yes</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name={`safe-${equipment}`}
+                                value="No"
+                                checked={formData.equipmentSafe[equipment] === 'No'}
+                                onChange={() => handleEquipmentSafeChange(equipment, 'No')}
+                                className="w-5 h-5"
+                              />
+                              <span className="text-base">No</span>
+                            </label>
+                          </div>
                         </div>
                       </div>
                     )}

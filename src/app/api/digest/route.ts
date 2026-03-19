@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
     // 3. Find equipment flagged as "not safe for use"
     const unsafeEquipment: { submission: Submission; equipment: string }[] = [];
     for (const sub of typedSubmissions) {
-      if (sub.report_type === 'repair' && sub.form_data) {
+      if ((sub.report_type === 'repair' || sub.report_type === 'maintenance') && sub.form_data) {
         const equipSafe = sub.form_data.equipmentSafe as Record<string, string> | undefined;
         if (equipSafe) {
           for (const [equip, safe] of Object.entries(equipSafe)) {

@@ -476,6 +476,7 @@ function handleMaintenanceReport(doc: jsPDF, submission: Submission) {
   const equipmentChecks: Record<string, boolean[]> = data.equipmentChecks || {};
   const additionalRepairs: Record<string, string> = data.additionalRepairs || {};
   const futurePartsNeeded: Record<string, string> = data.futurePartsNeeded || {};
+  const equipmentSafe: Record<string, string> = data.equipmentSafe || {};
 
   // Section header before all equipment
   if (selectedEquipment.length > 0) {
@@ -515,6 +516,12 @@ function handleMaintenanceReport(doc: jsPDF, submission: Submission) {
       if (futureParts && futureParts.trim()) {
         addLabeledNote(doc, 'Future Parts or Service Needed:', futureParts);
       }
+    }
+
+    // Equipment Working & Safe for Use
+    const safe = equipmentSafe[equipment];
+    if (safe) {
+      addLabeledNote(doc, 'Equipment Working & Safe for Use:', safe);
     }
 
     // Outdoor bleacher extra data
