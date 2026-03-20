@@ -37,6 +37,7 @@ interface Reminder {
   job_number: string | null;
   technician_name: string | null;
   service_date: string;
+  reminder_date: string;
   status: string;
   notes: string | null;
 }
@@ -93,23 +94,26 @@ export async function GET(request: NextRequest) {
 
     if (subError) throw subError;
 
-    // 2a. Fetch upcoming service reminders (next 14 days, not completed/dismissed)
+    // 2a. Fetch all currently-due service reminders (reminder_date <= today, still pending)
+    // This matches the admin dashboard logic: only show reminders whose reminder_date has arrived
     const { data: reminders, error: remError } = await supabase
       .from('service_reminders')
-      .select('id, job_name, job_number, technician_name, service_date, status, notes')
-      .gte('service_date', todayStr)
-      .lte('service_date', twoWeeksStr)
-      .not('status', 'in', '("completed","dismissed")')
-      .order('service_date', { ascending: true });
+      .select('id, job_name, job_number, technician_name, service_date, reminder_date, status, notes')
+      .eq('status', 'pending')
+      .lte('reminder_date', todayStr)
+      .order('reminder_date', { ascending: true });
 
     if (remError) throw remError;
 
-    // 2b. Fetch NEW service reminders created in the past week
+    // 2b. Fetch service reminders that BECAME DUE in the past week
+    // (reminder_date fell within the last 7 days — these are "new" to the admin dashboard)
+    const oneWeekAgoStr = oneWeekAgo.toISOString().split('T')[0];
     const { data: newReminders, error: newRemError } = await supabase
       .from('service_reminders')
-      .select('id, job_name, job_number, technician_name, service_date, status, notes')
-      .gte('created_at', oneWeekAgo.toISOString())
-      .order('created_at', { ascending: false });
+      .select('id, job_name, job_number, technician_name, service_date, reminder_date, status, notes')
+      .gte('reminder_date', oneWeekAgoStr)
+      .lte('reminder_date', todayStr)
+      .order('reminder_date', { ascending: false });
 
     if (newRemError) throw newRemError;
 
@@ -408,7 +412,7 @@ function buildDigestEmail({
       newReminders.length > 0
         ? `
     <div style="padding: 0 32px 24px;">
-      <h2 style="font-size: 16px; color: ${brandBlue}; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid ${brandBlue};">New Service Reminders This Week</h2>
+      <h2 style="font-size: 16px; color: ${brandBlue}; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid ${brandBlue};">Newly Due Service Reminders</h2>
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size: 14px;">
         <thead>
           <tr style="background: #f9fafb;">
@@ -430,7 +434,7 @@ function buildDigestEmail({
       reminders.length > 0
         ? `
     <div style="padding: 0 32px 24px;">
-      <h2 style="font-size: 16px; color: ${brandBlue}; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid ${brandBlue};">Upcoming Service Reminders (Next 14 Days)</h2>
+      <h2 style="font-size: 16px; color: ${brandBlue}; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid ${brandBlue};">All Pending Service Reminders</h2>
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size: 14px;">
         <thead>
           <tr style="background: #f9fafb;">
