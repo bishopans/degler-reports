@@ -4,87 +4,141 @@ import Image from 'next/image';
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-white">
-      <div className="w-[300px] mb-8">
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem 1.5rem', background: 'white' }}>
+      <div style={{ width: 300, marginBottom: '2rem' }}>
         <Image
           src="/images/logo.png"
           alt="Degler Whiting Logo"
           width={300}
           height={300}
-          className="w-full"
+          style={{ width: '100%', height: 'auto' }}
           priority
         />
       </div>
 
-      <h1 className="text-3xl font-bold mb-12">Select a Report</h1>
+      {/* ─── Select a Report ─── */}
+      <h1 style={{ fontSize: '1.875rem', fontWeight: 700, marginBottom: '2.5rem', textAlign: 'center' }}>Select a Report</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl">
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: '1.5rem',
+        maxWidth: 900,
+        width: '100%',
+      }} className="home-grid">
+        {[
+          { href: '/maintenance', label: 'Preventative Maintenance\n/Inspection' },
+          { href: '/repair', label: 'Repair' },
+          { href: '/material-delivery', label: 'Material Delivery' },
+          { href: '/material-turnover', label: 'Material Turnover' },
+          { href: '/training', label: 'Training' },
+          { href: '/jobsite-progress', label: 'Job Site Progress' },
+          { href: '/time-sheets', label: 'Time Sheets' },
+          { href: '/accident', label: 'Accident/Incident' },
+          { href: '/photo-upload', label: 'Photo Upload' },
+        ].map(({ href, label }) => (
+          <Link
+            key={href}
+            href={href}
+            style={{
+              padding: '2rem 1rem',
+              border: '2px solid #e5e7eb',
+              borderRadius: 8,
+              textAlign: 'center',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: 100,
+              textDecoration: 'none',
+              color: '#111',
+              fontSize: '1.25rem',
+              fontWeight: 500,
+              transition: 'all 0.15s',
+              whiteSpace: 'pre-line',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.07)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'white'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)'; }}
+          >
+            {label}
+          </Link>
+        ))}
+      </div>
+
+      {/* ─── Divider ─── */}
+      <div style={{ width: '100%', maxWidth: 900, margin: '3rem 0', borderTop: '2px solid #e5e7eb' }} />
+
+      {/* ─── Service & Install Support ─── */}
+      <h2 style={{ fontSize: '1.875rem', fontWeight: 700, marginBottom: '0.75rem', textAlign: 'center', color: '#00457c' }}>
+        Service & Install Support
+      </h2>
+      <p style={{ fontSize: '0.95rem', color: '#6b7280', marginBottom: '2rem', textAlign: 'center', maxWidth: 500 }}>
+        Access installation manuals, troubleshooting guides, and AI-powered service assistance.
+      </p>
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '1.5rem',
+        maxWidth: 620,
+        width: '100%',
+      }} className="support-grid">
+        {/* Installation Manual Library */}
         <Link
-          href="/maintenance"
-          className="p-8 border-2 rounded-lg hover:bg-blue-50 text-center shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[100px]"
+          href="/support/manuals"
+          style={{
+            padding: '2rem 1.5rem',
+            border: '2px solid #00457c',
+            borderRadius: 8,
+            textAlign: 'center',
+            boxShadow: '0 1px 3px rgba(0,69,124,0.1)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: 140,
+            textDecoration: 'none',
+            color: '#111',
+            transition: 'all 0.15s',
+            background: 'white',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,69,124,0.15)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'white'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,69,124,0.1)'; }}
         >
-          <div className="text-center text-xl font-medium">
-            <div>Preventative Maintenance</div>
-            <div>/Inspection</div>
-          </div>
+          <span style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📖</span>
+          <span style={{ fontSize: '1.15rem', fontWeight: 600, color: '#00457c' }}>Installation Manuals</span>
+          <span style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.35rem' }}>Browse guides by equipment</span>
         </Link>
 
+        {/* Install & Service GPT */}
         <Link
-          href="/repair"
-          className="p-8 border-2 rounded-lg hover:bg-blue-50 text-center shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[100px]"
+          href="/support/assistant"
+          style={{
+            padding: '2rem 1.5rem',
+            border: '2px solid #00457c',
+            borderRadius: 8,
+            textAlign: 'center',
+            boxShadow: '0 1px 3px rgba(0,69,124,0.1)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: 140,
+            textDecoration: 'none',
+            color: '#111',
+            transition: 'all 0.15s',
+            background: 'white',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,69,124,0.15)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'white'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,69,124,0.1)'; }}
         >
-          <span className="text-xl font-medium">Repair</span>
-        </Link>
-
-        <Link
-          href="/material-delivery"
-          className="p-8 border-2 rounded-lg hover:bg-blue-50 text-center shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[100px]"
-        >
-          <span className="text-xl font-medium">Material Delivery</span>
-        </Link>
-
-        <Link
-          href="/material-turnover"
-          className="p-8 border-2 rounded-lg hover:bg-blue-50 text-center shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[100px]"
-        >
-          <span className="text-xl font-medium">Material Turnover</span>
-        </Link>
-
-        <Link
-          href="/training"
-          className="p-8 border-2 rounded-lg hover:bg-blue-50 text-center shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[100px]"
-        >
-          <span className="text-xl font-medium">Training</span>
-        </Link>
-
-        <Link
-          href="/jobsite-progress"
-          className="p-8 border-2 rounded-lg hover:bg-blue-50 text-center shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[100px]"
-        >
-          <span className="text-xl font-medium">Job Site Progress</span>
-        </Link>
-
-        <Link
-          href="/time-sheets"
-          className="p-8 border-2 rounded-lg hover:bg-blue-50 text-center shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[100px]"
-        >
-          <span className="text-xl font-medium">Time Sheets</span>
-        </Link>
-
-        <Link
-          href="/accident"
-          className="p-8 border-2 rounded-lg hover:bg-blue-50 text-center shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[100px]"
-        >
-          <span className="text-xl font-medium">Accident/Incident</span>
-        </Link>
-
-        <Link
-          href="/photo-upload"
-          className="p-8 border-2 rounded-lg hover:bg-blue-50 text-center shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[100px]"
-        >
-          <span className="text-xl font-medium">Photo Upload</span>
+          <span style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🤖</span>
+          <span style={{ fontSize: '1.15rem', fontWeight: 600, color: '#00457c' }}>Install & Service AI</span>
+          <span style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.35rem' }}>AI-powered troubleshooting</span>
         </Link>
       </div>
+
+      <div style={{ height: '3rem' }} />
     </div>
   );
 }

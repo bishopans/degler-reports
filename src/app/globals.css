@@ -336,3 +336,37 @@ textarea {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Home page grids — responsive */
+@media (max-width: 768px) {
+  .home-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.75rem !important;
+  }
+  .support-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.75rem !important;
+  }
+}
+@media (max-width: 480px) {
+  .home-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+  .support-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+}
+
+/* Manuals page grid — responsive */
+@media (max-width: 768px) {
+  .manuals-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+@media (max-width: 480px) {
+  .manuals-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
