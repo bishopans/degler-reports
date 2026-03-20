@@ -15,7 +15,7 @@ export default function AssistantPage() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
-            <Image src="/images/logo.png" alt="DW Logo" width={50} height={50} style={{ borderRadius: 4 }} />
+            <Image src="/images/logo.png" alt="DW Logo" width={50} height={50} style={{ borderRadius: 4, background: 'white', padding: 2 }} />
           </Link>
           <div>
             <h1 style={{ margin: 0, color: 'white', fontSize: '1.35rem', fontWeight: 700 }}>Install & Service AI</h1>

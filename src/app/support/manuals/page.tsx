@@ -5,37 +5,31 @@ import Image from 'next/image';
 // Placeholder categories — will be replaced with real data once manuals are uploaded
 const categories = [
   {
-    name: 'Scoreboards',
+    name: 'Athletic Equipment',
+    icon: '🏀',
+    description: 'Basketball goals, volleyball systems, and gym equipment',
+    manualCount: 0,
+  },
+  {
+    name: 'Bleachers',
     icon: '🏟️',
+    description: 'Telescopic bleachers, fixed seating, and grandstands',
+    manualCount: 0,
+  },
+  {
+    name: 'Scoreboards',
+    icon: '📊',
     description: 'LED scoreboards, controllers, and display systems',
     manualCount: 0,
   },
   {
-    name: 'Shot Clocks',
-    icon: '⏱️',
-    description: 'Shot clock units, mounts, and controllers',
+    name: 'Folding Partitions',
+    icon: '🚪',
+    description: 'Operable walls, gym dividers, and partition systems',
     manualCount: 0,
   },
   {
-    name: 'Video Displays',
-    icon: '📺',
-    description: 'Video boards, processors, and media players',
-    manualCount: 0,
-  },
-  {
-    name: 'Sound Systems',
-    icon: '🔊',
-    description: 'Speakers, amplifiers, and PA systems',
-    manualCount: 0,
-  },
-  {
-    name: 'Timing Systems',
-    icon: '⏲️',
-    description: 'Game clocks, play clocks, and timing accessories',
-    manualCount: 0,
-  },
-  {
-    name: 'Other Equipment',
+    name: 'Other',
     icon: '🔧',
     description: 'Miscellaneous equipment and accessories',
     manualCount: 0,
@@ -55,7 +49,7 @@ export default function ManualsPage() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center' }}>
-            <Image src="/images/logo.png" alt="DW Logo" width={50} height={50} style={{ borderRadius: 4 }} />
+            <Image src="/images/logo.png" alt="DW Logo" width={50} height={50} style={{ borderRadius: 4, background: 'white', padding: 2 }} />
           </Link>
           <div>
             <h1 style={{ margin: 0, color: 'white', fontSize: '1.35rem', fontWeight: 700 }}>Installation Manuals</h1>
