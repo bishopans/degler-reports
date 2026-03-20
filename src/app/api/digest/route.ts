@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
 
     if (subError) throw subError;
 
-    // 2. Fetch upcoming service reminders (next 14 days, not completed/dismissed)
+    // 2a. Fetch upcoming service reminders (next 14 days, not completed/dismissed)
     const { data: reminders, error: remError } = await supabase
       .from('service_reminders')
       .select('id, job_name, job_number, technician_name, service_date, status, notes')
@@ -104,8 +104,18 @@ export async function GET(request: NextRequest) {
 
     if (remError) throw remError;
 
+    // 2b. Fetch NEW service reminders created in the past week
+    const { data: newReminders, error: newRemError } = await supabase
+      .from('service_reminders')
+      .select('id, job_name, job_number, technician_name, service_date, status, notes')
+      .gte('created_at', oneWeekAgo.toISOString())
+      .order('created_at', { ascending: false });
+
+    if (newRemError) throw newRemError;
+
     const typedSubmissions = (submissions || []) as Submission[];
     const typedReminders = (reminders || []) as Reminder[];
+    const typedNewReminders = (newReminders || []) as Reminder[];
 
     // 3. Find equipment flagged as "not safe for use"
     const unsafeEquipment: { submission: Submission; equipment: string }[] = [];
@@ -155,6 +165,7 @@ export async function GET(request: NextRequest) {
           countsByType,
           unsafeEquipment,
           reminders: typedReminders,
+          newReminders: typedNewReminders,
           weekStart: oneWeekAgo,
           weekEnd: now,
           unsubscribeToken: subscriber.unsubscribe_token,
@@ -183,6 +194,7 @@ export async function GET(request: NextRequest) {
         countsByType,
         unsafeEquipmentCount: unsafeEquipment.length,
         upcomingReminders: typedReminders.length,
+        newRemindersThisWeek: typedNewReminders.length,
       },
     });
   } catch (error) {
@@ -198,6 +210,7 @@ function buildDigestEmail({
   countsByType,
   unsafeEquipment,
   reminders,
+  newReminders,
   weekStart,
   weekEnd,
   unsubscribeToken,
@@ -206,6 +219,7 @@ function buildDigestEmail({
   countsByType: Record<string, number>;
   unsafeEquipment: { submission: Submission; equipment: string }[];
   reminders: Reminder[];
+  newReminders: Reminder[];
   weekStart: Date;
   weekEnd: Date;
   unsubscribeToken: string;
@@ -246,7 +260,7 @@ function buildDigestEmail({
     )
     .join('');
 
-  // Reminder rows
+  // Reminder rows (upcoming)
   const reminderRows = reminders
     .map(
       (r) => `
@@ -258,6 +272,26 @@ function buildDigestEmail({
           <span style="display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 500;
             background: ${r.status === 'scheduled' ? '#dcfce7' : r.status === 'contacted' ? '#dbeafe' : '#fef9c3'};
             color: ${r.status === 'scheduled' ? '#166534' : r.status === 'contacted' ? '#1e40af' : '#854d0e'};">
+            ${r.status}
+          </span>
+        </td>
+      </tr>`
+    )
+    .join('');
+
+  // New service reminders created this week
+  const newReminderRows = newReminders
+    .map(
+      (r) => `
+      <tr>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb;">${r.job_name}</td>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb;">${r.job_number || '—'}</td>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb;">${r.technician_name || '—'}</td>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb;">${formatDate(r.service_date)}</td>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb;">
+          <span style="display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 500;
+            background: ${r.status === 'scheduled' ? '#dcfce7' : r.status === 'contacted' ? '#dbeafe' : r.status === 'completed' ? '#e5e7eb' : '#fef9c3'};
+            color: ${r.status === 'scheduled' ? '#166534' : r.status === 'contacted' ? '#1e40af' : r.status === 'completed' ? '#374151' : '#854d0e'};">
             ${r.status}
           </span>
         </td>
@@ -363,6 +397,28 @@ function buildDigestEmail({
           </tr>
         </thead>
         <tbody>${unsafeRows}</tbody>
+      </table>
+    </div>`
+        : ''
+    }
+
+    <!-- New Service Reminders This Week -->
+    ${
+      newReminders.length > 0
+        ? `
+    <div style="padding: 0 32px 24px;">
+      <h2 style="font-size: 16px; color: ${brandBlue}; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid ${brandBlue};">New Service Reminders This Week</h2>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size: 14px;">
+        <thead>
+          <tr style="background: #f9fafb;">
+            <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Job</th>
+            <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Job #</th>
+            <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Technician</th>
+            <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Service Date</th>
+            <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Status</th>
+          </tr>
+        </thead>
+        <tbody>${newReminderRows}</tbody>
       </table>
     </div>`
         : ''
