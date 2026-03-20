@@ -148,7 +148,8 @@ export async function GET(request: NextRequest) {
         pass: process.env.EMAIL_PASS,
       },
       tls: {
-        ciphers: 'SSLv3',
+        minVersion: 'TLSv1.2',
+        ciphers: 'HIGH:!aNULL:!MD5',
       },
     });
 

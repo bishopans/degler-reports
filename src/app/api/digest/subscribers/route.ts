@@ -75,7 +75,7 @@ async function sendWelcomeEmail(email: string) {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
-      tls: { ciphers: 'SSLv3' },
+      tls: { minVersion: 'TLSv1.2', ciphers: 'HIGH:!aNULL:!MD5' },
     });
 
     const brandBlue = '#00457c';
@@ -127,7 +127,8 @@ async function sendWelcomeEmail(email: string) {
 </html>`,
     });
   } catch (err) {
-    console.error('Failed to send welcome email:', err);
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error('Failed to send welcome email:', errMsg, err);
     // Don't throw — subscription still succeeds even if welcome email fails
   }
 }
@@ -164,7 +165,7 @@ export async function DELETE(request: NextRequest) {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
-      tls: { ciphers: 'SSLv3' },
+      tls: { minVersion: 'TLSv1.2', ciphers: 'HIGH:!aNULL:!MD5' },
     });
 
     const unsubscribeUrl = `${APP_URL}/unsubscribe?token=${subscriber.unsubscribe_token}`;
