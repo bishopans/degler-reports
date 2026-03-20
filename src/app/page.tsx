@@ -5,7 +5,7 @@ import Image from 'next/image';
 export default function Home() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem 1.5rem', background: 'white' }}>
-      <div style={{ width: 300, marginBottom: '2rem' }}>
+      <div style={{ maxWidth: 300, width: '100%', marginBottom: '2rem' }}>
         <Image
           src="/images/logo.png"
           alt="Degler Whiting Logo"
