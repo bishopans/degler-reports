@@ -2,12 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import nodemailer from 'nodemailer';
 
-// Recipient list — comma-separated in env var, fallback to andrew
-const DIGEST_RECIPIENTS = (process.env.DIGEST_RECIPIENTS || 'andrew@deglerwhiting.com')
-  .split(',')
-  .map((e) => e.trim())
-  .filter(Boolean);
-
 // App URL for admin links
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://deglerwhitingreports.com';
 
@@ -33,6 +27,7 @@ interface Submission {
   job_number: string;
   technician_name: string;
   form_data: Record<string, unknown> | null;
+  photo_urls: string[] | null;
   status: string;
 }
 
@@ -46,6 +41,12 @@ interface Reminder {
   notes: string | null;
 }
 
+interface Subscriber {
+  id: string;
+  email: string;
+  unsubscribe_token: string;
+}
+
 export async function GET(request: NextRequest) {
   // Verify cron secret to prevent unauthorized access
   const authHeader = request.headers.get('authorization');
@@ -55,11 +56,27 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Calculate date range: last 7 days
+    // 0. Get active subscribers
+    const { data: subscriberData, error: subListError } = await supabase
+      .from('digest_subscribers')
+      .select('id, email, unsubscribe_token')
+      .eq('active', true);
+
+    if (subListError) throw subListError;
+    const subscribers = (subscriberData || []) as Subscriber[];
+
+    if (subscribers.length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: 'No active subscribers — skipping digest',
+        recipients: [],
+      });
+    }
+
+    // Calculate date range: last 7 days (Monday to Monday)
     const now = new Date();
     const oneWeekAgo = new Date(now);
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    const weekAgoStr = oneWeekAgo.toISOString().split('T')[0];
 
     // Upcoming reminders: next 14 days
     const twoWeeksOut = new Date(now);
@@ -70,7 +87,7 @@ export async function GET(request: NextRequest) {
     // 1. Fetch new submissions from the past week
     const { data: submissions, error: subError } = await supabase
       .from('submissions')
-      .select('id, created_at, report_type, date, job_name, job_number, technician_name, form_data, status')
+      .select('id, created_at, report_type, date, job_name, job_number, technician_name, form_data, photo_urls, status')
       .gte('created_at', oneWeekAgo.toISOString())
       .order('created_at', { ascending: false });
 
@@ -111,17 +128,7 @@ export async function GET(request: NextRequest) {
       countsByType[sub.report_type] = (countsByType[sub.report_type] || 0) + 1;
     }
 
-    // 5. Build the email HTML
-    const emailHtml = buildDigestEmail({
-      submissions: typedSubmissions,
-      countsByType,
-      unsafeEquipment,
-      reminders: typedReminders,
-      weekStart: oneWeekAgo,
-      weekEnd: now,
-    });
-
-    // 6. Send email
+    // 5. Create transporter
     const transporter = nodemailer.createTransport({
       host: 'smtp.office365.com',
       port: 587,
@@ -137,16 +144,40 @@ export async function GET(request: NextRequest) {
 
     const weekLabel = `${oneWeekAgo.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER || 'andrew@deglerwhiting.com',
-      to: DIGEST_RECIPIENTS.join(', '),
-      subject: `DW Reports Weekly Digest — ${weekLabel}`,
-      html: emailHtml,
-    });
+    // 6. Send personalized email to each subscriber (with their own unsubscribe link)
+    const sentTo: string[] = [];
+    const errors: string[] = [];
+
+    for (const subscriber of subscribers) {
+      try {
+        const emailHtml = buildDigestEmail({
+          submissions: typedSubmissions,
+          countsByType,
+          unsafeEquipment,
+          reminders: typedReminders,
+          weekStart: oneWeekAgo,
+          weekEnd: now,
+          unsubscribeToken: subscriber.unsubscribe_token,
+        });
+
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER || 'reports@deglerwhiting.com',
+          to: subscriber.email,
+          subject: `DW Reports Weekly Digest — ${weekLabel}`,
+          html: emailHtml,
+        });
+
+        sentTo.push(subscriber.email);
+      } catch (err) {
+        console.error(`Failed to send to ${subscriber.email}:`, err);
+        errors.push(subscriber.email);
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      recipients: DIGEST_RECIPIENTS,
+      recipients: sentTo,
+      failed: errors,
       summary: {
         totalSubmissions: typedSubmissions.length,
         countsByType,
@@ -169,6 +200,7 @@ function buildDigestEmail({
   reminders,
   weekStart,
   weekEnd,
+  unsubscribeToken,
 }: {
   submissions: Submission[];
   countsByType: Record<string, number>;
@@ -176,10 +208,12 @@ function buildDigestEmail({
   reminders: Reminder[];
   weekStart: Date;
   weekEnd: Date;
+  unsubscribeToken: string;
 }): string {
   const brandBlue = '#00457c';
   const brandRed = '#ab0534';
   const weekLabel = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+  const unsubscribeUrl = `${APP_URL}/unsubscribe?token=${unsubscribeToken}`;
 
   const formatDate = (d: string) =>
     new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -231,20 +265,28 @@ function buildDigestEmail({
     )
     .join('');
 
-  // Recent submissions list (top 10)
-  const recentRows = submissions
-    .slice(0, 10)
+  // All submissions — mirror admin dashboard row format
+  const submissionRows = submissions
     .map(
-      (sub) => `
+      (sub) => {
+        const photoCount = sub.photo_urls?.length || 0;
+        return `
       <tr>
-        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px;">${reportTypeLabels[sub.report_type] || sub.report_type}</td>
-        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px;">${sub.job_name}</td>
-        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px;">${sub.technician_name}</td>
         <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px;">${formatDate(sub.date)}</td>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px;">
+          <span style="display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; background: #dbeafe; color: #1e40af;">
+            ${reportTypeLabels[sub.report_type] || sub.report_type}
+          </span>
+        </td>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; font-weight: 500;">${sub.job_name}</td>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px;">${sub.job_number}</td>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px;">${sub.technician_name}</td>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; text-align: center;">${photoCount}</td>
         <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px;">
           <a href="${APP_URL}/admin/report/${sub.id}" style="color: ${brandBlue}; text-decoration: underline;">View</a>
         </td>
-      </tr>`
+      </tr>`;
+      }
     )
     .join('');
 
@@ -253,7 +295,7 @@ function buildDigestEmail({
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
 <body style="margin: 0; padding: 0; background: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-  <div style="max-width: 640px; margin: 0 auto; background: white;">
+  <div style="max-width: 700px; margin: 0 auto; background: white;">
 
     <!-- Header -->
     <div style="background: ${brandBlue}; padding: 24px 32px; text-align: center;">
@@ -263,22 +305,20 @@ function buildDigestEmail({
 
     <!-- Quick Stats -->
     <div style="padding: 24px 32px;">
-      <div style="display: flex; text-align: center; gap: 0;">
-        <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-          <td width="33%" style="text-align: center; padding: 16px 8px; background: #eff6ff; border-radius: 8px 0 0 8px;">
-            <div style="font-size: 28px; font-weight: 700; color: ${brandBlue};">${submissions.length}</div>
-            <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">New Reports</div>
-          </td>
-          <td width="33%" style="text-align: center; padding: 16px 8px; background: ${unsafeEquipment.length > 0 ? '#fef2f2' : '#eff6ff'};">
-            <div style="font-size: 28px; font-weight: 700; color: ${unsafeEquipment.length > 0 ? brandRed : brandBlue};">${unsafeEquipment.length}</div>
-            <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">Unsafe Equipment</div>
-          </td>
-          <td width="33%" style="text-align: center; padding: 16px 8px; background: #eff6ff; border-radius: 0 8px 8px 0;">
-            <div style="font-size: 28px; font-weight: 700; color: ${brandBlue};">${reminders.length}</div>
-            <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">Upcoming Reminders</div>
-          </td>
-        </tr></table>
-      </div>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td width="33%" style="text-align: center; padding: 16px 8px; background: #eff6ff; border-radius: 8px 0 0 8px;">
+          <div style="font-size: 28px; font-weight: 700; color: ${brandBlue};">${submissions.length}</div>
+          <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">New Reports</div>
+        </td>
+        <td width="33%" style="text-align: center; padding: 16px 8px; background: ${unsafeEquipment.length > 0 ? '#fef2f2' : '#eff6ff'};">
+          <div style="font-size: 28px; font-weight: 700; color: ${unsafeEquipment.length > 0 ? brandRed : brandBlue};">${unsafeEquipment.length}</div>
+          <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">Unsafe Equipment</div>
+        </td>
+        <td width="33%" style="text-align: center; padding: 16px 8px; background: #eff6ff; border-radius: 0 8px 8px 0;">
+          <div style="font-size: 28px; font-weight: 700; color: ${brandBlue};">${reminders.length}</div>
+          <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">Upcoming Reminders</div>
+        </td>
+      </tr></table>
     </div>
 
     <!-- Reports by Type -->
@@ -349,25 +389,26 @@ function buildDigestEmail({
         : ''
     }
 
-    <!-- Recent Submissions -->
+    <!-- All Submissions (Admin Dashboard Style) -->
     ${
       submissions.length > 0
         ? `
     <div style="padding: 0 32px 24px;">
-      <h2 style="font-size: 16px; color: ${brandBlue}; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid ${brandBlue};">Recent Submissions</h2>
+      <h2 style="font-size: 16px; color: ${brandBlue}; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid ${brandBlue};">All Submissions This Week</h2>
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size: 14px;">
         <thead>
           <tr style="background: #f9fafb;">
-            <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Type</th>
-            <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Job</th>
-            <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Tech</th>
             <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Date</th>
+            <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Type</th>
+            <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Job Name</th>
+            <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Job #</th>
+            <th style="padding: 8px 12px; text-align: left; font-weight: 600;">Technician</th>
+            <th style="padding: 8px 12px; text-align: center; font-weight: 600;">Photos</th>
             <th style="padding: 8px 12px; text-align: left; font-weight: 600;"></th>
           </tr>
         </thead>
-        <tbody>${recentRows}</tbody>
+        <tbody>${submissionRows}</tbody>
       </table>
-      ${submissions.length > 10 ? `<p style="font-size: 13px; color: #6b7280; margin-top: 8px;">...and ${submissions.length - 10} more. <a href="${APP_URL}/admin" style="color: ${brandBlue};">View all in admin panel</a></p>` : ''}
     </div>`
         : `
     <div style="padding: 0 32px 24px;">
@@ -387,8 +428,8 @@ function buildDigestEmail({
       <p style="margin: 0; font-size: 12px; color: #9ca3af;">
         Degler Whiting &bull; 610-644-3157 &bull; service@deglerwhiting.com
       </p>
-      <p style="margin: 4px 0 0; font-size: 11px; color: #d1d5db;">
-        This is an automated weekly digest from DW Reports.
+      <p style="margin: 8px 0 0; font-size: 11px;">
+        <a href="${unsubscribeUrl}" style="color: #9ca3af; text-decoration: underline;">Unsubscribe from weekly digest</a>
       </p>
     </div>
 

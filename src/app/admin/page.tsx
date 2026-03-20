@@ -49,6 +49,83 @@ export default function AdminDashboard() {
   const [total, setTotal] = useState(0);
   const [isFetching, setIsFetching] = useState(false);
 
+  // Digest subscribers state
+  interface DigestSubscriber {
+    id: string;
+    email: string;
+    active: boolean;
+    created_at: string;
+  }
+  const [digestOpen, setDigestOpen] = useState(false);
+  const [subscribers, setSubscribers] = useState<DigestSubscriber[]>([]);
+  const [newSubEmail, setNewSubEmail] = useState('');
+  const [subMessage, setSubMessage] = useState('');
+  const [subError, setSubError] = useState('');
+  const [subLoading, setSubLoading] = useState(false);
+  const [removingEmail, setRemovingEmail] = useState('');
+
+  const fetchSubscribers = useCallback(async () => {
+    try {
+      const response = await fetch('/api/digest/subscribers');
+      if (response.ok) {
+        const data = await response.json();
+        setSubscribers(data.subscribers.filter((s: DigestSubscriber) => s.active));
+      }
+    } catch (error) {
+      console.error('Subscriber fetch error:', error);
+    }
+  }, []);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSubEmail) return;
+    setSubLoading(true);
+    setSubMessage('');
+    setSubError('');
+    try {
+      const response = await fetch('/api/digest/subscribers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newSubEmail }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setSubMessage(data.reactivated ? 'Subscription reactivated!' : 'Subscribed successfully!');
+        setNewSubEmail('');
+        fetchSubscribers();
+      } else {
+        setSubError(data.error || 'Failed to subscribe');
+      }
+    } catch {
+      setSubError('Failed to subscribe');
+    } finally {
+      setSubLoading(false);
+    }
+  };
+
+  const handleRemoveSubscriber = async (email: string) => {
+    setRemovingEmail(email);
+    setSubMessage('');
+    setSubError('');
+    try {
+      const response = await fetch('/api/digest/subscribers', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setSubMessage(`Confirmation email sent to ${email}`);
+      } else {
+        setSubError(data.error || 'Failed to send confirmation');
+      }
+    } catch {
+      setSubError('Failed to send confirmation');
+    } finally {
+      setRemovingEmail('');
+    }
+  };
+
   // Service reminders state
   interface ServiceReminder {
     id: string;
@@ -129,8 +206,9 @@ export default function AdminDashboard() {
     if (isUnlocked) {
       fetchSubmissions();
       fetchReminders();
+      fetchSubscribers();
     }
-  }, [isUnlocked, fetchSubmissions, fetchReminders]);
+  }, [isUnlocked, fetchSubmissions, fetchReminders, fetchSubscribers]);
 
   const updateReportStatus = async (id: string, status: string) => {
     try {
@@ -271,6 +349,162 @@ export default function AdminDashboard() {
           >
             Timesheets
           </Link>
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => { setDigestOpen(!digestOpen); setSubMessage(''); setSubError(''); }}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: digestOpen ? '#1e40af' : '#2563eb',
+                color: 'white',
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+              }}
+            >
+              📧 Weekly Digest
+              {subscribers.length > 0 && (
+                <span style={{
+                  backgroundColor: 'rgba(255,255,255,0.25)',
+                  padding: '0.0625rem 0.375rem',
+                  borderRadius: '9999px',
+                  fontSize: '0.75rem',
+                }}>
+                  {subscribers.length}
+                </span>
+              )}
+            </button>
+
+            {/* Digest Dropdown Panel */}
+            {digestOpen && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                marginTop: '0.5rem',
+                width: '340px',
+                backgroundColor: 'white',
+                borderRadius: '0.5rem',
+                boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                border: '1px solid #e5e7eb',
+                zIndex: 50,
+                overflow: 'hidden',
+              }}>
+                {/* Header */}
+                <div style={{
+                  padding: '0.75rem 1rem',
+                  borderBottom: '1px solid #e5e7eb',
+                  backgroundColor: '#f9fafb',
+                }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>Weekly Digest Subscribers</div>
+                  <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.125rem' }}>
+                    Sent every Monday at 5:00 AM EST
+                  </div>
+                </div>
+
+                {/* Subscriber List */}
+                <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                  {subscribers.length === 0 ? (
+                    <div style={{ padding: '1rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.8125rem' }}>
+                      No subscribers yet
+                    </div>
+                  ) : (
+                    subscribers.map((sub) => (
+                      <div
+                        key={sub.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.5rem 1rem',
+                          borderBottom: '1px solid #f3f4f6',
+                        }}
+                      >
+                        <span style={{ fontSize: '0.8125rem', color: '#374151' }}>{sub.email}</span>
+                        <button
+                          onClick={() => handleRemoveSubscriber(sub.email)}
+                          disabled={removingEmail === sub.email}
+                          title="Remove subscriber"
+                          style={{
+                            fontSize: '1rem',
+                            lineHeight: 1,
+                            padding: '0.125rem 0.375rem',
+                            borderRadius: '0.25rem',
+                            border: '1px solid #fecaca',
+                            backgroundColor: removingEmail === sub.email ? '#fef2f2' : 'white',
+                            color: '#dc2626',
+                            cursor: removingEmail === sub.email ? 'not-allowed' : 'pointer',
+                            opacity: removingEmail === sub.email ? 0.5 : 1,
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Messages */}
+                {subMessage && (
+                  <div style={{ padding: '0.5rem 1rem', backgroundColor: '#f0fdf4', color: '#166534', fontSize: '0.75rem', fontWeight: 500 }}>
+                    {subMessage}
+                  </div>
+                )}
+                {subError && (
+                  <div style={{ padding: '0.5rem 1rem', backgroundColor: '#fef2f2', color: '#dc2626', fontSize: '0.75rem', fontWeight: 500 }}>
+                    {subError}
+                  </div>
+                )}
+
+                {/* Subscribe Form */}
+                <form onSubmit={handleSubscribe} style={{
+                  padding: '0.75rem 1rem',
+                  borderTop: '1px solid #e5e7eb',
+                  backgroundColor: '#f9fafb',
+                  display: 'flex',
+                  gap: '0.5rem',
+                }}>
+                  <input
+                    type="email"
+                    value={newSubEmail}
+                    onChange={(e) => { setNewSubEmail(e.target.value); setSubError(''); }}
+                    placeholder="Enter email address"
+                    required
+                    style={{
+                      flex: 1,
+                      padding: '0.5rem 0.625rem',
+                      fontSize: '0.8125rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.375rem',
+                      outline: 'none',
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={subLoading}
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      fontSize: '0.8125rem',
+                      fontWeight: 600,
+                      backgroundColor: '#2563eb',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '0.375rem',
+                      cursor: subLoading ? 'not-allowed' : 'pointer',
+                      opacity: subLoading ? 0.7 : 1,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {subLoading ? '...' : 'Subscribe'}
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
           <Link href="/" className="text-blue-600 hover:text-blue-800" style={{ fontSize: '0.875rem' }}>
             ← Back to Forms
           </Link>
