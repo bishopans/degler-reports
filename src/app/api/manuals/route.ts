@@ -28,11 +28,26 @@ export async function GET(request: Request) {
     );
   }
 
-  const { data, error } = await query;
+  // Supabase default limit is 1000 rows — fetch all manuals (currently ~2000)
+  // by paginating through results
+  const allData: Record<string, unknown>[] = [];
+  const PAGE_SIZE = 1000;
+  let from = 0;
+  let keepGoing = true;
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  while (keepGoing) {
+    const { data: page, error: pageError } = await query.range(from, from + PAGE_SIZE - 1);
+    if (pageError) {
+      return NextResponse.json({ error: pageError.message }, { status: 500 });
+    }
+    if (page && page.length > 0) {
+      allData.push(...page);
+      from += PAGE_SIZE;
+      if (page.length < PAGE_SIZE) keepGoing = false;
+    } else {
+      keepGoing = false;
+    }
   }
 
-  return NextResponse.json(data);
+  return NextResponse.json(allData);
 }

@@ -42,6 +42,11 @@ const MANUAL_TYPE_LABELS: Record<string, string> = {
   installation_guide: 'Installation Guide',
   color_chart: 'Color Chart',
   other: 'Other',
+  'Spec Sheet': 'Spec Sheet',
+  'Installation Guide': 'Installation Guide',
+  'Manual': 'Manual',
+  'Quick Guide': 'Quick Guide',
+  'Other': 'Other',
 };
 
 const MANUAL_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
@@ -52,6 +57,11 @@ const MANUAL_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
   installation_guide: { bg: '#fce7f3', text: '#9d174d' },
   color_chart: { bg: '#ffedd5', text: '#9a3412' },
   other: { bg: '#f3f4f6', text: '#374151' },
+  'Spec Sheet': { bg: '#dbeafe', text: '#1e40af' },
+  'Installation Guide': { bg: '#fce7f3', text: '#9d174d' },
+  'Manual': { bg: '#ede9fe', text: '#5b21b6' },
+  'Quick Guide': { bg: '#fef3c7', text: '#92400e' },
+  'Other': { bg: '#f3f4f6', text: '#374151' },
 };
 
 function formatFileSize(bytes: number | null): string {
