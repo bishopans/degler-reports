@@ -98,6 +98,10 @@ export default function ManualsPage() {
     fetchManuals();
   }, []);
 
+  // Normalize text for flexible matching: strip dashes, underscores, spaces
+  // so "MP80" matches "MP-80", "MP 80", "MP_80", etc.
+  const normalize = (text: string) => text.toLowerCase().replace(/[-_\s.]/g, '');
+
   // Filter manuals client-side
   const filteredManuals = allManuals.filter((m) => {
     if (selectedCategory && m.equipment_category !== selectedCategory) return false;
@@ -105,8 +109,11 @@ export default function ManualsPage() {
     if (selectedType && m.manual_type !== selectedType) return false;
     if (debouncedSearch) {
       const q = debouncedSearch.toLowerCase();
+      const qNorm = normalize(debouncedSearch);
       const searchable = `${m.product_model} ${m.product_name || ''} ${m.filename} ${m.manufacturer}`.toLowerCase();
-      if (!searchable.includes(q)) return false;
+      const searchableNorm = normalize(searchable);
+      // Match on either exact substring or normalized substring
+      if (!searchable.includes(q) && !searchableNorm.includes(qNorm)) return false;
     }
     return true;
   });
