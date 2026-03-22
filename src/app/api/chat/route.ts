@@ -37,22 +37,28 @@ GUIDELINES:
 - Be friendly but professional — you're helping construction and facilities professionals.
 - Do NOT make up technical specifications. Only share info that's in the provided documents.`;
 
-// Download PDF from Supabase Storage and return as base64
+// Download PDF from Supabase Storage public URL and return as base64
+// Uses direct HTTP fetch instead of Supabase client for reliability in serverless
 async function fetchPdfAsBase64(storagePath: string): Promise<string | null> {
   try {
-    console.log(`[PDF] Downloading: ${storagePath}`);
-    const { data, error } = await supabase.storage
-      .from('manuals')
-      .download(storagePath);
+    // Construct public URL for the file (bucket is public)
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/manuals/${encodeURIComponent(storagePath).replace(/%2F/g, '/')}`;
+    console.log(`[PDF] Fetching: ${publicUrl}`);
 
-    if (error || !data) {
-      console.error('[PDF] Storage download error:', storagePath, error);
+    const response = await fetch(publicUrl);
+    if (!response.ok) {
+      console.error(`[PDF] HTTP error ${response.status}: ${response.statusText} for ${storagePath}`);
       return null;
     }
 
-    const arrayBuffer = await data.arrayBuffer();
+    const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     console.log(`[PDF] Downloaded ${buffer.length} bytes from ${storagePath}`);
+
+    if (buffer.length === 0) {
+      console.error('[PDF] Downloaded file is empty!');
+      return null;
+    }
 
     // Convert to base64 for Claude API
     const base64 = buffer.toString('base64');
@@ -312,7 +318,6 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'pdfs-2024-09-25',
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
@@ -324,7 +329,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Claude API error:', response.status, errorText);
+      console.error(`[VULCAN] Claude API error ${response.status}: ${errorText.substring(0, 500)}`);
       return NextResponse.json(
         { error: 'Failed to get a response from Vulcan. Please try again.' },
         { status: 502 }
@@ -335,6 +340,7 @@ export async function POST(request: NextRequest) {
     const assistantMessage = data.content?.[0]?.text || 'I apologize, I could not generate a response.';
     const inputTokens = data.usage?.input_tokens || 0;
     const outputTokens = data.usage?.output_tokens || 0;
+    console.log(`[VULCAN] Claude responded: ${inputTokens} input tokens, ${outputTokens} output tokens`);
 
     // Calculate estimated cost in cents
     const estimatedCostCents =
