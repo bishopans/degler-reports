@@ -98,15 +98,21 @@ export async function POST(request: NextRequest) {
     // Limit conversation history to last 10 messages to control costs
     const recentMessages = messages.slice(-10);
 
-    // Search for relevant manuals based on the latest user question
+    // Search for relevant manuals based on the FULL conversation context
+    // This ensures follow-up questions still find the right product
     const latestQuestion = recentMessages[recentMessages.length - 1]?.content || '';
+    const allUserMessages = recentMessages
+      .filter((m: { role: string; content: string }) => m.role === 'user')
+      .map((m: { role: string; content: string }) => m.content)
+      .join(' ');
     let contextInfo = '';
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pdfContentBlocks: any[] = [];
 
     if (latestQuestion) {
       // Smart keyword search with alias expansion
-      const rawTerms = latestQuestion
+      // Use ALL user messages for search terms (keeps context across follow-ups)
+      const rawTerms = allUserMessages
         .toLowerCase()
         .replace(/[^\w\s.-]/g, '')
         .split(/\s+/)
@@ -164,6 +170,8 @@ export async function POST(request: NextRequest) {
         .filter((t: string) => t.length > 1 && !stopWords.has(t))
         .slice(0, 8);
 
+      console.log(`[VULCAN] Search terms: [${searchTerms.join(', ')}] from conversation`);
+
       if (searchTerms.length > 0) {
         // Separate manufacturer terms from product terms
         const knownManufacturers = ['porter', 'daktronics', 'fair-play', 'fairplay', 'nevco', 'gill', 'interkal', 'hufcor', 'kwik-wall', 'kwikwall'];
@@ -215,7 +223,9 @@ export async function POST(request: NextRequest) {
           manuals = data;
         }
 
+        console.log(`[VULCAN] Found ${manuals?.length || 0} manuals`);
         if (manuals && manuals.length > 0) {
+          console.log(`[VULCAN] Top results: ${manuals.slice(0, 5).map(m => `${m.manufacturer}/${m.product_model}/${m.manual_type}`).join(' | ')}`);
           // Build the document list
           const docList = manuals
             .map(
@@ -239,12 +249,14 @@ export async function POST(request: NextRequest) {
             .sort((a, b) => (typeOrder[a.manual_type] || 5) - (typeOrder[b.manual_type] || 5));
 
           // Fetch the top 1 PDF (keep it to 1 for speed and cost — each page ~1500 tokens)
+          console.log(`[VULCAN] Sorted manuals for PDF fetch: ${sortedManuals.length} candidates`);
           const pdfToFetch = sortedManuals[0];
 
           if (pdfToFetch) {
+            console.log(`[VULCAN] Selected PDF: ${pdfToFetch.manufacturer}/${pdfToFetch.product_model} - ${pdfToFetch.manual_type} (${pdfToFetch.filename}, ${pdfToFetch.file_size_bytes} bytes, path: ${pdfToFetch.storage_path})`);
             const base64Data = await fetchPdfAsBase64(pdfToFetch.storage_path);
             if (base64Data) {
-              console.log(`[VULCAN] Sending PDF to Claude: ${pdfToFetch.filename} (${pdfToFetch.file_size_bytes} bytes)`);
+              console.log(`[VULCAN] PDF base64 ready: ${base64Data.length} chars — attaching to Claude request`);
               pdfContentBlocks.push({
                 type: 'document',
                 source: {
@@ -254,7 +266,11 @@ export async function POST(request: NextRequest) {
                 },
                 title: `${pdfToFetch.manufacturer} - ${pdfToFetch.product_model} - ${pdfToFetch.manual_type}`,
               });
+            } else {
+              console.error(`[VULCAN] PDF download returned null for ${pdfToFetch.storage_path}`);
             }
+          } else {
+            console.log('[VULCAN] No PDF candidates after filtering (size < 5MB, has storage_path)');
           }
 
           // Build the context info for the system prompt
@@ -286,6 +302,9 @@ export async function POST(request: NextRequest) {
       return msg;
     });
 
+    // Log what we're sending to Claude
+    console.log(`[VULCAN] API call: ${pdfContentBlocks.length} PDF(s) attached, ${apiMessages.length} messages, context length: ${contextInfo.length} chars`);
+
     // Call Claude API (Haiku 3.5 for speed and cost efficiency)
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -297,7 +316,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
+        max_tokens: 2048,
         system: SYSTEM_PROMPT + contextInfo,
         messages: apiMessages,
       }),
