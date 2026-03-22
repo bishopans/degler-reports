@@ -134,6 +134,14 @@ export async function POST(request: NextRequest) {
         .split(/\s+/)
         .filter((w: string) => w.length > 1);
 
+      // Also extract terms from JUST the latest message — used for relevance scoring
+      // (prevents conversation history from polluting which PDF is selected)
+      const latestRawTerms = latestQuestion
+        .toLowerCase()
+        .replace(/[^\w\s.-]/g, '')
+        .split(/\s+/)
+        .filter((w: string) => w.length > 1);
+
       // Expand common aliases — users type these but the database has different names
       const aliasMap: Record<string, string[]> = {
         'powertouch': ['powr-touch', 'powr touch', 'powrtouch'],
@@ -193,13 +201,46 @@ export async function POST(request: NextRequest) {
         }
       });
 
+      // Build expanded terms from LATEST message only (for relevance scoring)
+      const latestExpandedTerms = new Set<string>();
+      latestRawTerms.forEach((term: string) => {
+        latestExpandedTerms.add(term);
+        if (aliasMap[term]) {
+          aliasMap[term].forEach((alias: string) => latestExpandedTerms.add(alias));
+        }
+      });
+      for (let i = 0; i < latestRawTerms.length - 1; i++) {
+        const combined = latestRawTerms[i] + latestRawTerms[i + 1];
+        if (aliasMap[combined]) {
+          aliasMap[combined].forEach((alias: string) => latestExpandedTerms.add(alias));
+        }
+        latestExpandedTerms.add(`${latestRawTerms[i]}-${latestRawTerms[i + 1]}`);
+      }
+      latestRawTerms.forEach((term: string) => {
+        const splitMatch = term.match(/^([a-z-]+)([\d].*)$/);
+        if (splitMatch) {
+          const [, wordPart, numberPart] = splitMatch;
+          latestExpandedTerms.add(wordPart);
+          latestExpandedTerms.add(numberPart);
+          if (aliasMap[wordPart]) {
+            aliasMap[wordPart].forEach((alias: string) => latestExpandedTerms.add(alias));
+          }
+        }
+      });
+
       // Pick the most meaningful search terms (skip generic words)
-      const stopWords = new Set(['help', 'with', 'the', 'how', 'can', 'you', 'about', 'what', 'does', 'for', 'and', 'programming', 'program', 'install', 'installation', 'guide', 'manual', 'spec', 'specs', 'sheet', 'wiring', 'diagram', 'troubleshoot', 'troubleshooting', 'need', 'want', 'please', 'tell', 'show', 'me', 'find', 'get', 'look', 'up']);
+      const stopWords = new Set(['help', 'with', 'the', 'how', 'can', 'you', 'about', 'what', 'does', 'for', 'and', 'programming', 'program', 'install', 'installation', 'guide', 'manual', 'spec', 'specs', 'sheet', 'wiring', 'diagram', 'troubleshoot', 'troubleshooting', 'need', 'want', 'please', 'tell', 'show', 'me', 'find', 'get', 'look', 'up', 'do', 'is', 'it', 'of', 'to', 'in', 'on', 'at', 'by', 'or', 'an', 'be', 'if', 'so', 'no', 'not', 'but', 'all', 'are', 'was', 'were', 'been', 'have', 'has', 'had', 'will', 'would', 'could', 'should', 'may', 'might', 'shall', 'each', 'every', 'any', 'some', 'this', 'that', 'these', 'those', 'its', 'my', 'your', 'our', 'their', 'im', 'ive', 'know', 'knowing']);
       const searchTerms = Array.from(expandedTerms)
         .filter((t: string) => t.length > 1 && !stopWords.has(t))
         .slice(0, 8);
 
+      // Separate scoring terms from LATEST message only
+      const latestScoringTerms = Array.from(latestExpandedTerms)
+        .filter((t: string) => t.length > 1 && !stopWords.has(t))
+        .slice(0, 8);
+
       console.log(`[VULCAN] Search terms: [${searchTerms.join(', ')}] from conversation`);
+      console.log(`[VULCAN] Scoring terms: [${latestScoringTerms.join(', ')}] from latest message`);
 
       if (searchTerms.length > 0) {
         // Separate manufacturer terms from product terms
@@ -274,10 +315,13 @@ export async function POST(request: NextRequest) {
             'Wiring Diagram': 4,
           };
 
-          // Score relevance: count how many search terms appear in the product_model
+          // Score relevance using LATEST message terms only
+          // This prevents conversation history from making POWR-TOUCH 4 score equal to 2.5
           const scoreRelevance = (productModel: string): number => {
             const modelLower = productModel.toLowerCase();
-            return searchTerms.reduce((score, term) => {
+            // Use latest message terms for scoring (not full conversation history)
+            const termsToScore = latestScoringTerms.length > 0 ? latestScoringTerms : searchTerms;
+            return termsToScore.reduce((score, term) => {
               return score + (modelLower.includes(term.toLowerCase()) ? 1 : 0);
             }, 0);
           };
