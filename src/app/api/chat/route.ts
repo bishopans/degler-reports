@@ -121,6 +121,34 @@ export async function POST(request: NextRequest) {
       .filter((m: { role: string; content: string }) => m.role === 'user')
       .map((m: { role: string; content: string }) => m.content)
       .join(' ');
+
+    // Extract product context from assistant's previous responses
+    // If Vulcan already discussed a specific product, we should stay locked onto it
+    const assistantMessages = recentMessages
+      .filter((m: { role: string; content: string }) => m.role === 'assistant')
+      .map((m: { role: string; content: string }) => m.content)
+      .join(' ');
+
+    // Look for product names Vulcan mentioned (these are always uppercase in the DB)
+    const knownProductPatterns = [
+      /POWR-TOUCH\s+[\d.]+/gi,
+      /POWR-(?:NET|RIB|LINE|COURT|CARBON|STEEL|FLEX|SELECT)\s*(?:II|III|IV)?/gi,
+      /\d+\s+SERIES[^.]{0,40}/gi,
+      /(?:HUFCOR|NEVCO|DAKTRONICS|INTERKAL|GILL)\s+\w+/gi,
+    ];
+    const previousProductContext: string[] = [];
+    for (const pattern of knownProductPatterns) {
+      const matches = assistantMessages.match(pattern);
+      if (matches) {
+        matches.forEach(m => previousProductContext.push(m.toLowerCase()));
+      }
+    }
+    // Deduplicate and take the most recent product mentions
+    const uniqueProductContext = [...new Set(previousProductContext)].slice(0, 3);
+    if (uniqueProductContext.length > 0) {
+      console.log(`[VULCAN] Product context from previous responses: [${uniqueProductContext.join(', ')}]`);
+    }
+
     let contextInfo = '';
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pdfContentBlocks: any[] = [];
@@ -177,6 +205,14 @@ export async function POST(request: NextRequest) {
         if (aliasMap[term]) {
           aliasMap[term].forEach((alias: string) => expandedTerms.add(alias));
         }
+      });
+
+      // Inject product context from assistant's previous responses
+      // This ensures follow-ups stay locked onto the established product
+      uniqueProductContext.forEach((ctx: string) => {
+        ctx.split(/\s+/).forEach((word: string) => {
+          if (word.length > 1) expandedTerms.add(word);
+        });
       });
 
       // Also try combining consecutive raw terms for compound product names
