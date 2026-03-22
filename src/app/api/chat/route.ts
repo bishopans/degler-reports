@@ -134,21 +134,25 @@ export async function POST(request: NextRequest) {
         expandedTerms.add(`${rawTerms[i]}-${rawTerms[i + 1]}`);
       }
 
+      // Pick the most meaningful search terms (skip generic words)
+      const stopWords = new Set(['help', 'with', 'the', 'how', 'can', 'you', 'about', 'what', 'does', 'for', 'and', 'programming', 'program', 'install', 'installation', 'guide', 'manual', 'spec', 'specs', 'sheet', 'wiring', 'diagram', 'troubleshoot', 'troubleshooting']);
       const searchTerms = Array.from(expandedTerms)
-        .filter((t: string) => t.length > 1)
-        .slice(0, 12);
+        .filter((t: string) => t.length > 1 && !stopWords.has(t))
+        .slice(0, 8);
 
       if (searchTerms.length > 0) {
+        // Use product_model as primary search target, limit OR clauses
+        const orClauses = searchTerms
+          .flatMap((term: string) => [
+            `product_model.ilike.%${term}%`,
+            `manufacturer.ilike.%${term}%`,
+          ])
+          .join(',');
+
         const { data: manuals } = await supabase
           .from('product_manuals')
           .select('manufacturer, product_model, manual_type, filename')
-          .or(
-            searchTerms
-              .map((term: string) =>
-                `manufacturer.ilike.%${term}%,product_model.ilike.%${term}%,filename.ilike.%${term}%`
-              )
-              .join(',')
-          )
+          .or(orClauses)
           .neq('manual_type', 'Placeholder')
           .limit(15);
 
