@@ -287,13 +287,30 @@ export async function POST(request: NextRequest) {
         const productTerms = searchTerms.filter((t: string) => !knownManufacturers.includes(t));
         const manufacturerTerms = searchTerms.filter((t: string) => knownManufacturers.includes(t));
 
+        // Map user-typed manufacturer names to their canonical database form
+        // e.g., "fairplay" → "Fair-Play", "kwikwall" → "Kwik-Wall"
+        const canonicalManufacturer: Record<string, string> = {
+          'porter': 'Porter',
+          'daktronics': 'Daktronics',
+          'fair-play': 'Fair-Play',
+          'fairplay': 'Fair-Play',
+          'nevco': 'Nevco',
+          'gill': 'Gill',
+          'interkal': 'Interkal',
+          'hufcor': 'Hufcor',
+          'kwik-wall': 'Kwik-Wall',
+          'kwikwall': 'Kwik-Wall',
+        };
+
         // When user changes topics, prefer the manufacturer from the LATEST message
         // Otherwise old conversation context (e.g. "porter") overrides the new manufacturer (e.g. "fair-play")
         const latestManufacturerTerms = latestScoringTerms.filter((t: string) => knownManufacturers.includes(t));
-        const preferredManufacturer = latestManufacturerTerms.length > 0
+        const rawPreferred = latestManufacturerTerms.length > 0
           ? latestManufacturerTerms[0]
           : (manufacturerTerms.length > 0 ? manufacturerTerms[0] : null);
-        console.log(`[VULCAN] Manufacturer filter: ${preferredManufacturer} (latest: [${latestManufacturerTerms.join(', ')}], all: [${manufacturerTerms.join(', ')}])`);
+        // Use canonical form for the ILIKE query (e.g., "fairplay" → "Fair-Play")
+        const preferredManufacturer = rawPreferred ? (canonicalManufacturer[rawPreferred] || rawPreferred) : null;
+        console.log(`[VULCAN] Manufacturer filter: ${preferredManufacturer} (raw: ${rawPreferred}, latest: [${latestManufacturerTerms.join(', ')}], all: [${manufacturerTerms.join(', ')}])`);
 
         let manuals: { manufacturer: string; product_model: string; manual_type: string; filename: string; storage_path: string; file_size_bytes: number }[] | null = null;
 
@@ -322,8 +339,10 @@ export async function POST(request: NextRequest) {
           manuals = data;
         }
 
-        // Strategy 2: If no product terms or no results, broaden to include manufacturer
+        // Strategy 2: If no product terms or no results, broaden search
+        // Still apply manufacturer filter if we know one, to avoid random results
         if (!manuals || manuals.length === 0) {
+          console.log(`[VULCAN] Strategy 1 returned 0 results, trying Strategy 2`);
           const allOrClauses = searchTerms
             .flatMap((term: string) => [
               `product_model.ilike.%${term}%`,
@@ -331,13 +350,18 @@ export async function POST(request: NextRequest) {
             ])
             .join(',');
 
-          const { data } = await supabase
+          let fallbackQuery = supabase
             .from('product_manuals')
             .select('manufacturer, product_model, manual_type, filename, storage_path, file_size_bytes')
             .or(allOrClauses)
-            .neq('manual_type', 'Placeholder')
-            .limit(15);
+            .neq('manual_type', 'Placeholder');
 
+          // Apply manufacturer filter in fallback too, so we don't get random products
+          if (preferredManufacturer) {
+            fallbackQuery = fallbackQuery.ilike('manufacturer', `%${preferredManufacturer}%`);
+          }
+
+          const { data } = await fallbackQuery.limit(15);
           manuals = data;
         }
 
