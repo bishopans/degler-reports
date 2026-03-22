@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
       }
     }
     // Deduplicate and take the most recent product mentions
-    const uniqueProductContext = [...new Set(previousProductContext)].slice(0, 3);
+    const uniqueProductContext = Array.from(new Set(previousProductContext)).slice(0, 3);
     if (uniqueProductContext.length > 0) {
       console.log(`[VULCAN] Product context from previous responses: [${uniqueProductContext.join(', ')}]`);
     }
