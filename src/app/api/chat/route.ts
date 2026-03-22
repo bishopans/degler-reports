@@ -11,7 +11,7 @@ const OUTPUT_COST_PER_MILLION = 4.00; // $4.00 per 1M output tokens
 
 const SYSTEM_PROMPT = `You are Vulcan, an AI assistant for the Degler Whiting product manual library. You are named after the Roman god of the forge — knowledgeable, reliable, and helpful.
 
-Your role is to help users find the right product documents and answer questions about the manufacturers and products in the library.
+Your role is to help users find the right product documents and answer technical questions using the actual content from the manufacturers' manuals, installation guides, and spec sheets.
 
 MANUFACTURERS AND PRODUCTS YOU KNOW ABOUT:
 - Daktronics: LED scoreboards, controllers, and display systems
@@ -31,12 +31,53 @@ DOCUMENT TYPES AVAILABLE:
 
 GUIDELINES:
 - Be concise and helpful. Keep responses focused and practical.
-- When users ask about a product, suggest relevant documents they can find in the library.
-- If you don't know something specific about a product's technical details, say so and point them to the relevant spec sheet or manual.
-- You can help users navigate the library: explain how to filter by category, manufacturer, or document type.
+- When document content is provided below, USE IT to answer the user's question directly. Provide specific steps, settings, wiring info, or whatever technical detail the user needs from the manual content.
+- If you have document content, walk the user through the relevant sections. Don't just say "refer to the manual" — actually give them the information.
+- If the document content doesn't fully answer the question, share what you can and note what's missing.
+- If you don't have the specific content they need, tell them which documents exist and suggest they download them.
 - Be friendly but professional — you're helping construction and facilities professionals.
-- Do NOT make up technical specifications. Always refer users to the actual documents.
-- Keep responses under 200 words unless the user asks for more detail.`;
+- Do NOT make up technical specifications. Only share info that's in the provided document content.`;
+
+// Extract text from PDF buffer using pdf-parse
+async function extractPdfText(buffer: Buffer): Promise<string> {
+  try {
+    // Use pdf-parse/lib/pdf-parse.js directly to avoid the test file loading issue on Vercel
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParse = require('pdf-parse/lib/pdf-parse.js');
+    const data = await pdfParse(buffer);
+    return data.text || '';
+  } catch (error) {
+    console.error('PDF parse error:', error);
+    return '';
+  }
+}
+
+// Fetch PDF from Supabase Storage and extract text
+async function fetchPdfContent(storagePath: string): Promise<string> {
+  try {
+    const { data, error } = await supabase.storage
+      .from('manuals')
+      .download(storagePath);
+
+    if (error || !data) {
+      console.error('Storage download error:', error);
+      return '';
+    }
+
+    const arrayBuffer = await data.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const text = await extractPdfText(buffer);
+
+    // Clean up the text — remove excessive whitespace/newlines
+    return text
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/[ \t]+/g, ' ')
+      .trim();
+  } catch (error) {
+    console.error('PDF fetch error:', error);
+    return '';
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -78,7 +119,6 @@ export async function POST(request: NextRequest) {
 
     if (latestQuestion) {
       // Smart keyword search with alias expansion
-      // Build search terms from the question
       const rawTerms = latestQuestion
         .toLowerCase()
         .replace(/[^\w\s.-]/g, '')
@@ -117,11 +157,9 @@ export async function POST(request: NextRequest) {
       const expandedTerms = new Set<string>();
       rawTerms.forEach((term: string) => {
         expandedTerms.add(term);
-        // Check for aliases
         if (aliasMap[term]) {
           aliasMap[term].forEach((alias: string) => expandedTerms.add(alias));
         }
-        // Also try combining adjacent words (e.g., "power" + "touch" → "powr-touch")
       });
 
       // Also try combining consecutive raw terms for compound product names
@@ -130,12 +168,11 @@ export async function POST(request: NextRequest) {
         if (aliasMap[combined]) {
           aliasMap[combined].forEach((alias: string) => expandedTerms.add(alias));
         }
-        // Also add hyphenated version
         expandedTerms.add(`${rawTerms[i]}-${rawTerms[i + 1]}`);
       }
 
       // Pick the most meaningful search terms (skip generic words)
-      const stopWords = new Set(['help', 'with', 'the', 'how', 'can', 'you', 'about', 'what', 'does', 'for', 'and', 'programming', 'program', 'install', 'installation', 'guide', 'manual', 'spec', 'specs', 'sheet', 'wiring', 'diagram', 'troubleshoot', 'troubleshooting']);
+      const stopWords = new Set(['help', 'with', 'the', 'how', 'can', 'you', 'about', 'what', 'does', 'for', 'and', 'programming', 'program', 'install', 'installation', 'guide', 'manual', 'spec', 'specs', 'sheet', 'wiring', 'diagram', 'troubleshoot', 'troubleshooting', 'need', 'want', 'please', 'tell', 'show', 'me', 'find', 'get', 'look', 'up']);
       const searchTerms = Array.from(expandedTerms)
         .filter((t: string) => t.length > 1 && !stopWords.has(t))
         .slice(0, 8);
@@ -146,7 +183,7 @@ export async function POST(request: NextRequest) {
         const productTerms = searchTerms.filter((t: string) => !knownManufacturers.includes(t));
         const manufacturerTerms = searchTerms.filter((t: string) => knownManufacturers.includes(t));
 
-        let manuals: { manufacturer: string; product_model: string; manual_type: string; filename: string }[] | null = null;
+        let manuals: { manufacturer: string; product_model: string; manual_type: string; filename: string; storage_path: string; file_size_bytes: number }[] | null = null;
 
         // Strategy 1: If we have product-specific terms, search product_model first
         if (productTerms.length > 0) {
@@ -156,7 +193,7 @@ export async function POST(request: NextRequest) {
 
           let query = supabase
             .from('product_manuals')
-            .select('manufacturer, product_model, manual_type, filename')
+            .select('manufacturer, product_model, manual_type, filename, storage_path, file_size_bytes')
             .or(productOrClauses)
             .neq('manual_type', 'Placeholder');
 
@@ -183,7 +220,7 @@ export async function POST(request: NextRequest) {
 
           const { data } = await supabase
             .from('product_manuals')
-            .select('manufacturer, product_model, manual_type, filename')
+            .select('manufacturer, product_model, manual_type, filename, storage_path, file_size_bytes')
             .or(allOrClauses)
             .neq('manual_type', 'Placeholder')
             .limit(15);
@@ -192,12 +229,58 @@ export async function POST(request: NextRequest) {
         }
 
         if (manuals && manuals.length > 0) {
-          contextInfo = `\n\nRELEVANT DOCUMENTS FOUND IN THE LIBRARY:\n${manuals
+          // Build the document list
+          const docList = manuals
             .map(
               (m) =>
                 `- ${m.manufacturer} / ${m.product_model} / ${m.manual_type}: ${m.filename.replace(/_/g, ' ').replace('.pdf', '')}`
             )
-            .join('\n')}\n\nIMPORTANT: When the user asks about a product, ALWAYS reference these documents. Tell them what documents are available and what they contain. Do not say you don't have documentation if documents are listed above.`;
+            .join('\n');
+
+          // Now fetch actual PDF content for the top 2-3 most relevant documents
+          // Prioritize: Installation Guides > Manuals > Spec Sheets
+          // Only fetch PDFs under 2MB to stay within time/memory limits
+          const typeOrder: Record<string, number> = {
+            'Installation Guide': 1,
+            'Manual': 2,
+            'Spec Sheet': 3,
+            'Wiring Diagram': 4,
+          };
+
+          const sortedManuals = [...manuals]
+            .filter((m) => m.storage_path && m.file_size_bytes < 2_000_000)
+            .sort((a, b) => (typeOrder[a.manual_type] || 5) - (typeOrder[b.manual_type] || 5));
+
+          // Fetch up to 3 PDFs in parallel
+          const pdfsToFetch = sortedManuals.slice(0, 3);
+          const pdfContents: string[] = [];
+
+          if (pdfsToFetch.length > 0) {
+            const contentPromises = pdfsToFetch.map(async (manual) => {
+              const text = await fetchPdfContent(manual.storage_path);
+              if (text) {
+                // Truncate each PDF to ~4000 chars to fit within token budget
+                const truncated = text.length > 4000 ? text.substring(0, 4000) + '\n... [content truncated]' : text;
+                return `\n--- DOCUMENT: ${manual.manufacturer} / ${manual.product_model} / ${manual.manual_type} (${manual.filename}) ---\n${truncated}`;
+              }
+              return '';
+            });
+
+            const results = await Promise.all(contentPromises);
+            results.forEach((content) => {
+              if (content) pdfContents.push(content);
+            });
+          }
+
+          // Build the context info
+          contextInfo = `\n\nDOCUMENTS FOUND IN THE LIBRARY:\n${docList}`;
+
+          if (pdfContents.length > 0) {
+            contextInfo += `\n\nDOCUMENT CONTENT (extracted from PDFs — use this to answer the user's question):\n${pdfContents.join('\n')}`;
+            contextInfo += `\n\nIMPORTANT: Use the document content above to answer the user's question with specific details, steps, and technical information. Walk them through the relevant sections. If the content doesn't fully answer the question, share what you can and suggest they download the full document for more detail.`;
+          } else {
+            contextInfo += `\n\nNote: PDF content could not be extracted at this time. Let the user know what documents are available and suggest they download the relevant ones from the manual library.`;
+          }
         }
       }
     }
@@ -212,7 +295,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 512,
+        max_tokens: 1024,
         system: SYSTEM_PROMPT + contextInfo,
         messages: recentMessages,
       }),

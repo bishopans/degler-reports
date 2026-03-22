@@ -4,5 +4,10 @@
       "path": "/api/digest",
       "schedule": "0 10 * * 1"
     }
-  ]
+  ],
+  "functions": {
+    "app/api/chat/route.ts": {
+      "maxDuration": 30
+    }
+  }
 }
