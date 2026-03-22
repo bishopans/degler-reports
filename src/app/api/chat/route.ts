@@ -248,19 +248,22 @@ export async function POST(request: NextRequest) {
           };
 
           const sortedManuals = [...manuals]
-            .filter((m) => m.storage_path && m.file_size_bytes < 2_000_000)
+            .filter((m) => m.storage_path && m.file_size_bytes < 5_000_000)
             .sort((a, b) => (typeOrder[a.manual_type] || 5) - (typeOrder[b.manual_type] || 5));
 
-          // Fetch up to 3 PDFs in parallel
+          // Fetch up to 3 PDFs in parallel — give each document plenty of room
+          // Haiku 3.5 has 200K context, so we can afford ~15K chars (~4K tokens) per doc
           const pdfsToFetch = sortedManuals.slice(0, 3);
           const pdfContents: string[] = [];
+          const MAX_CHARS_PER_DOC = 15000;
 
           if (pdfsToFetch.length > 0) {
             const contentPromises = pdfsToFetch.map(async (manual) => {
               const text = await fetchPdfContent(manual.storage_path);
               if (text) {
-                // Truncate each PDF to ~4000 chars to fit within token budget
-                const truncated = text.length > 4000 ? text.substring(0, 4000) + '\n... [content truncated]' : text;
+                const truncated = text.length > MAX_CHARS_PER_DOC
+                  ? text.substring(0, MAX_CHARS_PER_DOC) + '\n... [content truncated — full document available for download]'
+                  : text;
                 return `\n--- DOCUMENT: ${manual.manufacturer} / ${manual.product_model} / ${manual.manual_type} (${manual.filename}) ---\n${truncated}`;
               }
               return '';
