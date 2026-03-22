@@ -31,29 +31,14 @@ DOCUMENT TYPES AVAILABLE:
 
 GUIDELINES:
 - Be concise and helpful. Keep responses focused and practical.
-- When document content is provided below, USE IT to answer the user's question directly. Provide specific steps, settings, wiring info, or whatever technical detail the user needs from the manual content.
-- If you have document content, walk the user through the relevant sections. Don't just say "refer to the manual" — actually give them the information.
-- If the document content doesn't fully answer the question, share what you can and note what's missing.
-- If you don't have the specific content they need, tell them which documents exist and suggest they download them.
+- When PDF documents are attached to this conversation, READ THEM CAREFULLY and use the content to answer the user's question directly. Provide specific steps, settings, wiring info, or whatever technical detail the user needs.
+- Walk users through the relevant sections of the manual. Don't just say "refer to the manual" — actually give them the information from the document.
+- If the documents don't fully answer the question, share what you can and note what's missing.
 - Be friendly but professional — you're helping construction and facilities professionals.
-- Do NOT make up technical specifications. Only share info that's in the provided document content.`;
+- Do NOT make up technical specifications. Only share info that's in the provided documents.`;
 
-// Extract text from PDF buffer using pdf-parse
-async function extractPdfText(buffer: Buffer): Promise<string> {
-  try {
-    // Use pdf-parse/lib/pdf-parse.js directly to avoid the test file loading issue on Vercel
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pdfParse = require('pdf-parse/lib/pdf-parse.js');
-    const data = await pdfParse(buffer);
-    return data.text || '';
-  } catch (error) {
-    console.error('PDF parse error:', error);
-    return '';
-  }
-}
-
-// Fetch PDF from Supabase Storage and extract text
-async function fetchPdfContent(storagePath: string): Promise<string> {
+// Download PDF from Supabase Storage and return as base64
+async function fetchPdfAsBase64(storagePath: string): Promise<string | null> {
   try {
     console.log(`[PDF] Downloading: ${storagePath}`);
     const { data, error } = await supabase.storage
@@ -62,27 +47,20 @@ async function fetchPdfContent(storagePath: string): Promise<string> {
 
     if (error || !data) {
       console.error('[PDF] Storage download error:', storagePath, error);
-      return '';
+      return null;
     }
 
     const arrayBuffer = await data.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     console.log(`[PDF] Downloaded ${buffer.length} bytes from ${storagePath}`);
 
-    const text = await extractPdfText(buffer);
-    console.log(`[PDF] Extracted ${text.length} chars from ${storagePath}`);
-    if (text.length > 0) {
-      console.log(`[PDF] First 200 chars: ${text.substring(0, 200)}`);
-    }
-
-    // Clean up the text — remove excessive whitespace/newlines
-    return text
-      .replace(/\n{3,}/g, '\n\n')
-      .replace(/[ \t]+/g, ' ')
-      .trim();
+    // Convert to base64 for Claude API
+    const base64 = buffer.toString('base64');
+    console.log(`[PDF] Converted to base64: ${base64.length} chars`);
+    return base64;
   } catch (error) {
     console.error('[PDF] Fetch error:', storagePath, error);
-    return '';
+    return null;
   }
 }
 
@@ -123,6 +101,8 @@ export async function POST(request: NextRequest) {
     // Search for relevant manuals based on the latest user question
     const latestQuestion = recentMessages[recentMessages.length - 1]?.content || '';
     let contextInfo = '';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pdfContentBlocks: any[] = [];
 
     if (latestQuestion) {
       // Smart keyword search with alias expansion
@@ -244,9 +224,9 @@ export async function POST(request: NextRequest) {
             )
             .join('\n');
 
-          // Now fetch actual PDF content for the top 2-3 most relevant documents
+          // Fetch the most relevant PDF and send it directly to Claude as a document
+          // Claude can read PDFs natively — even scanned/image-based ones
           // Prioritize: Installation Guides > Manuals > Spec Sheets
-          // Only fetch PDFs under 2MB to stay within time/memory limits
           const typeOrder: Record<string, number> = {
             'Installation Guide': 1,
             'Manual': 2,
@@ -258,44 +238,53 @@ export async function POST(request: NextRequest) {
             .filter((m) => m.storage_path && m.file_size_bytes < 5_000_000)
             .sort((a, b) => (typeOrder[a.manual_type] || 5) - (typeOrder[b.manual_type] || 5));
 
-          // Fetch up to 3 PDFs in parallel — give each document plenty of room
-          // Haiku 3.5 has 200K context, so we can afford ~15K chars (~4K tokens) per doc
-          const pdfsToFetch = sortedManuals.slice(0, 3);
-          const pdfContents: string[] = [];
-          const MAX_CHARS_PER_DOC = 15000;
+          // Fetch the top 1 PDF (keep it to 1 for speed and cost — each page ~1500 tokens)
+          const pdfToFetch = sortedManuals[0];
 
-          if (pdfsToFetch.length > 0) {
-            const contentPromises = pdfsToFetch.map(async (manual) => {
-              const text = await fetchPdfContent(manual.storage_path);
-              if (text) {
-                const truncated = text.length > MAX_CHARS_PER_DOC
-                  ? text.substring(0, MAX_CHARS_PER_DOC) + '\n... [content truncated — full document available for download]'
-                  : text;
-                return `\n--- DOCUMENT: ${manual.manufacturer} / ${manual.product_model} / ${manual.manual_type} (${manual.filename}) ---\n${truncated}`;
-              }
-              return '';
-            });
-
-            const results = await Promise.all(contentPromises);
-            results.forEach((content) => {
-              if (content) pdfContents.push(content);
-            });
+          if (pdfToFetch) {
+            const base64Data = await fetchPdfAsBase64(pdfToFetch.storage_path);
+            if (base64Data) {
+              console.log(`[VULCAN] Sending PDF to Claude: ${pdfToFetch.filename} (${pdfToFetch.file_size_bytes} bytes)`);
+              pdfContentBlocks.push({
+                type: 'document',
+                source: {
+                  type: 'base64',
+                  media_type: 'application/pdf',
+                  data: base64Data,
+                },
+                title: `${pdfToFetch.manufacturer} - ${pdfToFetch.product_model} - ${pdfToFetch.manual_type}`,
+              });
+            }
           }
 
-          // Build the context info
-          console.log(`[VULCAN] Found ${manuals.length} docs, fetched ${pdfsToFetch.length} PDFs, got ${pdfContents.length} with content`);
-          console.log(`[VULCAN] PDF content total chars: ${pdfContents.reduce((sum, c) => sum + c.length, 0)}`);
+          // Build the context info for the system prompt
           contextInfo = `\n\nDOCUMENTS FOUND IN THE LIBRARY:\n${docList}`;
 
-          if (pdfContents.length > 0) {
-            contextInfo += `\n\nDOCUMENT CONTENT (extracted from PDFs — use this to answer the user's question):\n${pdfContents.join('\n')}`;
-            contextInfo += `\n\nIMPORTANT: Use the document content above to answer the user's question with specific details, steps, and technical information. Walk them through the relevant sections. If the content doesn't fully answer the question, share what you can and suggest they download the full document for more detail.`;
+          if (pdfContentBlocks.length > 0) {
+            contextInfo += `\n\nA PDF document has been attached to the user's message below. READ IT CAREFULLY and use its content to answer the user's question with specific details, steps, and technical information. The attached document is: ${pdfToFetch.manufacturer} / ${pdfToFetch.product_model} / ${pdfToFetch.manual_type} (${pdfToFetch.filename}).`;
           } else {
-            contextInfo += `\n\nNote: PDF content could not be extracted at this time. Let the user know what documents are available and suggest they download the relevant ones from the manual library.`;
+            contextInfo += `\n\nNote: PDF content could not be loaded at this time. Let the user know what documents are available and suggest they download the relevant ones from the manual library.`;
           }
         }
       }
     }
+
+    // Build the messages array for Claude API
+    // If we have PDF content blocks, attach them to the latest user message
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const apiMessages = recentMessages.map((msg: any, idx: number) => {
+      if (idx === recentMessages.length - 1 && msg.role === 'user' && pdfContentBlocks.length > 0) {
+        // Attach PDF document(s) to the latest user message
+        return {
+          role: 'user',
+          content: [
+            ...pdfContentBlocks,
+            { type: 'text', text: msg.content },
+          ],
+        };
+      }
+      return msg;
+    });
 
     // Call Claude API (Haiku 3.5 for speed and cost efficiency)
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -304,12 +293,13 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'pdfs-2024-09-25',
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
         system: SYSTEM_PROMPT + contextInfo,
-        messages: recentMessages,
+        messages: apiMessages,
       }),
     });
 
