@@ -251,12 +251,12 @@ export async function POST(request: NextRequest) {
           };
 
           // Score relevance: count how many search terms appear in the product_model
-          function scoreRelevance(productModel: string): number {
+          const scoreRelevance = (productModel: string): number => {
             const modelLower = productModel.toLowerCase();
             return searchTerms.reduce((score, term) => {
               return score + (modelLower.includes(term.toLowerCase()) ? 1 : 0);
             }, 0);
-          }
+          };
 
           const sortedManuals = [...manuals]
             .filter((m) => m.storage_path && m.file_size_bytes < 5_000_000)
