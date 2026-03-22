@@ -242,7 +242,7 @@ export async function POST(request: NextRequest) {
 
           // Fetch the most relevant PDF and send it directly to Claude as a document
           // Claude can read PDFs natively — even scanned/image-based ones
-          // Prioritize: Installation Guides > Manuals > Spec Sheets
+          // Score each manual by: (1) how many search terms match its product_model, (2) manual type priority
           const typeOrder: Record<string, number> = {
             'Installation Guide': 1,
             'Manual': 2,
@@ -250,12 +250,26 @@ export async function POST(request: NextRequest) {
             'Wiring Diagram': 4,
           };
 
+          // Score relevance: count how many search terms appear in the product_model
+          function scoreRelevance(productModel: string): number {
+            const modelLower = productModel.toLowerCase();
+            return searchTerms.reduce((score, term) => {
+              return score + (modelLower.includes(term.toLowerCase()) ? 1 : 0);
+            }, 0);
+          }
+
           const sortedManuals = [...manuals]
             .filter((m) => m.storage_path && m.file_size_bytes < 5_000_000)
-            .sort((a, b) => (typeOrder[a.manual_type] || 5) - (typeOrder[b.manual_type] || 5));
+            .sort((a, b) => {
+              // Primary sort: relevance score (higher = better, so b - a)
+              const relevanceDiff = scoreRelevance(b.product_model) - scoreRelevance(a.product_model);
+              if (relevanceDiff !== 0) return relevanceDiff;
+              // Secondary sort: manual type priority (lower = better)
+              return (typeOrder[a.manual_type] || 5) - (typeOrder[b.manual_type] || 5);
+            });
 
           // Fetch the top 1 PDF (keep it to 1 for speed and cost — each page ~1500 tokens)
-          console.log(`[VULCAN] Sorted manuals for PDF fetch: ${sortedManuals.length} candidates`);
+          console.log(`[VULCAN] Sorted manuals for PDF fetch: ${sortedManuals.length} candidates — top 3: ${sortedManuals.slice(0, 3).map(m => `${m.product_model}(score:${scoreRelevance(m.product_model)},type:${m.manual_type})`).join(' | ')}`);
           const pdfToFetch = sortedManuals[0];
 
           if (pdfToFetch) {
