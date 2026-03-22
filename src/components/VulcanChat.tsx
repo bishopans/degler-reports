@@ -103,7 +103,8 @@ export default function VulcanChat() {
             alignItems: 'center',
             justifyContent: 'center',
             padding: 0,
-            background: '#1e3a5f',
+            background: 'white',
+            overflow: 'hidden',
             transition: 'transform 0.2s, box-shadow 0.2s',
           }}
           onMouseEnter={(e) => {
@@ -116,7 +117,7 @@ export default function VulcanChat() {
           }}
           title="Ask Vulcan"
         >
-          <VulcanAvatar size={52} />
+          <VulcanAvatar size={56} />
         </button>
       )}
 
