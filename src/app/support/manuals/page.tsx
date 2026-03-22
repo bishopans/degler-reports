@@ -39,8 +39,10 @@ const MANUFACTURER_LOGOS: Record<string, string> = {
   'Fair-Play': 'https://www.fair-play.com/wp-content/uploads/2020/02/fair-play-logo-dark@2x.png',
   Nevco: 'https://www.nevco.com/wp-content/uploads/2020/12/nevco_logo.png',
   Porter: 'https://cdn11.bigcommerce.com/s-8jy95dyy51/stencil/b83f3740-f8d9-013e-bac0-5a2d526180d6/e/80066c80-052e-013f-a640-3eaf49d0e711/img/porter-logo-black-sm.png',
-  Gill: 'https://cdn11.bigcommerce.com/s-8jy95dyy51/stencil/b83f3740-f8d9-013e-bac0-5a2d526180d6/e/80066c80-052e-013f-a640-3eaf49d0e711/img/gill-logo-black-sm.png',
+  Gill: 'https://cdn11.bigcommerce.com/s-8jy95dyy51/images/stencil/250x100/image_917_1760512029__74187.original.png',
   Interkal: 'https://lirp.cdn-website.com/db7ece26/dms3rep/multi/opt/intekral-global-logo-400x128-1920w.png',
+  Hufcor: 'https://static.wixstatic.com/media/862d9e_3a91738d2707456c958778c4a99c26ab~mv2.png/v1/fill/w_188,h_42,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/HUFCOR_RGB_edited.png',
+  'Kwik-Wall': 'https://www.nettlescs.com/wp-content/uploads/2022/11/Kwik-Wall.png',
 };
 
 const SPORT_META: Record<string, { icon: string; description: string }> = {
@@ -104,9 +106,10 @@ function formatFileSize(bytes: number | null): string {
   return `${(bytes / 1048576).toFixed(1)} MB`;
 }
 
-// For top-level category grouping, Porter & Gill use "Athletic Equipment" regardless of equipment_category
+// For top-level category grouping, map manufacturers to their parent categories
 function getTopCategory(m: Manual): string {
   if (m.manufacturer === 'Porter' || m.manufacturer === 'Gill') return 'Athletic Equipment';
+  if (m.manufacturer === 'Hufcor' || m.manufacturer === 'Kwik-Wall') return 'Folding Partitions';
   return m.equipment_category;
 }
 
@@ -152,8 +155,9 @@ export default function ManualsPage() {
   // Normalize text for flexible matching
   const normalize = (text: string) => text.toLowerCase().replace(/[-_\s.]/g, '');
 
-  // Filter manuals client-side
+  // Filter manuals client-side (exclude placeholder records from document list)
   const filteredManuals = allManuals.filter((m) => {
+    if (m.manual_type === 'Placeholder') return false;
     if (selectedCategory && getTopCategory(m) !== selectedCategory) return false;
     if (selectedManufacturer && m.manufacturer !== selectedManufacturer) return false;
     if (selectedSport && m.sport !== selectedSport) return false;
@@ -838,7 +842,9 @@ export default function ManualsPage() {
             {/* Product model list */}
             {groupedByModel.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '2rem', color: '#9ca3af', fontSize: '0.95rem' }}>
-                No manuals found matching your criteria.
+                {selectedManufacturer && allManuals.some((m) => m.manufacturer === selectedManufacturer && m.manual_type === 'Placeholder')
+                  ? 'Documents coming soon.'
+                  : 'No manuals found matching your criteria.'}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
