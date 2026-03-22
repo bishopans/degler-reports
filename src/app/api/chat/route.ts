@@ -17,7 +17,7 @@ MANUFACTURERS AND PRODUCTS YOU KNOW ABOUT:
 - Daktronics: LED scoreboards, controllers, and display systems
 - Fair-Play: LED scoreboards and scoring systems
 - Nevco: Scoreboards and display systems
-- Porter: Basketball goals, volleyball systems, and gym equipment
+- Porter: Basketball goals (900 Series, ceiling-suspended backstops), volleyball systems (POWR-NET, POWR-RIB II, POWR-LINE, POWR-COURT, POWR-CARBON II, POWR-STEEL, POWR-FLEX), divider curtains (center-roll, wall-guided), control panels (POWR-TOUCH 2.5, POWR-TOUCH 4, POWR-TOUCH 6), electric winches, and gym equipment
 - Gill: Track & field equipment, basketball, volleyball systems
 - Interkal: Telescopic bleachers, fixed seating, and grandstands
 - Hufcor: Folding partitions — 600 Series, Summit Vertical, GF Series, GU Series, GL Series, GT Series, Accordion
@@ -77,12 +77,66 @@ export async function POST(request: NextRequest) {
     let contextInfo = '';
 
     if (latestQuestion) {
-      // Simple keyword search in product_manuals
-      const searchTerms = latestQuestion
+      // Smart keyword search with alias expansion
+      // Build search terms from the question
+      const rawTerms = latestQuestion
         .toLowerCase()
+        .replace(/[^\w\s.-]/g, '')
         .split(/\s+/)
-        .filter((w: string) => w.length > 2)
-        .slice(0, 5);
+        .filter((w: string) => w.length > 1);
+
+      // Expand common aliases — users type these but the database has different names
+      const aliasMap: Record<string, string[]> = {
+        'powertouch': ['powr-touch', 'powr touch', 'powrtouch'],
+        'powrtouch': ['powr-touch', 'powr touch', 'powertouch'],
+        'powr-touch': ['powertouch', 'powrtouch'],
+        'powerflex': ['powr-flex', 'powr flex'],
+        'powrflex': ['powr-flex', 'powr flex'],
+        'powernet': ['powr-net', 'powr net'],
+        'powrnet': ['powr-net', 'powr net'],
+        'powermax': ['powermax'],
+        'powerselect': ['powr-select', 'powr select'],
+        'powrselect': ['powr-select', 'powr select'],
+        'powrcarbon': ['powr-carbon', 'powr carbon'],
+        'powercarbon': ['powr-carbon', 'powr carbon'],
+        'powrsteel': ['powr-steel', 'powr steel'],
+        'powersteel': ['powr-steel', 'powr steel'],
+        'powrrib': ['powr rib'],
+        'powerrib': ['powr rib'],
+        'powrline': ['powr line'],
+        'powerline': ['powr line'],
+        'powrcourt': ['powr court'],
+        'powercourt': ['powr court'],
+        'kwikwall': ['kwik-wall', 'kwik wall'],
+        'kwik-wall': ['kwikwall'],
+        'fairplay': ['fair-play', 'fair play'],
+        'fair-play': ['fairplay'],
+      };
+
+      // Build expanded search terms
+      const expandedTerms = new Set<string>();
+      rawTerms.forEach((term: string) => {
+        expandedTerms.add(term);
+        // Check for aliases
+        if (aliasMap[term]) {
+          aliasMap[term].forEach((alias: string) => expandedTerms.add(alias));
+        }
+        // Also try combining adjacent words (e.g., "power" + "touch" → "powr-touch")
+      });
+
+      // Also try combining consecutive raw terms for compound product names
+      for (let i = 0; i < rawTerms.length - 1; i++) {
+        const combined = rawTerms[i] + rawTerms[i + 1];
+        if (aliasMap[combined]) {
+          aliasMap[combined].forEach((alias: string) => expandedTerms.add(alias));
+        }
+        // Also add hyphenated version
+        expandedTerms.add(`${rawTerms[i]}-${rawTerms[i + 1]}`);
+      }
+
+      const searchTerms = Array.from(expandedTerms)
+        .filter((t: string) => t.length > 1)
+        .slice(0, 12);
 
       if (searchTerms.length > 0) {
         const { data: manuals } = await supabase
@@ -96,7 +150,7 @@ export async function POST(request: NextRequest) {
               .join(',')
           )
           .neq('manual_type', 'Placeholder')
-          .limit(10);
+          .limit(15);
 
         if (manuals && manuals.length > 0) {
           contextInfo = `\n\nRELEVANT DOCUMENTS FOUND IN THE LIBRARY:\n${manuals
@@ -104,7 +158,7 @@ export async function POST(request: NextRequest) {
               (m) =>
                 `- ${m.manufacturer} / ${m.product_model} / ${m.manual_type}: ${m.filename.replace(/_/g, ' ').replace('.pdf', '')}`
             )
-            .join('\n')}`;
+            .join('\n')}\n\nIMPORTANT: When the user asks about a product, ALWAYS reference these documents. Tell them what documents are available and what they contain. Do not say you don't have documentation if documents are listed above.`;
         }
       }
     }
