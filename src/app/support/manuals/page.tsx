@@ -34,6 +34,15 @@ const CATEGORY_META: Record<string, { icon: string; description: string }> = {
   Other: { icon: '🔧', description: 'Miscellaneous equipment and accessories' },
 };
 
+const MANUFACTURER_LOGOS: Record<string, string> = {
+  Daktronics: 'https://www.daktronics.com/media/_site/DakLogoWhite.svg',
+  'Fair-Play': 'https://www.fair-play.com/wp-content/uploads/2020/02/fair-play-logo-dark@2x.png',
+  Nevco: 'https://www.nevco.com/wp-content/uploads/2020/12/nevco_logo.png',
+  Porter: 'https://cdn11.bigcommerce.com/s-8jy95dyy51/stencil/b83f3740-f8d9-013e-bac0-5a2d526180d6/e/80066c80-052e-013f-a640-3eaf49d0e711/img/porter-logo-black-sm.png',
+  Gill: 'https://cdn11.bigcommerce.com/s-8jy95dyy51/stencil/b83f3740-f8d9-013e-bac0-5a2d526180d6/e/80066c80-052e-013f-a640-3eaf49d0e711/img/gill-logo-black-sm.png',
+  Interkal: 'https://lirp.cdn-website.com/db7ece26/dms3rep/multi/opt/intekral-global-logo-400x128-1920w.png',
+};
+
 const SPORT_META: Record<string, { icon: string; description: string }> = {
   Basketball: { icon: '🏀', description: 'Backstops, backboards, goals, and accessories' },
   Volleyball: { icon: '🏐', description: 'Net systems, standards, padding, and accessories' },
@@ -366,6 +375,7 @@ export default function ManualsPage() {
   const Card = ({
     onClick,
     icon,
+    logoUrl,
     title,
     description,
     count,
@@ -374,6 +384,7 @@ export default function ManualsPage() {
   }: {
     onClick: () => void;
     icon: string;
+    logoUrl?: string;
     title: string;
     description?: string;
     count: number;
@@ -403,7 +414,17 @@ export default function ManualsPage() {
         e.currentTarget.style.boxShadow = 'none';
       }}
     >
-      <span style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{icon}</span>
+      {logoUrl ? (
+        logoUrl.endsWith('.svg') && title === 'Daktronics' ? (
+          <div style={{ height: 40, maxWidth: 120, marginBottom: '0.5rem', background: '#00457c', borderRadius: 6, padding: '6px 12px', display: 'flex', alignItems: 'center' }}>
+            <img src={logoUrl} alt={title} style={{ height: 28, maxWidth: 96, objectFit: 'contain' }} />
+          </div>
+        ) : (
+          <img src={logoUrl} alt={title} style={{ height: 40, maxWidth: 120, objectFit: 'contain', marginBottom: '0.5rem' }} />
+        )
+      ) : (
+        <span style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{icon}</span>
+      )}
       <span style={{ fontSize: '1rem', fontWeight: 600, color: '#111', marginBottom: '0.25rem' }}>{title}</span>
       {description && (
         <span style={{ fontSize: '0.8rem', color: '#6b7280', lineHeight: 1.4 }}>{description}</span>
@@ -701,6 +722,7 @@ export default function ManualsPage() {
                   key={mfr.name}
                   onClick={() => handleManufacturerClick(mfr.name)}
                   icon="🏭"
+                  logoUrl={MANUFACTURER_LOGOS[mfr.name]}
                   title={mfr.name}
                   count={mfr.count}
                   badgeBg="#dbeafe"
