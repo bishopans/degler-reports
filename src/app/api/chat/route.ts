@@ -55,18 +55,25 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
 // Fetch PDF from Supabase Storage and extract text
 async function fetchPdfContent(storagePath: string): Promise<string> {
   try {
+    console.log(`[PDF] Downloading: ${storagePath}`);
     const { data, error } = await supabase.storage
       .from('manuals')
       .download(storagePath);
 
     if (error || !data) {
-      console.error('Storage download error:', error);
+      console.error('[PDF] Storage download error:', storagePath, error);
       return '';
     }
 
     const arrayBuffer = await data.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    console.log(`[PDF] Downloaded ${buffer.length} bytes from ${storagePath}`);
+
     const text = await extractPdfText(buffer);
+    console.log(`[PDF] Extracted ${text.length} chars from ${storagePath}`);
+    if (text.length > 0) {
+      console.log(`[PDF] First 200 chars: ${text.substring(0, 200)}`);
+    }
 
     // Clean up the text — remove excessive whitespace/newlines
     return text
@@ -74,7 +81,7 @@ async function fetchPdfContent(storagePath: string): Promise<string> {
       .replace(/[ \t]+/g, ' ')
       .trim();
   } catch (error) {
-    console.error('PDF fetch error:', error);
+    console.error('[PDF] Fetch error:', storagePath, error);
     return '';
   }
 }
@@ -276,6 +283,8 @@ export async function POST(request: NextRequest) {
           }
 
           // Build the context info
+          console.log(`[VULCAN] Found ${manuals.length} docs, fetched ${pdfsToFetch.length} PDFs, got ${pdfContents.length} with content`);
+          console.log(`[VULCAN] PDF content total chars: ${pdfContents.reduce((sum, c) => sum + c.length, 0)}`);
           contextInfo = `\n\nDOCUMENTS FOUND IN THE LIBRARY:\n${docList}`;
 
           if (pdfContents.length > 0) {
