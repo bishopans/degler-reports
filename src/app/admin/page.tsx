@@ -141,6 +141,17 @@ export default function AdminDashboard() {
   const [reminders, setReminders] = useState<ServiceReminder[]>([]);
   const [showAllReminders, setShowAllReminders] = useState(false);
 
+  // Chatbot state
+  const [chatbotEnabled, setChatbotEnabled] = useState(false);
+  const [chatbotStats, setChatbotStats] = useState<{
+    totalQueries: number;
+    totalInputTokens: number;
+    totalOutputTokens: number;
+    estimatedCostDollars: string;
+  } | null>(null);
+  const [chatbotToggling, setChatbotToggling] = useState(false);
+  const [chatbotOpen, setChatbotOpen] = useState(false);
+
 
   useEffect(() => {
     const unlocked = sessionStorage.getItem('dw-admin-unlocked');
@@ -202,13 +213,46 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchChatbotStatus = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/chatbot');
+      if (response.ok) {
+        const data = await response.json();
+        setChatbotEnabled(data.enabled);
+        setChatbotStats(data.stats);
+      }
+    } catch (error) {
+      console.error('Chatbot status fetch error:', error);
+    }
+  }, []);
+
+  const toggleChatbot = async () => {
+    setChatbotToggling(true);
+    try {
+      const response = await fetch('/api/admin/chatbot', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: !chatbotEnabled }),
+      });
+      if (response.ok) {
+        setChatbotEnabled(!chatbotEnabled);
+        fetchChatbotStatus();
+      }
+    } catch (error) {
+      console.error('Chatbot toggle error:', error);
+    } finally {
+      setChatbotToggling(false);
+    }
+  };
+
   useEffect(() => {
     if (isUnlocked) {
       fetchSubmissions();
       fetchReminders();
       fetchSubscribers();
+      fetchChatbotStatus();
     }
-  }, [isUnlocked, fetchSubmissions, fetchReminders, fetchSubscribers]);
+  }, [isUnlocked, fetchSubmissions, fetchReminders, fetchSubscribers, fetchChatbotStatus]);
 
   const updateReportStatus = async (id: string, status: string) => {
     try {
@@ -349,6 +393,146 @@ export default function AdminDashboard() {
           >
             Timesheets
           </Link>
+          {/* Vulcan Chatbot Toggle */}
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => { setChatbotOpen(!chatbotOpen); }}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: chatbotOpen ? '#92400e' : (chatbotEnabled ? '#d97706' : '#6b7280'),
+                color: 'white',
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+              }}
+            >
+              🔥 Vulcan AI
+              <span style={{
+                backgroundColor: chatbotEnabled ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.2)',
+                padding: '0.0625rem 0.5rem',
+                borderRadius: '9999px',
+                fontSize: '0.7rem',
+                fontWeight: 600,
+              }}>
+                {chatbotEnabled ? 'ON' : 'OFF'}
+              </span>
+            </button>
+
+            {/* Chatbot Admin Dropdown */}
+            {chatbotOpen && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                marginTop: '0.5rem',
+                width: '320px',
+                backgroundColor: 'white',
+                borderRadius: '0.5rem',
+                boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                border: '1px solid #e5e7eb',
+                zIndex: 50,
+                overflow: 'hidden',
+              }}>
+                {/* Header */}
+                <div style={{
+                  padding: '0.75rem 1rem',
+                  borderBottom: '1px solid #e5e7eb',
+                  background: 'linear-gradient(135deg, #1e3a5f, #2d5a8e)',
+                  color: 'white',
+                }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    🔥 Vulcan AI Assistant
+                  </div>
+                  <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: '0.125rem' }}>
+                    Powered by Claude API (Haiku 3.5)
+                  </div>
+                </div>
+
+                {/* Toggle */}
+                <div style={{
+                  padding: '0.75rem 1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderBottom: '1px solid #f3f4f6',
+                }}>
+                  <div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>Chat Assistant</div>
+                    <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Visible on Manual Library page</div>
+                  </div>
+                  <button
+                    onClick={toggleChatbot}
+                    disabled={chatbotToggling}
+                    style={{
+                      width: '48px',
+                      height: '26px',
+                      borderRadius: '13px',
+                      border: 'none',
+                      cursor: chatbotToggling ? 'not-allowed' : 'pointer',
+                      backgroundColor: chatbotEnabled ? '#22c55e' : '#d1d5db',
+                      position: 'relative',
+                      transition: 'background-color 0.2s',
+                      opacity: chatbotToggling ? 0.6 : 1,
+                    }}
+                  >
+                    <div style={{
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      backgroundColor: 'white',
+                      position: 'absolute',
+                      top: '3px',
+                      left: chatbotEnabled ? '25px' : '3px',
+                      transition: 'left 0.2s',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                    }} />
+                  </button>
+                </div>
+
+                {/* Monthly Stats */}
+                <div style={{ padding: '0.75rem 1rem' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    This Month
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                    <div style={{
+                      padding: '0.5rem',
+                      backgroundColor: '#f9fafb',
+                      borderRadius: '0.375rem',
+                      textAlign: 'center',
+                    }}>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e3a5f' }}>
+                        {chatbotStats?.totalQueries ?? 0}
+                      </div>
+                      <div style={{ fontSize: '0.65rem', color: '#9ca3af' }}>Queries</div>
+                    </div>
+                    <div style={{
+                      padding: '0.5rem',
+                      backgroundColor: '#f9fafb',
+                      borderRadius: '0.375rem',
+                      textAlign: 'center',
+                    }}>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: chatbotStats && parseFloat(chatbotStats.estimatedCostDollars) > 10 ? '#dc2626' : '#059669' }}>
+                        ${chatbotStats?.estimatedCostDollars ?? '0.00'}
+                      </div>
+                      <div style={{ fontSize: '0.65rem', color: '#9ca3af' }}>Est. Cost</div>
+                    </div>
+                  </div>
+                  {chatbotStats && chatbotStats.totalQueries > 0 && (
+                    <div style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#9ca3af', textAlign: 'center' }}>
+                      {((chatbotStats.totalInputTokens + chatbotStats.totalOutputTokens) / 1000).toFixed(1)}K tokens used
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div style={{ position: 'relative' }}>
             <button
               onClick={() => { setDigestOpen(!digestOpen); setSubMessage(''); setSubError(''); }}

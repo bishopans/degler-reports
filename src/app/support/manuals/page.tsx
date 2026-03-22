@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import VulcanChat from '@/components/VulcanChat';
 
 const SUPABASE_STORAGE_URL = 'https://djogryqqqwlpmsnqpktz.supabase.co/storage/v1/object/public/manuals';
 
@@ -999,6 +1000,9 @@ export default function ManualsPage() {
           </>
         )}
       </div>
+
+      {/* Vulcan AI Chat Assistant */}
+      <VulcanChat />
     </div>
   );
 }
