@@ -57,6 +57,13 @@ const MANUAL_TYPE_LABELS: Record<string, string> = {
   'Manual': 'Manual',
   'Quick Guide': 'Quick Guide',
   'Other': 'Other',
+  'Maintenance Manual': 'Maintenance Manual',
+  'Safety Data Sheet': 'Safety Data Sheet',
+  'Change Notice': 'Change Notice',
+  'Safety Notice': 'Safety Notice',
+  'Table of Contents': 'Table of Contents',
+  'Form': 'Form',
+  'Warranty': 'Warranty',
 };
 
 const MANUAL_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
@@ -72,6 +79,13 @@ const MANUAL_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
   'Manual': { bg: '#ede9fe', text: '#5b21b6' },
   'Quick Guide': { bg: '#fef3c7', text: '#92400e' },
   'Other': { bg: '#f3f4f6', text: '#374151' },
+  'Maintenance Manual': { bg: '#e0f2fe', text: '#075985' },
+  'Safety Data Sheet': { bg: '#fef9c3', text: '#854d0e' },
+  'Change Notice': { bg: '#fce7f3', text: '#831843' },
+  'Safety Notice': { bg: '#fee2e2', text: '#991b1b' },
+  'Table of Contents': { bg: '#f3f4f6', text: '#374151' },
+  'Form': { bg: '#f0fdf4', text: '#166534' },
+  'Warranty': { bg: '#eff6ff', text: '#1e3a5f' },
 };
 
 function formatFileSize(bytes: number | null): string {
