@@ -141,20 +141,55 @@ export async function POST(request: NextRequest) {
         .slice(0, 8);
 
       if (searchTerms.length > 0) {
-        // Use product_model as primary search target, limit OR clauses
-        const orClauses = searchTerms
-          .flatMap((term: string) => [
-            `product_model.ilike.%${term}%`,
-            `manufacturer.ilike.%${term}%`,
-          ])
-          .join(',');
+        // Separate manufacturer terms from product terms
+        const knownManufacturers = ['porter', 'daktronics', 'fair-play', 'fairplay', 'nevco', 'gill', 'interkal', 'hufcor', 'kwik-wall', 'kwikwall'];
+        const productTerms = searchTerms.filter((t: string) => !knownManufacturers.includes(t));
+        const manufacturerTerms = searchTerms.filter((t: string) => knownManufacturers.includes(t));
 
-        const { data: manuals } = await supabase
-          .from('product_manuals')
-          .select('manufacturer, product_model, manual_type, filename')
-          .or(orClauses)
-          .neq('manual_type', 'Placeholder')
-          .limit(15);
+        let manuals: { manufacturer: string; product_model: string; manual_type: string; filename: string }[] | null = null;
+
+        // Strategy 1: If we have product-specific terms, search product_model first
+        if (productTerms.length > 0) {
+          const productOrClauses = productTerms
+            .map((term: string) => `product_model.ilike.%${term}%`)
+            .join(',');
+
+          let query = supabase
+            .from('product_manuals')
+            .select('manufacturer, product_model, manual_type, filename')
+            .or(productOrClauses)
+            .neq('manual_type', 'Placeholder');
+
+          // If a manufacturer was mentioned, filter to that manufacturer
+          if (manufacturerTerms.length > 0) {
+            const mfrOrClauses = manufacturerTerms
+              .map((term: string) => `manufacturer.ilike.%${term}%`)
+              .join(',');
+            query = query.or(mfrOrClauses);
+          }
+
+          const { data } = await query.limit(15);
+          manuals = data;
+        }
+
+        // Strategy 2: If no product terms or no results, broaden to include manufacturer
+        if (!manuals || manuals.length === 0) {
+          const allOrClauses = searchTerms
+            .flatMap((term: string) => [
+              `product_model.ilike.%${term}%`,
+              `manufacturer.ilike.%${term}%`,
+            ])
+            .join(',');
+
+          const { data } = await supabase
+            .from('product_manuals')
+            .select('manufacturer, product_model, manual_type, filename')
+            .or(allOrClauses)
+            .neq('manual_type', 'Placeholder')
+            .limit(15);
+
+          manuals = data;
+        }
 
         if (manuals && manuals.length > 0) {
           contextInfo = `\n\nRELEVANT DOCUMENTS FOUND IN THE LIBRARY:\n${manuals
