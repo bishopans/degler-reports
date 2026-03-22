@@ -315,15 +315,28 @@ export async function POST(request: NextRequest) {
             'Wiring Diagram': 4,
           };
 
-          // Score relevance using LATEST message terms only
-          // This prevents conversation history from making POWR-TOUCH 4 score equal to 2.5
-          const scoreRelevance = (productModel: string): number => {
+          // Score relevance: try LATEST message terms first, fall back to full history
+          // This prevents history pollution (POWR-TOUCH 4 vs 2.5) while still
+          // supporting follow-up questions that don't repeat the product name
+          const scoreWithTerms = (productModel: string, terms: string[]): number => {
             const modelLower = productModel.toLowerCase();
-            // Use latest message terms for scoring (not full conversation history)
-            const termsToScore = latestScoringTerms.length > 0 ? latestScoringTerms : searchTerms;
-            return termsToScore.reduce((score, term) => {
+            return terms.reduce((score, term) => {
               return score + (modelLower.includes(term.toLowerCase()) ? 1 : 0);
             }, 0);
+          };
+
+          // Check if latest message terms can differentiate products
+          // If max score from latest terms is 0, the follow-up doesn't mention a product
+          // — fall back to full history to maintain context
+          const maxLatestScore = latestScoringTerms.length > 0
+            ? Math.max(...manuals.map(m => scoreWithTerms(m.product_model, latestScoringTerms)))
+            : 0;
+          const useLatestForScoring = maxLatestScore > 0;
+          const scoringTerms = useLatestForScoring ? latestScoringTerms : searchTerms;
+          console.log(`[VULCAN] Scoring with ${useLatestForScoring ? 'LATEST' : 'FULL HISTORY'} terms (maxLatestScore=${maxLatestScore}): [${scoringTerms.join(', ')}]`);
+
+          const scoreRelevance = (productModel: string): number => {
+            return scoreWithTerms(productModel, scoringTerms);
           };
 
           const sortedManuals = [...manuals]
@@ -432,7 +445,7 @@ export async function POST(request: NextRequest) {
       (inputTokens / 1_000_000) * INPUT_COST_PER_MILLION * 100 +
       (outputTokens / 1_000_000) * OUTPUT_COST_PER_MILLION * 100;
 
-    // Log to database (fire and forget)
+    // Log to database (fire and forget, but log errors)
     supabase
       .from('chat_logs')
       .insert({
@@ -442,7 +455,11 @@ export async function POST(request: NextRequest) {
         output_tokens: outputTokens,
         estimated_cost_cents: estimatedCostCents,
       })
-      .then(() => {});
+      .then(({ error: insertError }) => {
+        if (insertError) {
+          console.error(`[VULCAN] Chat log insert failed:`, insertError.message);
+        }
+      });
 
     return NextResponse.json({
       message: assistantMessage,
