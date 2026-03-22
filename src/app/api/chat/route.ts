@@ -415,6 +415,9 @@ export async function POST(request: NextRequest) {
             return scoreWithTerms(productModel, scoringTerms);
           };
 
+          // Types where larger files = more complete content (prefer bigger)
+          const preferLargerTypes = new Set(['Installation Guide', 'user_manual', 'Manual']);
+
           const sortedManuals = [...manuals]
             .filter((m) => m.storage_path && m.file_size_bytes < 5_000_000)
             .sort((a, b) => {
@@ -424,8 +427,12 @@ export async function POST(request: NextRequest) {
               // Secondary sort: manual type priority (lower = better)
               const typeDiff = (typeOrder[a.manual_type] || 5) - (typeOrder[b.manual_type] || 5);
               if (typeDiff !== 0) return typeDiff;
-              // Tertiary sort: smaller file first (faster download, less likely to timeout)
-              return a.file_size_bytes - b.file_size_bytes;
+              // Tertiary sort: for manuals/guides prefer LARGER files (more complete);
+              // for drawings/spec sheets prefer smaller (faster download)
+              if (preferLargerTypes.has(a.manual_type) || preferLargerTypes.has(b.manual_type)) {
+                return b.file_size_bytes - a.file_size_bytes; // larger first
+              }
+              return a.file_size_bytes - b.file_size_bytes; // smaller first
             });
 
           // Fetch the top 1 PDF (keep it to 1 for speed and cost — each page ~1500 tokens)
