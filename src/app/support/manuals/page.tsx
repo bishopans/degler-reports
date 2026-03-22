@@ -38,7 +38,7 @@ const MANUFACTURER_LOGOS: Record<string, string> = {
   Daktronics: 'https://www.daktronics.com/media/_site/DakLogoWhite.svg',
   'Fair-Play': 'https://www.fair-play.com/wp-content/uploads/2020/02/fair-play-logo-dark@2x.png',
   Nevco: 'https://www.nevco.com/wp-content/uploads/2020/12/nevco_logo.png',
-  Porter: 'https://cdn11.bigcommerce.com/s-8jy95dyy51/stencil/b83f3740-f8d9-013e-bac0-5a2d526180d6/e/80066c80-052e-013f-a640-3eaf49d0e711/img/porter-logo-black-sm.png',
+  Porter: 'https://athcollc.com/wp-content/uploads/porter-1.png',
   Gill: 'https://cdn11.bigcommerce.com/s-8jy95dyy51/images/stencil/250x100/image_917_1760512029__74187.original.png',
   Interkal: 'https://lirp.cdn-website.com/db7ece26/dms3rep/multi/opt/intekral-global-logo-400x128-1920w.png',
   Hufcor: 'https://static.wixstatic.com/media/862d9e_3a91738d2707456c958778c4a99c26ab~mv2.png/v1/fill/w_188,h_42,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/HUFCOR_RGB_edited.png',
@@ -419,8 +419,12 @@ export default function ManualsPage() {
       }}
     >
       {logoUrl ? (
-        logoUrl.endsWith('.svg') && title === 'Daktronics' ? (
+        title === 'Daktronics' ? (
           <div style={{ height: 40, maxWidth: 120, marginBottom: '0.5rem', background: '#00457c', borderRadius: 6, padding: '6px 12px', display: 'flex', alignItems: 'center' }}>
+            <img src={logoUrl} alt={title} style={{ height: 28, maxWidth: 96, objectFit: 'contain' }} />
+          </div>
+        ) : title === 'Nevco' ? (
+          <div style={{ height: 40, maxWidth: 120, marginBottom: '0.5rem', background: '#1a1a1a', borderRadius: 6, padding: '6px 12px', display: 'flex', alignItems: 'center' }}>
             <img src={logoUrl} alt={title} style={{ height: 28, maxWidth: 96, objectFit: 'contain' }} />
           </div>
         ) : (
