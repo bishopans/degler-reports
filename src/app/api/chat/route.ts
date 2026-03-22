@@ -454,13 +454,14 @@ export async function POST(request: NextRequest) {
     // Log what we're sending to Claude
     console.log(`[VULCAN] API call: ${pdfContentBlocks.length} PDF(s) attached, ${apiMessages.length} messages, context length: ${contextInfo.length} chars`);
 
-    // Call Claude API (Haiku 3.5 for speed and cost efficiency)
+    // Call Claude API (Haiku 4.5 for speed and cost efficiency)
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'pdfs-2024-09-25',
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
@@ -473,8 +474,12 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`[VULCAN] Claude API error ${response.status}: ${errorText.substring(0, 500)}`);
+      // Return more detail for debugging — include Claude's status code
+      const isOverloaded = response.status === 529 || response.status === 503;
       return NextResponse.json(
-        { error: 'Failed to get a response from Vulcan. Please try again.' },
+        { error: isOverloaded
+            ? 'Vulcan is experiencing high demand. Please try again in a moment.'
+            : 'Failed to get a response from Vulcan. Please try again.' },
         { status: 502 }
       );
     }
