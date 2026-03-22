@@ -224,13 +224,15 @@ export async function POST(request: NextRequest) {
         expandedTerms.add(`${rawTerms[i]}-${rawTerms[i + 1]}`);
       }
 
-      // Handle compound tokens like "powrtouch2.5" — split on letter/digit boundary
+      // Handle compound tokens like "powrtouch2.5" or "mp80" — split on letter/digit boundary
+      // Also generates hyphenated version (e.g., "mp80" → "mp-80") for database matching
       rawTerms.forEach((term: string) => {
         const splitMatch = term.match(/^([a-z-]+)([\d].*)$/);
         if (splitMatch) {
           const [, wordPart, numberPart] = splitMatch;
           expandedTerms.add(wordPart);
           expandedTerms.add(numberPart);
+          expandedTerms.add(`${wordPart}-${numberPart}`); // "mp80" → "mp-80"
           if (aliasMap[wordPart]) {
             aliasMap[wordPart].forEach((alias: string) => expandedTerms.add(alias));
           }
@@ -258,6 +260,7 @@ export async function POST(request: NextRequest) {
           const [, wordPart, numberPart] = splitMatch;
           latestExpandedTerms.add(wordPart);
           latestExpandedTerms.add(numberPart);
+          latestExpandedTerms.add(`${wordPart}-${numberPart}`);
           if (aliasMap[wordPart]) {
             aliasMap[wordPart].forEach((alias: string) => latestExpandedTerms.add(alias));
           }
@@ -265,7 +268,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Pick the most meaningful search terms (skip generic words)
-      const stopWords = new Set(['help', 'with', 'the', 'how', 'can', 'you', 'about', 'what', 'does', 'for', 'and', 'programming', 'program', 'install', 'installation', 'guide', 'manual', 'spec', 'specs', 'sheet', 'wiring', 'diagram', 'troubleshoot', 'troubleshooting', 'need', 'want', 'please', 'tell', 'show', 'me', 'find', 'get', 'look', 'up', 'do', 'is', 'it', 'of', 'to', 'in', 'on', 'at', 'by', 'or', 'an', 'be', 'if', 'so', 'no', 'not', 'but', 'all', 'are', 'was', 'were', 'been', 'have', 'has', 'had', 'will', 'would', 'could', 'should', 'may', 'might', 'shall', 'each', 'every', 'any', 'some', 'this', 'that', 'these', 'those', 'its', 'my', 'your', 'our', 'their', 'im', 'ive', 'know', 'knowing']);
+      const stopWords = new Set(['help', 'with', 'the', 'how', 'can', 'you', 'about', 'what', 'does', 'for', 'and', 'programming', 'program', 'install', 'installation', 'guide', 'manual', 'spec', 'specs', 'sheet', 'wiring', 'diagram', 'troubleshoot', 'troubleshooting', 'need', 'want', 'please', 'tell', 'show', 'me', 'find', 'get', 'look', 'up', 'do', 'is', 'it', 'of', 'to', 'in', 'on', 'at', 'by', 'or', 'an', 'be', 'if', 'so', 'no', 'not', 'but', 'all', 'are', 'was', 'were', 'been', 'have', 'has', 'had', 'will', 'would', 'could', 'should', 'may', 'might', 'shall', 'each', 'every', 'any', 'some', 'this', 'that', 'these', 'those', 'its', 'my', 'your', 'our', 'their', 'im', 'ive', 'know', 'knowing', 'okay', 'ok', 'different', 'topic', 'change', 'switch', 'question', 'scoreboard', 'scoreboards', 'controller', 'panel', 'set', 'setting', 'number', 'group']);
       const searchTerms = Array.from(expandedTerms)
         .filter((t: string) => t.length > 1 && !stopWords.has(t))
         .slice(0, 8);
@@ -284,6 +287,14 @@ export async function POST(request: NextRequest) {
         const productTerms = searchTerms.filter((t: string) => !knownManufacturers.includes(t));
         const manufacturerTerms = searchTerms.filter((t: string) => knownManufacturers.includes(t));
 
+        // When user changes topics, prefer the manufacturer from the LATEST message
+        // Otherwise old conversation context (e.g. "porter") overrides the new manufacturer (e.g. "fair-play")
+        const latestManufacturerTerms = latestScoringTerms.filter((t: string) => knownManufacturers.includes(t));
+        const preferredManufacturer = latestManufacturerTerms.length > 0
+          ? latestManufacturerTerms[0]
+          : (manufacturerTerms.length > 0 ? manufacturerTerms[0] : null);
+        console.log(`[VULCAN] Manufacturer filter: ${preferredManufacturer} (latest: [${latestManufacturerTerms.join(', ')}], all: [${manufacturerTerms.join(', ')}])`);
+
         let manuals: { manufacturer: string; product_model: string; manual_type: string; filename: string; storage_path: string; file_size_bytes: number }[] | null = null;
 
         // Strategy 1: If we have product-specific terms, search product_model first
@@ -299,9 +310,9 @@ export async function POST(request: NextRequest) {
             .neq('manual_type', 'Placeholder');
 
           // If a manufacturer was mentioned, AND-filter to that manufacturer
-          // (previously this was .or() which created a top-level OR, returning ALL products by that manufacturer)
-          if (manufacturerTerms.length > 0) {
-            query = query.ilike('manufacturer', `%${manufacturerTerms[0]}%`);
+          // Uses preferredManufacturer which prioritizes the LATEST message's manufacturer
+          if (preferredManufacturer) {
+            query = query.ilike('manufacturer', `%${preferredManufacturer}%`);
           }
 
           const { data, error: searchError } = await query.limit(15);
