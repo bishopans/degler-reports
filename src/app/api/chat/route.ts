@@ -172,29 +172,29 @@ export async function POST(request: NextRequest) {
 
       // Expand common aliases — users type these but the database has different names
       const aliasMap: Record<string, string[]> = {
-        'powertouch': ['powr-touch', 'powr touch', 'powrtouch'],
-        'powrtouch': ['powr-touch', 'powr touch', 'powertouch'],
+        'powertouch': ['powr-touch', 'powrtouch'],
+        'powrtouch': ['powr-touch', 'powertouch'],
         'powr-touch': ['powertouch', 'powrtouch'],
-        'powerflex': ['powr-flex', 'powr flex'],
-        'powrflex': ['powr-flex', 'powr flex'],
-        'powernet': ['powr-net', 'powr net'],
-        'powrnet': ['powr-net', 'powr net'],
+        'powerflex': ['powr-flex', 'powrflex'],
+        'powrflex': ['powr-flex', 'powerflex'],
+        'powernet': ['powr-net', 'powrnet'],
+        'powrnet': ['powr-net', 'powernet'],
         'powermax': ['powermax'],
-        'powerselect': ['powr-select', 'powr select'],
-        'powrselect': ['powr-select', 'powr select'],
-        'powrcarbon': ['powr-carbon', 'powr carbon'],
-        'powercarbon': ['powr-carbon', 'powr carbon'],
-        'powrsteel': ['powr-steel', 'powr steel'],
-        'powersteel': ['powr-steel', 'powr steel'],
-        'powrrib': ['powr rib'],
-        'powerrib': ['powr rib'],
-        'powrline': ['powr line'],
-        'powerline': ['powr line'],
-        'powrcourt': ['powr court'],
-        'powercourt': ['powr court'],
-        'kwikwall': ['kwik-wall', 'kwik wall'],
+        'powerselect': ['powr-select', 'powrselect'],
+        'powrselect': ['powr-select', 'powerselect'],
+        'powrcarbon': ['powr-carbon', 'powrcarbon', 'powercarbon'],
+        'powercarbon': ['powr-carbon', 'powrcarbon'],
+        'powrsteel': ['powr-steel', 'powrsteel', 'powersteel'],
+        'powersteel': ['powr-steel', 'powrsteel'],
+        'powrrib': ['powr-rib', 'powerrib'],
+        'powerrib': ['powr-rib', 'powrrib'],
+        'powrline': ['powr-line', 'powerline'],
+        'powerline': ['powr-line', 'powrline'],
+        'powrcourt': ['powr-court', 'powercourt'],
+        'powercourt': ['powr-court', 'powrcourt'],
+        'kwikwall': ['kwik-wall'],
         'kwik-wall': ['kwikwall'],
-        'fairplay': ['fair-play', 'fair play'],
+        'fairplay': ['fair-play'],
         'fair-play': ['fairplay'],
       };
 
@@ -315,8 +315,10 @@ export async function POST(request: NextRequest) {
         let manuals: { manufacturer: string; product_model: string; manual_type: string; filename: string; storage_path: string; file_size_bytes: number }[] | null = null;
 
         // Strategy 1: If we have product-specific terms, search product_model first
-        if (productTerms.length > 0) {
-          const productOrClauses = productTerms
+        // Filter out terms with spaces — they break PostgREST .or() query parsing
+        const safeProductTerms = productTerms.filter((t: string) => !t.includes(' '));
+        if (safeProductTerms.length > 0) {
+          const productOrClauses = safeProductTerms
             .map((term: string) => `product_model.ilike.%${term}%`)
             .join(',');
 
@@ -343,7 +345,9 @@ export async function POST(request: NextRequest) {
         // Still apply manufacturer filter if we know one, to avoid random results
         if (!manuals || manuals.length === 0) {
           console.log(`[VULCAN] Strategy 1 returned 0 results, trying Strategy 2`);
-          const allOrClauses = searchTerms
+          // Filter out terms with spaces — they break PostgREST .or() query parsing
+          const safeSearchTerms = searchTerms.filter((t: string) => !t.includes(' '));
+          const allOrClauses = safeSearchTerms
             .flatMap((term: string) => [
               `product_model.ilike.%${term}%`,
               `manufacturer.ilike.%${term}%`,
