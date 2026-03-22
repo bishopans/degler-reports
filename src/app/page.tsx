@@ -110,7 +110,7 @@ export default function Home() {
           <span style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.35rem' }}>Browse guides by equipment</span>
         </Link>
 
-        {/* Install & Service GPT */}
+        {/* Vulcan AI Assistant */}
         <Link
           href="/support/assistant"
           style={{
@@ -132,9 +132,9 @@ export default function Home() {
           onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,69,124,0.15)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'white'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,69,124,0.1)'; }}
         >
-          <span style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🤖</span>
-          <span style={{ fontSize: '1.15rem', fontWeight: 600, color: '#00457c' }}>Install & Service AI</span>
-          <span style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.35rem' }}>AI-powered troubleshooting</span>
+          <Image src="/images/VulcanAIAvatar.png" alt="Vulcan AI" width={48} height={48} style={{ borderRadius: '50%', marginBottom: '0.5rem' }} />
+          <span style={{ fontSize: '1.15rem', fontWeight: 600, color: '#00457c' }}>Vulcan AI</span>
+          <span style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.35rem' }}>AI-powered service assistant</span>
         </Link>
       </div>
 
