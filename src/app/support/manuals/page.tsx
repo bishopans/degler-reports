@@ -34,6 +34,13 @@ const CATEGORY_META: Record<string, { icon: string; description: string }> = {
   Other: { icon: '🔧', description: 'Miscellaneous equipment and accessories' },
 };
 
+const SPORT_META: Record<string, { icon: string; description: string }> = {
+  Basketball: { icon: '🏀', description: 'Backstops, backboards, goals, and accessories' },
+  Volleyball: { icon: '🏐', description: 'Net systems, standards, padding, and accessories' },
+  'Racket Sports': { icon: '🏸', description: 'Badminton, pickleball, and tennis equipment' },
+  Facilities: { icon: '🏢', description: 'Divider curtains, batting cages, and gym equipment' },
+};
+
 const MANUAL_TYPE_LABELS: Record<string, string> = {
   spec_sheet: 'Spec Sheet',
   install_drawing: 'Install Drawing',
@@ -71,7 +78,13 @@ function formatFileSize(bytes: number | null): string {
   return `${(bytes / 1048576).toFixed(1)} MB`;
 }
 
-type View = 'categories' | 'manufacturers' | 'products';
+// For top-level category grouping, Porter uses "Athletic Equipment" regardless of equipment_category
+function getTopCategory(m: Manual): string {
+  if (m.manufacturer === 'Porter') return 'Athletic Equipment';
+  return m.equipment_category;
+}
+
+type View = 'categories' | 'manufacturers' | 'sports' | 'subcategories' | 'products';
 
 export default function ManualsPage() {
   const [allManuals, setAllManuals] = useState<Manual[]>([]);
@@ -81,6 +94,8 @@ export default function ManualsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedManufacturer, setSelectedManufacturer] = useState('');
+  const [selectedSport, setSelectedSport] = useState('');
+  const [selectedSubcategory, setSelectedSubcategory] = useState('');
   const [selectedType, setSelectedType] = useState('');
   const [view, setView] = useState<View>('categories');
   const [expandedModels, setExpandedModels] = useState<Set<string>>(new Set());
@@ -108,55 +123,91 @@ export default function ManualsPage() {
     fetchManuals();
   }, []);
 
-  // Normalize text for flexible matching: strip dashes, underscores, spaces
-  // so "MP80" matches "MP-80", "MP 80", "MP_80", etc.
+  // Normalize text for flexible matching
   const normalize = (text: string) => text.toLowerCase().replace(/[-_\s.]/g, '');
 
   // Filter manuals client-side
   const filteredManuals = allManuals.filter((m) => {
-    if (selectedCategory && m.equipment_category !== selectedCategory) return false;
+    if (selectedCategory && getTopCategory(m) !== selectedCategory) return false;
     if (selectedManufacturer && m.manufacturer !== selectedManufacturer) return false;
+    if (selectedSport && m.sport !== selectedSport) return false;
+    if (selectedSubcategory && m.equipment_category !== selectedSubcategory) return false;
     if (selectedType && m.manual_type !== selectedType) return false;
     if (debouncedSearch) {
       const q = debouncedSearch.toLowerCase();
       const qNorm = normalize(debouncedSearch);
       const searchable = `${m.product_model} ${m.product_name || ''} ${m.filename} ${m.manufacturer}`.toLowerCase();
       const searchableNorm = normalize(searchable);
-      // Match on either exact substring or normalized substring
       if (!searchable.includes(q) && !searchableNorm.includes(qNorm)) return false;
     }
     return true;
   });
 
-  // Derive categories with counts
+  // Derive top-level categories with counts
   const categories: CategoryInfo[] = (() => {
     const counts: Record<string, number> = {};
     allManuals.forEach((m) => {
-      counts[m.equipment_category] = (counts[m.equipment_category] || 0) + 1;
+      const topCat = getTopCategory(m);
+      counts[topCat] = (counts[topCat] || 0) + 1;
     });
     const order = ['Scoreboards', 'Athletic Equipment', 'Bleachers', 'Folding Partitions', 'Other'];
     const cats: CategoryInfo[] = [];
-    // Known categories first
     for (const name of order) {
       const meta = CATEGORY_META[name] || { icon: '📄', description: '' };
       cats.push({ name, icon: meta.icon, description: meta.description, count: counts[name] || 0 });
       delete counts[name];
     }
-    // Any unexpected categories
     for (const [name, count] of Object.entries(counts)) {
       cats.push({ name, icon: '📄', description: '', count });
     }
     return cats;
   })();
 
-  // Derive manufacturers within selected category
+  // Derive manufacturers within selected top-level category
   const manufacturers = (() => {
     const source = selectedCategory
-      ? allManuals.filter((m) => m.equipment_category === selectedCategory)
+      ? allManuals.filter((m) => getTopCategory(m) === selectedCategory)
       : allManuals;
     const counts: Record<string, number> = {};
     source.forEach((m) => {
       counts[m.manufacturer] = (counts[m.manufacturer] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([name, count]) => ({ name, count }));
+  })();
+
+  // Check if current manufacturer has sport-based hierarchy
+  const manufacturerHasSports = selectedManufacturer === 'Porter';
+
+  // Derive sports for the selected manufacturer
+  const sports = (() => {
+    if (!manufacturerHasSports) return [];
+    const source = allManuals.filter((m) => m.manufacturer === selectedManufacturer);
+    const counts: Record<string, number> = {};
+    source.forEach((m) => {
+      if (m.sport) counts[m.sport] = (counts[m.sport] || 0) + 1;
+    });
+    const order = ['Basketball', 'Volleyball', 'Racket Sports', 'Facilities'];
+    return order
+      .filter((s) => counts[s])
+      .map((s) => ({
+        name: s,
+        count: counts[s],
+        icon: SPORT_META[s]?.icon || '🏅',
+        description: SPORT_META[s]?.description || '',
+      }));
+  })();
+
+  // Derive subcategories within selected sport
+  const subcategories = (() => {
+    if (!selectedSport) return [];
+    const source = allManuals.filter(
+      (m) => m.manufacturer === selectedManufacturer && m.sport === selectedSport
+    );
+    const counts: Record<string, number> = {};
+    source.forEach((m) => {
+      counts[m.equipment_category] = (counts[m.equipment_category] || 0) + 1;
     });
     return Object.entries(counts)
       .sort(([a], [b]) => a.localeCompare(b))
@@ -195,9 +246,22 @@ export default function ManualsPage() {
     });
   }, []);
 
+  // Navigation handlers
+  const resetAll = () => {
+    setSelectedCategory('');
+    setSelectedManufacturer('');
+    setSelectedSport('');
+    setSelectedSubcategory('');
+    setSelectedType('');
+    setView('categories');
+    setExpandedModels(new Set());
+  };
+
   const handleCategoryClick = (catName: string) => {
     setSelectedCategory(catName);
     setSelectedManufacturer('');
+    setSelectedSport('');
+    setSelectedSubcategory('');
     setSelectedType('');
     setView('manufacturers');
     setExpandedModels(new Set());
@@ -205,23 +269,56 @@ export default function ManualsPage() {
 
   const handleManufacturerClick = (mfr: string) => {
     setSelectedManufacturer(mfr);
+    setSelectedSport('');
+    setSelectedSubcategory('');
+    setSelectedType('');
+    // If this manufacturer has sports hierarchy, show sports view
+    if (mfr === 'Porter') {
+      setView('sports');
+    } else {
+      setView('products');
+    }
+    setExpandedModels(new Set());
+  };
+
+  const handleSportClick = (sportName: string) => {
+    setSelectedSport(sportName);
+    setSelectedSubcategory('');
+    setSelectedType('');
+    setView('subcategories');
+    setExpandedModels(new Set());
+  };
+
+  const handleSubcategoryClick = (subcat: string) => {
+    setSelectedSubcategory(subcat);
     setSelectedType('');
     setView('products');
     setExpandedModels(new Set());
   };
 
   const handleBack = () => {
-    if (view === 'products') {
+    if (view === 'products' && selectedSubcategory) {
+      // Back from products → subcategories
+      setSelectedSubcategory('');
+      setSelectedType('');
+      setView('subcategories');
+      setExpandedModels(new Set());
+    } else if (view === 'products') {
+      // Back from products → manufacturers
       setSelectedManufacturer('');
       setSelectedType('');
       setView('manufacturers');
       setExpandedModels(new Set());
-    } else if (view === 'manufacturers') {
-      setSelectedCategory('');
-      setSelectedManufacturer('');
-      setSelectedType('');
-      setView('categories');
+    } else if (view === 'subcategories') {
+      setSelectedSport('');
+      setView('sports');
       setExpandedModels(new Set());
+    } else if (view === 'sports') {
+      setSelectedManufacturer('');
+      setView('manufacturers');
+      setExpandedModels(new Set());
+    } else if (view === 'manufacturers') {
+      resetAll();
     }
   };
 
@@ -235,6 +332,139 @@ export default function ManualsPage() {
   const effectiveView = isSearching ? 'products' : view;
 
   const totalManuals = allManuals.length;
+
+  // Reusable card grid component
+  const CardGrid = ({ children }: { children: React.ReactNode }) => (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(3, 1fr)',
+      gap: '1rem',
+    }} className="manuals-grid">
+      {children}
+    </div>
+  );
+
+  // Reusable clickable card
+  const Card = ({
+    onClick,
+    icon,
+    title,
+    description,
+    count,
+    badgeBg = '#dcfce7',
+    badgeColor = '#166534',
+  }: {
+    onClick: () => void;
+    icon: string;
+    title: string;
+    description?: string;
+    count: number;
+    badgeBg?: string;
+    badgeColor?: string;
+  }) => (
+    <div
+      onClick={onClick}
+      style={{
+        border: '2px solid #e5e7eb',
+        borderRadius: 10,
+        padding: '1.25rem',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        textAlign: 'center',
+        background: 'white',
+        cursor: 'pointer',
+        transition: 'all 0.15s',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = '#00457c';
+        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,69,124,0.12)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = '#e5e7eb';
+        e.currentTarget.style.boxShadow = 'none';
+      }}
+    >
+      <span style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{icon}</span>
+      <span style={{ fontSize: '1rem', fontWeight: 600, color: '#111', marginBottom: '0.25rem' }}>{title}</span>
+      {description && (
+        <span style={{ fontSize: '0.8rem', color: '#6b7280', lineHeight: 1.4 }}>{description}</span>
+      )}
+      <span style={{
+        marginTop: '0.75rem',
+        fontSize: '0.75rem',
+        fontWeight: 600,
+        padding: '0.2rem 0.6rem',
+        borderRadius: 12,
+        background: badgeBg,
+        color: badgeColor,
+      }}>
+        {count} document{count !== 1 ? 's' : ''}
+      </span>
+    </div>
+  );
+
+  // Back button + heading
+  const ViewHeader = ({ title }: { title: string }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+      <button
+        onClick={handleBack}
+        style={{
+          background: 'none',
+          border: '1px solid #d1d5db',
+          borderRadius: 6,
+          padding: '0.35rem 0.75rem',
+          fontSize: '0.85rem',
+          cursor: 'pointer',
+          color: '#374151',
+        }}
+      >
+        ← Back
+      </button>
+      <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#00457c', margin: 0 }}>
+        {title}
+      </h2>
+    </div>
+  );
+
+  // Breadcrumb builder
+  const breadcrumbParts: { label: string; onClick?: () => void }[] = [];
+  if (effectiveView !== 'categories' && !isSearching) {
+    breadcrumbParts.push({ label: 'All Categories', onClick: resetAll });
+    if (selectedCategory) {
+      if (view === 'manufacturers') {
+        breadcrumbParts.push({ label: selectedCategory });
+      } else {
+        breadcrumbParts.push({
+          label: selectedCategory,
+          onClick: () => handleCategoryClick(selectedCategory),
+        });
+      }
+    }
+    if (selectedManufacturer) {
+      if (view === 'sports' || (!manufacturerHasSports && view === 'products' && !selectedSubcategory)) {
+        breadcrumbParts.push({ label: selectedManufacturer });
+      } else {
+        breadcrumbParts.push({
+          label: selectedManufacturer,
+          onClick: () => handleManufacturerClick(selectedManufacturer),
+        });
+      }
+    }
+    if (selectedSport) {
+      if (view === 'subcategories') {
+        breadcrumbParts.push({ label: selectedSport });
+      } else {
+        breadcrumbParts.push({
+          label: selectedSport,
+          onClick: () => handleSportClick(selectedSport),
+        });
+      }
+    }
+    if (selectedSubcategory) {
+      breadcrumbParts.push({ label: selectedSubcategory });
+    }
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
@@ -333,7 +563,7 @@ export default function ManualsPage() {
         </div>
 
         {/* Breadcrumb navigation */}
-        {(effectiveView !== 'categories' && !isSearching) && (
+        {breadcrumbParts.length > 0 && (
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -343,33 +573,21 @@ export default function ManualsPage() {
             color: '#6b7280',
             flexWrap: 'wrap',
           }}>
-            <button
-              onClick={() => { setSelectedCategory(''); setSelectedManufacturer(''); setSelectedType(''); setView('categories'); setExpandedModels(new Set()); }}
-              style={{ background: 'none', border: 'none', color: '#00457c', cursor: 'pointer', padding: 0, fontSize: '0.85rem', textDecoration: 'underline' }}
-            >
-              All Categories
-            </button>
-            {selectedCategory && (
-              <>
-                <span style={{ color: '#9ca3af' }}>/</span>
-                {view === 'manufacturers' ? (
-                  <span style={{ fontWeight: 600, color: '#111' }}>{selectedCategory}</span>
-                ) : (
+            {breadcrumbParts.map((part, i) => (
+              <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                {i > 0 && <span style={{ color: '#9ca3af' }}>/</span>}
+                {part.onClick ? (
                   <button
-                    onClick={handleBack}
+                    onClick={part.onClick}
                     style={{ background: 'none', border: 'none', color: '#00457c', cursor: 'pointer', padding: 0, fontSize: '0.85rem', textDecoration: 'underline' }}
                   >
-                    {selectedCategory}
+                    {part.label}
                   </button>
+                ) : (
+                  <span style={{ fontWeight: 600, color: '#111' }}>{part.label}</span>
                 )}
-              </>
-            )}
-            {selectedManufacturer && (
-              <>
-                <span style={{ color: '#9ca3af' }}>/</span>
-                <span style={{ fontWeight: 600, color: '#111' }}>{selectedManufacturer}</span>
-              </>
-            )}
+              </span>
+            ))}
           </div>
         )}
 
@@ -406,11 +624,7 @@ export default function ManualsPage() {
             <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#00457c', marginBottom: '1rem', marginTop: 0 }}>
               Browse by Equipment Category
             </h2>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '1rem',
-            }} className="manuals-grid">
+            <CardGrid>
               {categories.map((cat) => (
                 <div
                   key={cat.name}
@@ -455,78 +669,68 @@ export default function ManualsPage() {
                   </span>
                 </div>
               ))}
-            </div>
+            </CardGrid>
           </>
         )}
 
         {/* MANUFACTURERS VIEW */}
         {!loading && !error && effectiveView === 'manufacturers' && !isSearching && (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <button
-                onClick={handleBack}
-                style={{
-                  background: 'none',
-                  border: '1px solid #d1d5db',
-                  borderRadius: 6,
-                  padding: '0.35rem 0.75rem',
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                  color: '#374151',
-                }}
-              >
-                ← Back
-              </button>
-              <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#00457c', margin: 0 }}>
-                {selectedCategory} — Select Manufacturer
-              </h2>
-            </div>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '1rem',
-            }} className="manuals-grid">
+            <ViewHeader title={`${selectedCategory} — Select Manufacturer`} />
+            <CardGrid>
               {manufacturers.map((mfr) => (
-                <div
+                <Card
                   key={mfr.name}
                   onClick={() => handleManufacturerClick(mfr.name)}
-                  style={{
-                    border: '2px solid #e5e7eb',
-                    borderRadius: 10,
-                    padding: '1.25rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    textAlign: 'center',
-                    background: 'white',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#00457c';
-                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,69,124,0.12)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = '#e5e7eb';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  <span style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>🏭</span>
-                  <span style={{ fontSize: '1.05rem', fontWeight: 600, color: '#111' }}>{mfr.name}</span>
-                  <span style={{
-                    marginTop: '0.5rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    padding: '0.2rem 0.6rem',
-                    borderRadius: 12,
-                    background: '#dbeafe',
-                    color: '#1e40af',
-                  }}>
-                    {mfr.count} document{mfr.count !== 1 ? 's' : ''}
-                  </span>
-                </div>
+                  icon="🏭"
+                  title={mfr.name}
+                  count={mfr.count}
+                  badgeBg="#dbeafe"
+                  badgeColor="#1e40af"
+                />
               ))}
-            </div>
+            </CardGrid>
+          </>
+        )}
+
+        {/* SPORTS VIEW (Porter hierarchy) */}
+        {!loading && !error && effectiveView === 'sports' && !isSearching && (
+          <>
+            <ViewHeader title={`${selectedManufacturer} — Select Sport`} />
+            <CardGrid>
+              {sports.map((sport) => (
+                <Card
+                  key={sport.name}
+                  onClick={() => handleSportClick(sport.name)}
+                  icon={sport.icon}
+                  title={sport.name}
+                  description={sport.description}
+                  count={sport.count}
+                  badgeBg="#dcfce7"
+                  badgeColor="#166534"
+                />
+              ))}
+            </CardGrid>
+          </>
+        )}
+
+        {/* SUBCATEGORIES VIEW (Porter hierarchy) */}
+        {!loading && !error && effectiveView === 'subcategories' && !isSearching && (
+          <>
+            <ViewHeader title={`${selectedSport} — Select Equipment Type`} />
+            <CardGrid>
+              {subcategories.map((sub) => (
+                <Card
+                  key={sub.name}
+                  onClick={() => handleSubcategoryClick(sub.name)}
+                  icon="📁"
+                  title={sub.name}
+                  count={sub.count}
+                  badgeBg="#fef3c7"
+                  badgeColor="#92400e"
+                />
+              ))}
+            </CardGrid>
           </>
         )}
 
@@ -534,25 +738,13 @@ export default function ManualsPage() {
         {!loading && !error && effectiveView === 'products' && (
           <>
             {!isSearching && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                <button
-                  onClick={handleBack}
-                  style={{
-                    background: 'none',
-                    border: '1px solid #d1d5db',
-                    borderRadius: 6,
-                    padding: '0.35rem 0.75rem',
-                    fontSize: '0.85rem',
-                    cursor: 'pointer',
-                    color: '#374151',
-                  }}
-                >
-                  ← Back
-                </button>
-                <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#00457c', margin: 0 }}>
-                  {selectedManufacturer} {selectedCategory}
-                </h2>
-              </div>
+              <ViewHeader
+                title={
+                  selectedSubcategory
+                    ? `${selectedSubcategory}`
+                    : `${selectedManufacturer} ${selectedCategory}`
+                }
+              />
             )}
 
             {/* Type filter chips */}
@@ -659,7 +851,6 @@ export default function ManualsPage() {
                           </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                          {/* Mini type badges */}
                           {group.manuals.map((m) => {
                             const colors = MANUAL_TYPE_COLORS[m.manual_type] || MANUAL_TYPE_COLORS.other;
                             return (
