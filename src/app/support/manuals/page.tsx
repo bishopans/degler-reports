@@ -39,6 +39,9 @@ const SPORT_META: Record<string, { icon: string; description: string }> = {
   Volleyball: { icon: '🏐', description: 'Net systems, standards, padding, and accessories' },
   'Racket Sports': { icon: '🏸', description: 'Badminton, pickleball, and tennis equipment' },
   Facilities: { icon: '🏢', description: 'Divider curtains, batting cages, and gym equipment' },
+  'Track & Field': { icon: '🏃', description: 'Jumps, throws, hurdles, and meet equipment' },
+  'Field Sports': { icon: '⚽', description: 'Football, baseball, soccer, tennis, and more' },
+  Training: { icon: '🏋️', description: 'Sleds, training hurdles, and accessories' },
 };
 
 const MANUAL_TYPE_LABELS: Record<string, string> = {
@@ -78,9 +81,9 @@ function formatFileSize(bytes: number | null): string {
   return `${(bytes / 1048576).toFixed(1)} MB`;
 }
 
-// For top-level category grouping, Porter uses "Athletic Equipment" regardless of equipment_category
+// For top-level category grouping, Porter & Gill use "Athletic Equipment" regardless of equipment_category
 function getTopCategory(m: Manual): string {
-  if (m.manufacturer === 'Porter') return 'Athletic Equipment';
+  if (m.manufacturer === 'Porter' || m.manufacturer === 'Gill') return 'Athletic Equipment';
   return m.equipment_category;
 }
 
@@ -178,7 +181,7 @@ export default function ManualsPage() {
   })();
 
   // Check if current manufacturer has sport-based hierarchy
-  const manufacturerHasSports = selectedManufacturer === 'Porter';
+  const manufacturerHasSports = selectedManufacturer === 'Porter' || selectedManufacturer === 'Gill';
 
   // Derive sports for the selected manufacturer
   const sports = (() => {
@@ -188,15 +191,16 @@ export default function ManualsPage() {
     source.forEach((m) => {
       if (m.sport) counts[m.sport] = (counts[m.sport] || 0) + 1;
     });
-    const order = ['Basketball', 'Volleyball', 'Racket Sports', 'Facilities'];
-    return order
-      .filter((s) => counts[s])
-      .map((s) => ({
-        name: s,
-        count: counts[s],
-        icon: SPORT_META[s]?.icon || '🏅',
-        description: SPORT_META[s]?.description || '',
-      }));
+    const order = ['Basketball', 'Volleyball', 'Racket Sports', 'Facilities', 'Track & Field', 'Field Sports', 'Training'];
+    // Show ordered sports first, then any extras alphabetically
+    const ordered = order.filter((s) => counts[s]);
+    const extras = Object.keys(counts).filter((s) => !order.includes(s)).sort();
+    return [...ordered, ...extras].map((s) => ({
+      name: s,
+      count: counts[s],
+      icon: SPORT_META[s]?.icon || '🏅',
+      description: SPORT_META[s]?.description || '',
+    }));
   })();
 
   // Derive subcategories within selected sport
@@ -273,7 +277,7 @@ export default function ManualsPage() {
     setSelectedSubcategory('');
     setSelectedType('');
     // If this manufacturer has sports hierarchy, show sports view
-    if (mfr === 'Porter') {
+    if (mfr === 'Porter' || mfr === 'Gill') {
       setView('sports');
     } else {
       setView('products');
