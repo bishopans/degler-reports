@@ -332,7 +332,7 @@ export async function POST(request: NextRequest) {
             query = query.ilike('manufacturer', `%${preferredManufacturer}%`);
           }
 
-          const { data, error: searchError } = await query.limit(15);
+          const { data, error: searchError } = await query.limit(50);
           if (searchError) {
             console.error(`[VULCAN] Search error:`, searchError.message);
           }
@@ -361,15 +361,15 @@ export async function POST(request: NextRequest) {
             fallbackQuery = fallbackQuery.ilike('manufacturer', `%${preferredManufacturer}%`);
           }
 
-          const { data } = await fallbackQuery.limit(15);
+          const { data } = await fallbackQuery.limit(50);
           manuals = data;
         }
 
         console.log(`[VULCAN] Found ${manuals?.length || 0} manuals`);
         if (manuals && manuals.length > 0) {
           console.log(`[VULCAN] Top results: ${manuals.slice(0, 5).map(m => `${m.manufacturer}/${m.product_model}/${m.manual_type}`).join(' | ')}`);
-          // Build the document list
-          const docList = manuals
+          // Build the document list (show top 15 in context, not all 50)
+          const docList = manuals.slice(0, 15)
             .map(
               (m) =>
                 `- ${m.manufacturer} / ${m.product_model} / ${m.manual_type}: ${m.filename.replace(/_/g, ' ').replace('.pdf', '')}`
@@ -381,9 +381,14 @@ export async function POST(request: NextRequest) {
           // Score each manual by: (1) how many search terms match its product_model, (2) manual type priority
           const typeOrder: Record<string, number> = {
             'Installation Guide': 1,
+            'user_manual': 1,
             'Manual': 2,
             'Spec Sheet': 3,
             'Wiring Diagram': 4,
+            'install_drawing': 4,
+            'faceview_drawing': 5,
+            'spec_sheet': 3,
+            'color_chart': 6,
           };
 
           // Score relevance: try LATEST message terms first, fall back to full history
