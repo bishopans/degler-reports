@@ -45,7 +45,13 @@ async function fetchPdfAsBase64(storagePath: string): Promise<string | null> {
     const publicUrl = `${supabaseUrl}/storage/v1/object/public/manuals/${encodeURIComponent(storagePath).replace(/%2F/g, '/')}`;
     console.log(`[PDF] Fetching: ${publicUrl}`);
 
-    const response = await fetch(publicUrl);
+    // 15-second timeout for the download
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
+    const response = await fetch(publicUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+
     if (!response.ok) {
       console.error(`[PDF] HTTP error ${response.status}: ${response.statusText} for ${storagePath}`);
       return null;
@@ -65,7 +71,11 @@ async function fetchPdfAsBase64(storagePath: string): Promise<string | null> {
     console.log(`[PDF] Converted to base64: ${base64.length} chars`);
     return base64;
   } catch (error) {
-    console.error('[PDF] Fetch error:', storagePath, error);
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error(`[PDF] Download timed out after 15s: ${storagePath}`);
+    } else {
+      console.error('[PDF] Fetch error:', storagePath, error);
+    }
     return null;
   }
 }
@@ -170,6 +180,19 @@ export async function POST(request: NextRequest) {
         expandedTerms.add(`${rawTerms[i]}-${rawTerms[i + 1]}`);
       }
 
+      // Handle compound tokens like "powrtouch2.5" — split on letter/digit boundary
+      rawTerms.forEach((term: string) => {
+        const splitMatch = term.match(/^([a-z-]+)([\d].*)$/);
+        if (splitMatch) {
+          const [, wordPart, numberPart] = splitMatch;
+          expandedTerms.add(wordPart);
+          expandedTerms.add(numberPart);
+          if (aliasMap[wordPart]) {
+            aliasMap[wordPart].forEach((alias: string) => expandedTerms.add(alias));
+          }
+        }
+      });
+
       // Pick the most meaningful search terms (skip generic words)
       const stopWords = new Set(['help', 'with', 'the', 'how', 'can', 'you', 'about', 'what', 'does', 'for', 'and', 'programming', 'program', 'install', 'installation', 'guide', 'manual', 'spec', 'specs', 'sheet', 'wiring', 'diagram', 'troubleshoot', 'troubleshooting', 'need', 'want', 'please', 'tell', 'show', 'me', 'find', 'get', 'look', 'up']);
       const searchTerms = Array.from(expandedTerms)
@@ -198,15 +221,16 @@ export async function POST(request: NextRequest) {
             .or(productOrClauses)
             .neq('manual_type', 'Placeholder');
 
-          // If a manufacturer was mentioned, filter to that manufacturer
+          // If a manufacturer was mentioned, AND-filter to that manufacturer
+          // (previously this was .or() which created a top-level OR, returning ALL products by that manufacturer)
           if (manufacturerTerms.length > 0) {
-            const mfrOrClauses = manufacturerTerms
-              .map((term: string) => `manufacturer.ilike.%${term}%`)
-              .join(',');
-            query = query.or(mfrOrClauses);
+            query = query.ilike('manufacturer', `%${manufacturerTerms[0]}%`);
           }
 
-          const { data } = await query.limit(15);
+          const { data, error: searchError } = await query.limit(15);
+          if (searchError) {
+            console.error(`[VULCAN] Search error:`, searchError.message);
+          }
           manuals = data;
         }
 
@@ -265,7 +289,10 @@ export async function POST(request: NextRequest) {
               const relevanceDiff = scoreRelevance(b.product_model) - scoreRelevance(a.product_model);
               if (relevanceDiff !== 0) return relevanceDiff;
               // Secondary sort: manual type priority (lower = better)
-              return (typeOrder[a.manual_type] || 5) - (typeOrder[b.manual_type] || 5);
+              const typeDiff = (typeOrder[a.manual_type] || 5) - (typeOrder[b.manual_type] || 5);
+              if (typeDiff !== 0) return typeDiff;
+              // Tertiary sort: smaller file first (faster download, less likely to timeout)
+              return a.file_size_bytes - b.file_size_bytes;
             });
 
           // Fetch the top 1 PDF (keep it to 1 for speed and cost — each page ~1500 tokens)
