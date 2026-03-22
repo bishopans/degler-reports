@@ -37,48 +37,14 @@ GUIDELINES:
 - Be friendly but professional — you're helping construction and facilities professionals.
 - Do NOT make up technical specifications. Only share info that's in the provided documents.`;
 
-// Download PDF from Supabase Storage public URL and return as base64
-// Uses direct HTTP fetch instead of Supabase client for reliability in serverless
-async function fetchPdfAsBase64(storagePath: string): Promise<string | null> {
-  try {
-    // Construct public URL for the file (bucket is public)
-    const publicUrl = `${supabaseUrl}/storage/v1/object/public/manuals/${encodeURIComponent(storagePath).replace(/%2F/g, '/')}`;
-    console.log(`[PDF] Fetching: ${publicUrl}`);
-
-    // 15-second timeout for the download
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-
-    const response = await fetch(publicUrl, { signal: controller.signal });
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      console.error(`[PDF] HTTP error ${response.status}: ${response.statusText} for ${storagePath}`);
-      return null;
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    console.log(`[PDF] Downloaded ${buffer.length} bytes from ${storagePath}`);
-
-    if (buffer.length === 0) {
-      console.error('[PDF] Downloaded file is empty!');
-      return null;
-    }
-
-    // Convert to base64 for Claude API
-    const base64 = buffer.toString('base64');
-    console.log(`[PDF] Converted to base64: ${base64.length} chars`);
-    return base64;
-  } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      console.error(`[PDF] Download timed out after 15s: ${storagePath}`);
-    } else {
-      console.error('[PDF] Fetch error:', storagePath, error);
-    }
-    return null;
-  }
+// Build public URL for a PDF in Supabase Storage
+// Claude API fetches the PDF directly from the URL — no need to download in our function
+function buildPdfPublicUrl(storagePath: string): string {
+  return `${supabaseUrl}/storage/v1/object/public/manuals/${encodeURIComponent(storagePath).replace(/%2F/g, '/')}`;
 }
+
+// Allow up to 60 seconds for PDF download + Claude API call
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
@@ -440,22 +406,18 @@ export async function POST(request: NextRequest) {
           const pdfToFetch = sortedManuals[0];
 
           if (pdfToFetch) {
-            console.log(`[VULCAN] Selected PDF: ${pdfToFetch.manufacturer}/${pdfToFetch.product_model} - ${pdfToFetch.manual_type} (${pdfToFetch.filename}, ${pdfToFetch.file_size_bytes} bytes, path: ${pdfToFetch.storage_path})`);
-            const base64Data = await fetchPdfAsBase64(pdfToFetch.storage_path);
-            if (base64Data) {
-              console.log(`[VULCAN] PDF base64 ready: ${base64Data.length} chars — attaching to Claude request`);
-              pdfContentBlocks.push({
-                type: 'document',
-                source: {
-                  type: 'base64',
-                  media_type: 'application/pdf',
-                  data: base64Data,
-                },
-                title: `${pdfToFetch.manufacturer} - ${pdfToFetch.product_model} - ${pdfToFetch.manual_type}`,
-              });
-            } else {
-              console.error(`[VULCAN] PDF download returned null for ${pdfToFetch.storage_path}`);
-            }
+            // Build URL — Claude API fetches the PDF directly (no download in our function)
+            const pdfUrl = buildPdfPublicUrl(pdfToFetch.storage_path);
+            console.log(`[VULCAN] Selected PDF: ${pdfToFetch.manufacturer}/${pdfToFetch.product_model} - ${pdfToFetch.manual_type} (${pdfToFetch.filename}, ${pdfToFetch.file_size_bytes} bytes)`);
+            console.log(`[VULCAN] PDF URL for Claude: ${pdfUrl}`);
+            pdfContentBlocks.push({
+              type: 'document',
+              source: {
+                type: 'url',
+                url: pdfUrl,
+              },
+              title: `${pdfToFetch.manufacturer} - ${pdfToFetch.product_model} - ${pdfToFetch.manual_type}`,
+            });
           } else {
             console.log('[VULCAN] No PDF candidates after filtering (size < 5MB, has storage_path)');
           }
