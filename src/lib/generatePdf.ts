@@ -85,6 +85,7 @@ const LIGHT_GRAY_BG = { r: 245, g: 245, b: 245 };
 let currentY = MARGIN_TOP;
 let logoBase64: string | null = null;
 let qrBase64: string | null = null;
+let faviconBase64: string | null = null;
 
 // Load and convert logo to base64
 async function loadLogoAsBase64(): Promise<string> {
@@ -118,6 +119,47 @@ async function loadQrAsBase64(): Promise<string> {
     console.warn('Failed to load QR code:', error);
     return '';
   }
+}
+
+// Load favicon/crest icon for use as section divider
+async function loadFaviconAsBase64(): Promise<string> {
+  if (faviconBase64) return faviconBase64;
+
+  try {
+    const result = await loadImageAsBase64('/favicon.ico', true);
+    if (result) {
+      faviconBase64 = result;
+      return result;
+    }
+    return '';
+  } catch (error) {
+    console.warn('Failed to load favicon:', error);
+    return '';
+  }
+}
+
+// Draws the DW crest icon centered between two thin lines as a section divider
+async function addCrestDivider(doc: jsPDF) {
+  currentY += 4;
+  const iconData = await loadFaviconAsBase64();
+  const iconSize = 8; // mm
+  const centerX = PAGE_WIDTH / 2;
+  const lineGap = 3; // gap between line end and icon
+
+  // Left line
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.3);
+  doc.line(MARGIN_LEFT, currentY + iconSize / 2, centerX - iconSize / 2 - lineGap, currentY + iconSize / 2);
+
+  // Right line
+  doc.line(centerX + iconSize / 2 + lineGap, currentY + iconSize / 2, PAGE_WIDTH - MARGIN_RIGHT, currentY + iconSize / 2);
+
+  // Crest icon centered
+  if (iconData) {
+    doc.addImage(iconData, 'PNG', centerX - iconSize / 2, currentY, iconSize, iconSize);
+  }
+
+  currentY += iconSize + 2;
 }
 
 function addText(
@@ -1743,8 +1785,9 @@ export async function generatePdf(submission: Submission): Promise<void> {
       await addRepairMarketingSection(doc);
     }
 
-    // Add equipment promotion section (both maintenance and repair)
+    // Add crest divider + equipment promotion section (both maintenance and repair)
     if (submission.report_type === 'maintenance' || submission.report_type === 'repair') {
+      await addCrestDivider(doc);
       await addEquipmentPromoSection(doc);
     }
 
@@ -1945,8 +1988,9 @@ export async function generatePdfBlob(submission: Submission): Promise<{ blob: B
       await addRepairMarketingSection(doc);
     }
 
-    // Add equipment promotion section (both maintenance and repair)
+    // Add crest divider + equipment promotion section (both maintenance and repair)
     if (submission.report_type === 'maintenance' || submission.report_type === 'repair') {
+      await addCrestDivider(doc);
       await addEquipmentPromoSection(doc);
     }
 
