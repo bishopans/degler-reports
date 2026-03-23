@@ -31,7 +31,7 @@ interface CategoryInfo {
 const CATEGORY_META: Record<string, { icon: string; imageUrl?: string; description: string }> = {
   Scoreboards: { icon: '📊', imageUrl: 'https://www.fair-play.com/wp-content/uploads/2020/03/PS-1401-4-fp-183x136.png', description: 'LED scoreboards, controllers, and display systems' },
   Bleachers: { icon: '🏟️', imageUrl: 'https://www.hi-hog.com/assets/Uploads/5-Row-RH-Stair.jpg', description: 'Telescopic bleachers, fixed seating, and grandstands' },
-  'Athletic Equipment': { icon: '🏀', description: 'Basketball goals, volleyball systems, and gym equipment' },
+  'Athletic Equipment': { icon: '🏀', imageUrl: 'https://www.basketballproductsinternational.com/cdn/shop/products/080405101851-00208-000s_800x.jpg?v=1632077229', description: 'Basketball goals, volleyball systems, and gym equipment' },
   'Folding Partitions': { icon: '🚪', imageUrl: 'https://kwik-wall.com/wp-content/uploads/2025/02/Continuously-Hinged-Panels.webp', description: 'Operable walls, gym dividers, and partition systems' },
   Other: { icon: '🔧', description: 'Miscellaneous equipment and accessories' },
 };
