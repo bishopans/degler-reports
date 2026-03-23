@@ -1081,33 +1081,43 @@ async function addPhotosSection(doc: jsPDF, submission: Submission, forceNewPage
     return;
   }
 
-  // Start photos on a new page
-  doc.addPage();
-  currentY = MARGIN_TOP;
+  const maxPhotoWidth = 160;
+  // Max height when 2 photos share a fresh page
+  const fullPageUsable = PAGE_HEIGHT - MARGIN_TOP - MARGIN_BOTTOM - 10;
+  const perPhotoSlot = fullPageUsable / 2;
+  const labelAndGap = 5 + 8; // label height + spacing after photo
+  const maxPhotoHeightFull = perPhotoSlot - labelAndGap; // ~108mm on letter
+  const photoCenterX = PAGE_WIDTH / 2;
 
-  // For photo-upload, skip the heading so photos fill the page
-  if (!forceNewPage) {
-    addHeading(doc, 'Photos');
+  // Minimum space needed to fit at least one photo (heading + label + small photo)
+  const MIN_PHOTO_SPACE = 80; // mm — enough for heading + a reasonably sized photo
+
+  // Decide: start on current page if enough space, otherwise new page
+  const remainingSpace = PAGE_HEIGHT - currentY - MARGIN_BOTTOM;
+  if (forceNewPage || remainingSpace < MIN_PHOTO_SPACE) {
+    doc.addPage();
+    currentY = MARGIN_TOP;
   }
 
-  const maxPhotoWidth = 160;
-  // Calculate max height so 2 photos always fit on one page
-  // Available height = page height - top margin - bottom margin
-  // Each photo slot = label (5mm) + photo + gap (8mm), so 2 slots must fit
-  const usableHeight = PAGE_HEIGHT - MARGIN_TOP - MARGIN_BOTTOM - 10; // 10mm buffer
-  const perPhotoSlot = usableHeight / 2; // split page evenly for 2 photos
-  const labelAndGap = 5 + 8; // label height + spacing after photo
-  const maxPhotoHeight = perPhotoSlot - labelAndGap; // ~108mm on letter
-  const photoCenterX = PAGE_WIDTH / 2;
-  let photosOnPage = 0;
+  // For photo-upload, skip the heading so photos fill the page
+  let headingAdded = false;
+  if (!forceNewPage) {
+    addHeading(doc, 'Photos');
+    headingAdded = true;
+  }
 
   for (let i = 0; i < submission.photo_urls.length; i++) {
-    // 2 photos per page — start new page after every 2
-    if (photosOnPage >= 2) {
+    // Check remaining space for next photo — need at least label(5) + some image(60)
+    const spaceLeft = PAGE_HEIGHT - currentY - MARGIN_BOTTOM;
+    if (spaceLeft < 70) {
       doc.addPage();
       currentY = MARGIN_TOP;
-      photosOnPage = 0;
     }
+
+    // Calculate max photo height based on remaining space on this page
+    const availableForPhoto = PAGE_HEIGHT - currentY - MARGIN_BOTTOM - 10 - labelAndGap;
+    // Cap at the full-page max so photos on fresh pages stay consistent
+    const maxPhotoHeight = Math.min(availableForPhoto, maxPhotoHeightFull);
 
     // Load photo as base64
     const photoData = await loadImageAsBase64(submission.photo_urls[i]);
@@ -1125,6 +1135,12 @@ async function addPhotosSection(doc: jsPDF, submission: Submission, forceNewPage
         photoHeight = maxPhotoWidth / aspectRatio;
       } else {
         // Taller image — constrain by height
+        photoHeight = maxPhotoHeight;
+        photoWidth = maxPhotoHeight * aspectRatio;
+      }
+
+      // If photo still overflows available space, scale down further
+      if (photoHeight > maxPhotoHeight) {
         photoHeight = maxPhotoHeight;
         photoWidth = maxPhotoHeight * aspectRatio;
       }
@@ -1147,15 +1163,12 @@ async function addPhotosSection(doc: jsPDF, submission: Submission, forceNewPage
           photoHeight
         );
         currentY += photoHeight + 8;
-        photosOnPage++;
       } catch (error) {
         console.warn('Failed to add photo:', error);
         addText(doc, `[Photo ${i + 1} could not be loaded]`);
-        photosOnPage++;
       }
     } else {
       addText(doc, `[Photo ${i + 1} could not be loaded]`);
-      photosOnPage++;
     }
   }
 }
