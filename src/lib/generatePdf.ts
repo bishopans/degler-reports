@@ -142,7 +142,7 @@ async function loadFaviconAsBase64(): Promise<string> {
 async function addCrestDivider(doc: jsPDF) {
   currentY += 4;
   const iconData = await loadFaviconAsBase64();
-  const iconSize = 8; // mm
+  const iconSize = 16; // mm
   const centerX = PAGE_WIDTH / 2;
   const lineGap = 3; // gap between line end and icon
 
