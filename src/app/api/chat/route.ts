@@ -508,29 +508,18 @@ export async function POST(request: NextRequest) {
           const pdfToFetch = sortedManuals[0];
 
           if (pdfToFetch) {
-            // Check if the assistant already answered about this same product
-            // If so, the conversation history has the extracted info — skip the expensive PDF re-download
-            // Skip this optimization for generic/short product names that could match accidentally
-            const productModelLower = pdfToFetch.product_model.toLowerCase();
-            const isGenericModel = productModelLower === 'general' || productModelLower.length <= 3;
-            const assistantAlreadyCoveredProduct = !isGenericModel && assistantMessages.toLowerCase().includes(productModelLower);
-            const isFollowUp = recentMessages.filter((m: { role: string }) => m.role === 'assistant').length > 0;
-
-            console.log(`[VULCAN] Follow-up check: isFollowUp=${isFollowUp}, assistantCovered=${assistantAlreadyCoveredProduct}, isGeneric=${isGenericModel}, model="${pdfToFetch.product_model}"`);
-            if (isFollowUp && assistantAlreadyCoveredProduct) {
-              console.log(`[VULCAN] SKIP PDF re-download — assistant already discussed "${pdfToFetch.product_model}" in previous response. Using conversation history.`);
+            // Always extract PDF text on every request — text extraction is lightweight (~3K tokens)
+            // so no need to skip on follow-ups. This ensures Claude always has the manual content.
+            console.log(`[VULCAN] Selected PDF: ${pdfToFetch.manufacturer}/${pdfToFetch.product_model} - ${pdfToFetch.manual_type} (${pdfToFetch.filename}, ${pdfToFetch.file_size_bytes} bytes, path: ${pdfToFetch.storage_path})`);
+            const pdfResult = await fetchPdfText(pdfToFetch.storage_path);
+            if (pdfResult && pdfResult.text.trim().length > 100) {
+              console.log(`[VULCAN] Text extracted: ${pdfResult.text.length} chars from ${pdfResult.pages} pages — adding to context`);
+              pdfExtractedText = `\n\n--- DOCUMENT CONTENT: ${pdfToFetch.manufacturer} / ${pdfToFetch.product_model} / ${pdfToFetch.manual_type} (${pdfToFetch.filename}, ${pdfResult.pages} pages) ---\n\n${pdfResult.text}`;
+            } else if (pdfResult) {
+              console.warn(`[VULCAN] PDF text too short (${pdfResult.text.trim().length} chars) — likely scanned/image PDF. Content may be limited.`);
+              pdfExtractedText = `\n\n--- DOCUMENT: ${pdfToFetch.manufacturer} / ${pdfToFetch.product_model} / ${pdfToFetch.manual_type} ---\nNote: This appears to be a scanned/image-based PDF. Only limited text could be extracted:\n${pdfResult.text}`;
             } else {
-              console.log(`[VULCAN] Selected PDF: ${pdfToFetch.manufacturer}/${pdfToFetch.product_model} - ${pdfToFetch.manual_type} (${pdfToFetch.filename}, ${pdfToFetch.file_size_bytes} bytes, path: ${pdfToFetch.storage_path})`);
-              const pdfResult = await fetchPdfText(pdfToFetch.storage_path);
-              if (pdfResult && pdfResult.text.trim().length > 100) {
-                console.log(`[VULCAN] Text extracted: ${pdfResult.text.length} chars from ${pdfResult.pages} pages — adding to context`);
-                pdfExtractedText = `\n\n--- DOCUMENT CONTENT: ${pdfToFetch.manufacturer} / ${pdfToFetch.product_model} / ${pdfToFetch.manual_type} (${pdfToFetch.filename}, ${pdfResult.pages} pages) ---\n\n${pdfResult.text}`;
-              } else if (pdfResult) {
-                console.warn(`[VULCAN] PDF text too short (${pdfResult.text.trim().length} chars) — likely scanned/image PDF. Content may be limited.`);
-                pdfExtractedText = `\n\n--- DOCUMENT: ${pdfToFetch.manufacturer} / ${pdfToFetch.product_model} / ${pdfToFetch.manual_type} ---\nNote: This appears to be a scanned/image-based PDF. Only limited text could be extracted:\n${pdfResult.text}`;
-              } else {
-                console.error(`[VULCAN] PDF download/extraction returned null for ${pdfToFetch.storage_path}`);
-              }
+              console.error(`[VULCAN] PDF download/extraction returned null for ${pdfToFetch.storage_path}`);
             }
           } else {
             console.log('[VULCAN] No PDF candidates after filtering (size < 5MB, has storage_path)');
@@ -541,8 +530,6 @@ export async function POST(request: NextRequest) {
 
           if (pdfExtractedText) {
             contextInfo += `\n\nThe following document content was extracted from the manual. READ IT CAREFULLY and use it to answer the user's question with specific details, steps, and technical information.${pdfExtractedText}`;
-          } else if (pdfToFetch && assistantMessages.toLowerCase().includes(pdfToFetch.product_model.toLowerCase())) {
-            contextInfo += `\n\nYou have already discussed the ${pdfToFetch.manufacturer} ${pdfToFetch.product_model} in this conversation. Use the information from your PREVIOUS RESPONSES in the conversation history to answer the user's follow-up question. Provide specific details and steps based on what you already know about this product.`;
           } else {
             contextInfo += `\n\nNote: PDF content could not be loaded at this time. Let the user know what documents are available and suggest they download the relevant ones from the manual library.`;
           }
