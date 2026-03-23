@@ -50,6 +50,7 @@ export async function PATCH(
     if (body.date !== undefined) updateData.date = body.date;
     if (body.status !== undefined) updateData.status = body.status;
     if (body.notes !== undefined) updateData.notes = body.notes;
+    if (body.claimed_by !== undefined) updateData.claimed_by = body.claimed_by;
 
     // Allow updating photo_urls (for add/delete photos)
     if (body.photo_urls !== undefined) updateData.photo_urls = body.photo_urls;

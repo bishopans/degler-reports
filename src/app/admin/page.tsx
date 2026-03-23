@@ -17,7 +17,17 @@ interface Submission {
   photo_urls: string[];
   signature_urls: string[];
   notes: string | null;
+  claimed_by: string | null;
+  form_data?: Record<string, unknown>;
 }
+
+const CLAIM_LABELS: Record<string, string> = {
+  'service-north': 'Svc North',
+  'service-south': 'Svc South',
+  'operations-north': 'Ops North',
+  'operations-south': 'Ops South',
+  'sales': 'Sales',
+};
 
 const REPORT_TYPE_LABELS: Record<string, string> = {
   'maintenance': 'Preventative Maintenance',
@@ -266,6 +276,21 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       console.error('Status update error:', error);
+    }
+  };
+
+  const updateReportClaim = async (id: string, claimed_by: string | null) => {
+    try {
+      const response = await fetch(`/api/admin/submissions/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ claimed_by }),
+      });
+      if (response.ok) {
+        setSubmissions(prev => prev.map(s => s.id === id ? { ...s, claimed_by } : s));
+      }
+    } catch (error) {
+      console.error('Claim update error:', error);
     }
   };
 
@@ -964,6 +989,7 @@ export default function AdminDashboard() {
                     <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Technician</th>
                     <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Photos</th>
                     <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Status</th>
+                    <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Claimed</th>
                     <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Actions</th>
                   </tr>
                 </thead>
@@ -1010,6 +1036,29 @@ export default function AdminDashboard() {
                           <option value="submitted">submitted</option>
                           <option value="reviewed">reviewed</option>
                           <option value="archived">archived</option>
+                        </select>
+                      </td>
+                      <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.875rem' }}>
+                        <select
+                          value={sub.claimed_by || ''}
+                          onChange={(e) => updateReportClaim(sub.id, e.target.value || null)}
+                          style={{
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '9999px',
+                            fontSize: '0.7rem',
+                            fontWeight: 500,
+                            border: 'none',
+                            cursor: 'pointer',
+                            backgroundColor: sub.claimed_by ? '#dbeafe' : '#f3f4f6',
+                            color: sub.claimed_by ? '#1e40af' : '#9ca3af',
+                          }}
+                        >
+                          <option value="">—</option>
+                          <option value="service-north">Svc North</option>
+                          <option value="service-south">Svc South</option>
+                          <option value="operations-north">Ops North</option>
+                          <option value="operations-south">Ops South</option>
+                          <option value="sales">Sales</option>
                         </select>
                       </td>
                       <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.875rem' }}>

@@ -25,4 +25,5 @@ export interface SubmissionRecord {
   notes: string | null;
   edited_by: string | null;
   edited_at: string | null;
+  claimed_by: string | null;
 }

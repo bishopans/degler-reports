@@ -19,6 +19,25 @@ interface Submission {
   notes: string | null;
   edited_by?: string | null;
   edited_at?: string | null;
+  claimed_by?: string | null;
+}
+
+// Resolve contact email based on who claimed the report
+function getContactEmail(submission: Submission): string {
+  const claim = submission.claimed_by;
+  if (!claim) return 'service@deglerwhiting.com';
+
+  switch (claim) {
+    case 'service-north': return 'service@deglerwhiting.com';
+    case 'service-south': return 'tracey@deglerwhiting.com';
+    case 'operations-north': return 'jake@deglerwhiting.com';
+    case 'operations-south': return 'eric@deglerwhiting.com';
+    case 'sales': {
+      const salesEmail = submission.form_data?.salesClaimEmail as string;
+      return salesEmail || 'service@deglerwhiting.com';
+    }
+    default: return 'service@deglerwhiting.com';
+  }
 }
 
 // Helper to load an image URL as base64 using an img element (avoids CORS fetch issues)
@@ -1322,7 +1341,7 @@ async function addServiceReminderSection(doc: jsPDF, submission: Submission) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(80, 80, 80);
-  doc.text('610-644-3157  •  service@deglerwhiting.com  •  deglerwhiting.com', MARGIN_LEFT, currentY);
+  doc.text(`610-644-3157  •  ${getContactEmail(submission)}  •  deglerwhiting.com`, MARGIN_LEFT, currentY);
   currentY += 4;
 
   // Bottom border
@@ -1359,7 +1378,7 @@ async function loadCollageImages(): Promise<(string | null)[]> {
 }
 
 // Marketing section for repair reports: PM upsell with equipment list
-async function addRepairMarketingSection(doc: jsPDF) {
+async function addRepairMarketingSection(doc: jsPDF, submission: Submission) {
   const SECTION_HEIGHT = 110;
 
   // Check if we need a new page
@@ -1465,7 +1484,7 @@ async function addRepairMarketingSection(doc: jsPDF) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(80, 80, 80);
-  doc.text('610-644-3157  •  service@deglerwhiting.com  •  deglerwhiting.com', MARGIN_LEFT, currentY);
+  doc.text(`610-644-3157  •  ${getContactEmail(submission)}  •  deglerwhiting.com`, MARGIN_LEFT, currentY);
   currentY += 4;
 
   // Bottom border
@@ -1647,7 +1666,7 @@ export async function generatePdf(submission: Submission): Promise<void> {
     doc.setFontSize(8);
     doc.text('2025 Ridge Rd, Elverson, PA 19520', companyX, currentY + 11, { align: 'right' });
     doc.text('610-644-3157', companyX, currentY + 16, { align: 'right' });
-    doc.text('service@deglerwhiting.com', companyX, currentY + 21, { align: 'right' });
+    doc.text(getContactEmail(submission), companyX, currentY + 21, { align: 'right' });
 
     currentY = headerStartY + 28;
 
@@ -1782,7 +1801,7 @@ export async function generatePdf(submission: Submission): Promise<void> {
     if (submission.report_type === 'maintenance') {
       await addServiceReminderSection(doc, submission);
     } else if (submission.report_type === 'repair') {
-      await addRepairMarketingSection(doc);
+      await addRepairMarketingSection(doc, submission);
     }
 
     // Add crest divider + equipment promotion section (both maintenance and repair)
@@ -1870,7 +1889,7 @@ export async function generatePdfBlob(submission: Submission): Promise<{ blob: B
     doc.setFontSize(8);
     doc.text('2025 Ridge Rd, Elverson, PA 19520', companyX, currentY + 11, { align: 'right' });
     doc.text('610-644-3157', companyX, currentY + 16, { align: 'right' });
-    doc.text('service@deglerwhiting.com', companyX, currentY + 21, { align: 'right' });
+    doc.text(getContactEmail(submission), companyX, currentY + 21, { align: 'right' });
 
     currentY = headerStartY + 28;
 
@@ -1985,7 +2004,7 @@ export async function generatePdfBlob(submission: Submission): Promise<{ blob: B
     if (submission.report_type === 'maintenance') {
       await addServiceReminderSection(doc, submission);
     } else if (submission.report_type === 'repair') {
-      await addRepairMarketingSection(doc);
+      await addRepairMarketingSection(doc, submission);
     }
 
     // Add crest divider + equipment promotion section (both maintenance and repair)

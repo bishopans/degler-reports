@@ -160,6 +160,7 @@ interface Submission {
   notes: string | null;
   edited_by: string | null;
   edited_at: string | null;
+  claimed_by: string | null;
 }
 
 export default function ReportDetailPage() {
@@ -216,6 +217,7 @@ export default function ReportDetailPage() {
           status: editData.status,
           form_data: editData.form_data,
           notes: editData.notes,
+          claimed_by: editData.claimed_by,
         }),
       });
 
@@ -553,6 +555,58 @@ export default function ReportDetailPage() {
                 color: data.status === 'reviewed' ? '#166534' : data.status === 'archived' ? '#374151' : '#854d0e',
               }}>
                 {data.status}
+              </span>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm text-gray-500 mb-1">Claimed By</label>
+            {isEditing ? (
+              <div>
+                <select
+                  value={data.claimed_by || ''}
+                  onChange={(e) => setEditData({ ...editData, claimed_by: e.target.value || null })}
+                  className="w-full p-2 border rounded"
+                >
+                  <option value="">— Unclaimed —</option>
+                  <option value="service-north">Service - North</option>
+                  <option value="service-south">Service - South</option>
+                  <option value="operations-north">Operations - North</option>
+                  <option value="operations-south">Operations - South</option>
+                  <option value="sales">Sales</option>
+                </select>
+                {data.claimed_by === 'sales' && (
+                  <input
+                    type="email"
+                    placeholder="Enter sales rep email..."
+                    value={(data.form_data?.salesClaimEmail as string) || ''}
+                    onChange={(e) => {
+                      const updated = { ...data.form_data, salesClaimEmail: e.target.value };
+                      setEditData({ ...editData, form_data: updated });
+                    }}
+                    className="w-full p-2 border rounded mt-2"
+                  />
+                )}
+              </div>
+            ) : (
+              <span style={{
+                display: 'inline-block',
+                padding: '0.125rem 0.5rem',
+                borderRadius: '9999px',
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                backgroundColor: data.claimed_by ? '#dbeafe' : '#f3f4f6',
+                color: data.claimed_by ? '#1e40af' : '#9ca3af',
+              }}>
+                {data.claimed_by ? {
+                  'service-north': 'Service - North',
+                  'service-south': 'Service - South',
+                  'operations-north': 'Operations - North',
+                  'operations-south': 'Operations - South',
+                  'sales': 'Sales',
+                }[data.claimed_by] || data.claimed_by : 'Unclaimed'}
+                {data.claimed_by === 'sales' && data.form_data?.salesClaimEmail ? (
+                  <span style={{ marginLeft: 4, fontWeight: 400 }}>({String(data.form_data.salesClaimEmail)})</span>
+                ) : null}
               </span>
             )}
           </div>
