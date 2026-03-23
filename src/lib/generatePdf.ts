@@ -141,7 +141,7 @@ async function loadFaviconAsBase64(): Promise<string> {
 // Draws the DW crest icon centered between two thin lines as a section divider
 async function addCrestDivider(doc: jsPDF) {
   currentY += 4;
-  const iconData = await loadFaviconAsBase64();
+  const iconData = await loadLogoAsBase64();
   const iconSize = 16; // mm
   const centerX = PAGE_WIDTH / 2;
   const lineGap = 3; // gap between line end and icon
