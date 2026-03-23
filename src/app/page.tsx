@@ -134,7 +134,7 @@ export default function Home() {
         >
           <Image src="/images/VulcanAIAvatar.png" alt="Vulcan AI" width={40} height={40} style={{ borderRadius: '50%', marginBottom: '0.35rem' }} />
           <span style={{ fontSize: '1.05rem', fontWeight: 600, color: '#00457c' }}>Vulcan AI</span>
-          <span style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.35rem' }}>AI-powered service assistant</span>
+          <span style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.35rem' }}>Degler Whiting&apos;s AI-powered field support</span>
         </Link>
       </div>
 

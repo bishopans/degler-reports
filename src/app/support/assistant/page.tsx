@@ -98,7 +98,7 @@ export default function AssistantPage() {
           <Image src="/images/VulcanAIAvatar.png" alt="Vulcan" width={40} height={40} style={{ borderRadius: '50%' }} />
           <div>
             <h1 style={{ margin: 0, color: 'white', fontSize: '1.2rem', fontWeight: 700, letterSpacing: '0.025em' }}>Vulcan AI</h1>
-            <p style={{ margin: 0, color: 'rgba(255,255,255,0.7)', fontSize: '0.75rem' }}>Product Manual Assistant</p>
+            <p style={{ margin: 0, color: 'rgba(255,255,255,0.7)', fontSize: '0.75rem' }}>Install and Service Assistant</p>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>

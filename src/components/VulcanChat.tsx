@@ -195,7 +195,7 @@ export default function VulcanChat() {
               <div style={{ fontWeight: 700, fontSize: '0.95rem', letterSpacing: '0.025em' }}>
                 Vulcan
               </div>
-              <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>Product Manual Assistant</div>
+              <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>Install and Service Assistant</div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
