@@ -294,7 +294,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Pick the most meaningful search terms (skip generic words)
-      const stopWords = new Set(['help', 'with', 'the', 'how', 'can', 'you', 'about', 'what', 'does', 'for', 'and', 'programming', 'program', 'install', 'installation', 'guide', 'manual', 'spec', 'specs', 'sheet', 'wiring', 'diagram', 'troubleshoot', 'troubleshooting', 'need', 'want', 'please', 'tell', 'show', 'me', 'find', 'get', 'look', 'up', 'do', 'is', 'it', 'of', 'to', 'in', 'on', 'at', 'by', 'or', 'an', 'be', 'if', 'so', 'no', 'not', 'but', 'all', 'are', 'was', 'were', 'been', 'have', 'has', 'had', 'will', 'would', 'could', 'should', 'may', 'might', 'shall', 'each', 'every', 'any', 'some', 'this', 'that', 'these', 'those', 'its', 'my', 'your', 'our', 'their', 'im', 'ive', 'know', 'knowing', 'okay', 'ok', 'different', 'topic', 'change', 'switch', 'question', 'scoreboard', 'scoreboards', 'controller', 'panel', 'set', 'setting', 'number', 'group']);
+      const stopWords = new Set(['help', 'with', 'the', 'how', 'can', 'you', 'about', 'what', 'does', 'for', 'and', 'programming', 'program', 'install', 'installation', 'guide', 'manual', 'spec', 'specs', 'sheet', 'wiring', 'diagram', 'troubleshoot', 'troubleshooting', 'need', 'want', 'please', 'tell', 'show', 'me', 'find', 'get', 'look', 'up', 'do', 'is', 'it', 'of', 'to', 'in', 'on', 'at', 'by', 'or', 'an', 'be', 'if', 'so', 'no', 'not', 'but', 'all', 'are', 'was', 'were', 'been', 'have', 'has', 'had', 'will', 'would', 'could', 'should', 'may', 'might', 'shall', 'each', 'every', 'any', 'some', 'this', 'that', 'these', 'those', 'its', 'my', 'your', 'our', 'their', 'im', 'ive', 'know', 'knowing', 'okay', 'ok', 'different', 'topic', 'change', 'switch', 'question', 'scoreboard', 'scoreboards', 'controller', 'panel', 'set', 'setting', 'number', 'group', 'board', 'type', 'model', 'system', 'display', 'timer', 'clock', 'light', 'operate', 'operating', 'use', 'using', 'make', 'made', 'turn', 'give', 'work', 'working', 'run', 'running', 'both', 'two', 'one', 'same', 'time', 'way', 'new', 'old', 'first', 'second', 'also', 'just', 'like', 'from', 'when', 'where', 'which', 'who', 'why', 'then', 'than', 'them', 'only', 'other', 'into', 'over', 'after', 'before', 'between', 'under', 'through', 'during', 'while', 'out', 'off', 'down', 'back', 'here', 'there', 'much', 'many', 'more', 'most', 'very', 'too', 'still', 'already', 'again', 'even', 'never', 'always', 'often', 'sometimes', 'keep', 'going', 'come', 'take', 'put', 'let', 'try', 'thing', 'things', 'able', 'sure', 'right', 'left', 'side', 'top', 'bottom', 'wall', 'floor', 'gym', 'field', 'court', 'sport', 'game', 'play', 'team', 'home', 'away', 'visitor', 'score', 'point', 'reset', 'start', 'stop', 'replace', 'fix', 'replace', 'repair', 'connect', 'disconnect', 'power', 'wire', 'cable', 'plug', 'main', 'split', 'separately']);
       const searchTerms = Array.from(expandedTerms)
         .filter((t: string) => t.length > 1 && !stopWords.has(t))
         .slice(0, 8);
@@ -328,15 +328,18 @@ export async function POST(request: NextRequest) {
           'kwikwall': 'Kwik-Wall',
         };
 
-        // When user changes topics, prefer the manufacturer from the LATEST message
-        // Otherwise old conversation context (e.g. "porter") overrides the new manufacturer (e.g. "fair-play")
+        // ONLY apply manufacturer filter if the LATEST message explicitly mentions one
+        // If the user says "help me with the mp80" without naming Fair-Play, we should
+        // search ALL manufacturers and let relevance scoring find the right match.
+        // Using conversation history manufacturer would block topic switches (e.g.,
+        // Porter conversation → asking about Fair-Play MP-80 without saying "fairplay")
         const latestManufacturerTerms = latestScoringTerms.filter((t: string) => knownManufacturers.includes(t));
         const rawPreferred = latestManufacturerTerms.length > 0
           ? latestManufacturerTerms[0]
-          : (manufacturerTerms.length > 0 ? manufacturerTerms[0] : null);
+          : null;  // Don't fall back to conversation history — it blocks topic switches
         // Use canonical form for the ILIKE query (e.g., "fairplay" → "Fair-Play")
         const preferredManufacturer = rawPreferred ? (canonicalManufacturer[rawPreferred] || rawPreferred) : null;
-        console.log(`[VULCAN] Manufacturer filter: ${preferredManufacturer} (raw: ${rawPreferred}, latest: [${latestManufacturerTerms.join(', ')}], all: [${manufacturerTerms.join(', ')}])`);
+        console.log(`[VULCAN] Manufacturer filter: ${preferredManufacturer || 'NONE (no mfr in latest msg)'} (raw: ${rawPreferred}, latest: [${latestManufacturerTerms.join(', ')}])`);
 
         let manuals: { manufacturer: string; product_model: string; manual_type: string; filename: string; storage_path: string; file_size_bytes: number }[] | null = null;
 
