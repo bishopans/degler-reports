@@ -1294,6 +1294,27 @@ async function addServiceReminderSection(doc: jsPDF, submission: Submission) {
   doc.setLineWidth(0.5);
 }
 
+// Cache for collage images
+let collageImagesBase64: (string | null)[] | null = null;
+
+const COLLAGE_IMAGE_URLS = [
+  'https://djogryqqqwlpmsnqpktz.supabase.co/storage/v1/object/public/manuals/Degler-Whiting/assets/collage-glass-wall.jpg',
+  'https://djogryqqqwlpmsnqpktz.supabase.co/storage/v1/object/public/manuals/Degler-Whiting/assets/collage-bleachers.jpg',
+  'https://djogryqqqwlpmsnqpktz.supabase.co/storage/v1/object/public/manuals/Degler-Whiting/assets/collage-scoreboards.jpg',
+  'https://djogryqqqwlpmsnqpktz.supabase.co/storage/v1/object/public/manuals/Degler-Whiting/assets/collage-wall-padding.jpg',
+  'https://djogryqqqwlpmsnqpktz.supabase.co/storage/v1/object/public/manuals/Degler-Whiting/assets/collage-batting-cage.jpg',
+  'https://djogryqqqwlpmsnqpktz.supabase.co/storage/v1/object/public/manuals/Degler-Whiting/assets/collage-partitions.jpg',
+];
+
+async function loadCollageImages(): Promise<(string | null)[]> {
+  if (collageImagesBase64) return collageImagesBase64;
+  const results = await Promise.all(
+    COLLAGE_IMAGE_URLS.map(url => loadImageAsBase64(url, false))
+  );
+  collageImagesBase64 = results;
+  return results;
+}
+
 // Marketing section for repair reports: PM upsell with equipment list
 async function addRepairMarketingSection(doc: jsPDF) {
   const SECTION_HEIGHT = 110;
@@ -1409,6 +1430,141 @@ async function addRepairMarketingSection(doc: jsPDF) {
   doc.setDrawColor(BRAND_BLUE.r, BRAND_BLUE.g, BRAND_BLUE.b);
   doc.setLineWidth(1.5);
   doc.line(MARGIN_LEFT, currentY, PAGE_WIDTH - MARGIN_RIGHT, currentY);
+  currentY += 4;
+
+  // Reset
+  doc.setTextColor(0, 0, 0);
+  doc.setLineWidth(0.5);
+}
+
+// Equipment promotion section: "Upgrade Your Facility" with product grid, QR code, and photo collage
+async function addEquipmentPromoSection(doc: jsPDF) {
+  const SECTION_HEIGHT = 95; // promo box + collage strip
+
+  // Check if we need a new page
+  if (currentY + SECTION_HEIGHT > PAGE_HEIGHT - MARGIN_BOTTOM - 15) {
+    doc.addPage();
+    currentY = MARGIN_TOP;
+  }
+
+  // Add spacing before section
+  currentY += 8;
+
+  // Draw the brand-colored top border
+  doc.setDrawColor(BRAND_BLUE.r, BRAND_BLUE.g, BRAND_BLUE.b);
+  doc.setLineWidth(1.5);
+  doc.line(MARGIN_LEFT, currentY, PAGE_WIDTH - MARGIN_RIGHT, currentY);
+  currentY += 6;
+
+  // QR code on the right side
+  const qrData = await loadQrAsBase64();
+  const qrSize = 30;
+  const qrX = PAGE_WIDTH - MARGIN_RIGHT - qrSize;
+  const qrStartY = currentY;
+
+  if (qrData) {
+    doc.addImage(qrData, 'PNG', qrX, qrStartY, qrSize, qrSize);
+  }
+
+  // Text area width (leave room for QR code)
+  const textWidth = CONTENT_WIDTH - qrSize - 8;
+
+  // "Upgrade Your Facility" heading
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.setTextColor(BRAND_BLUE.r, BRAND_BLUE.g, BRAND_BLUE.b);
+  doc.text('Upgrade Your Facility', MARGIN_LEFT, currentY + 1);
+  currentY += 6;
+
+  // Tagline
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(BRAND_RED.r, BRAND_RED.g, BRAND_RED.b);
+  doc.text('New Equipment Sales, Installation & Service — We Service What We Sell', MARGIN_LEFT, currentY);
+  currentY += 6;
+
+  // Body text
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(60, 60, 60);
+  const bodyText = 'From the court to the classroom, Degler Whiting delivers complete facility solutions backed by nearly 70 years of expertise. Whether you\'re planning a renovation or a brand-new build, we handle design, installation, and ongoing service.';
+  const wrappedBody = doc.splitTextToSize(bodyText, textWidth);
+  doc.text(wrappedBody, MARGIN_LEFT, currentY);
+  currentY += wrappedBody.length * 3.5 + 3;
+
+  // Product grid in 3 columns
+  const products = [
+    'Athletic Equipment', 'Bleachers & Seating', 'Scoreboards & Video',
+    'Operable Partitions', 'Lockers', 'Wall Safety Padding',
+    'Batting Cages', 'Auditorium Seating', 'Glass Wall Systems',
+  ];
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(BRAND_BLUE.r, BRAND_BLUE.g, BRAND_BLUE.b);
+
+  const col1X = MARGIN_LEFT + 2;
+  const col2X = MARGIN_LEFT + (textWidth / 3);
+  const col3X = MARGIN_LEFT + (textWidth * 2 / 3);
+  const colXs = [col1X, col2X, col3X];
+  const gridStartY = currentY;
+
+  products.forEach((product, i) => {
+    const col = i % 3;
+    const row = Math.floor(i / 3);
+    const x = colXs[col];
+    const y = gridStartY + (row * 4);
+    // Red dot
+    doc.setFillColor(BRAND_RED.r, BRAND_RED.g, BRAND_RED.b);
+    doc.circle(x, y - 0.8, 0.8, 'F');
+    // Product name
+    doc.setTextColor(BRAND_BLUE.r, BRAND_BLUE.g, BRAND_BLUE.b);
+    doc.text(product, x + 3, y);
+  });
+
+  currentY = gridStartY + (Math.ceil(products.length / 3) * 4) + 2;
+
+  // CTA line
+  doc.setFont('helvetica', 'bolditalic');
+  doc.setFontSize(8.5);
+  doc.setTextColor(BRAND_RED.r, BRAND_RED.g, BRAND_RED.b);
+  doc.text('Ready to upgrade? Contact us for a free consultation and quote.', MARGIN_LEFT, currentY);
+  currentY += 5;
+
+  // Contact info (phone + website only)
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(80, 80, 80);
+  doc.text('610-644-3157  •  deglerwhiting.com', MARGIN_LEFT, currentY);
+  currentY += 3;
+
+  // Bottom border (ensure it's below the QR code)
+  currentY = Math.max(currentY, qrStartY + qrSize + 2);
+  doc.setDrawColor(BRAND_BLUE.r, BRAND_BLUE.g, BRAND_BLUE.b);
+  doc.setLineWidth(1.5);
+  doc.line(MARGIN_LEFT, currentY, PAGE_WIDTH - MARGIN_RIGHT, currentY);
+  currentY += 1;
+
+  // Photo collage strip
+  const collageImages = await loadCollageImages();
+  const validImages = collageImages.filter((img): img is string => img !== null);
+
+  if (validImages.length > 0) {
+    const stripH = 14; // height of each photo panel in mm
+    const stripW = CONTENT_WIDTH;
+    const panelW = stripW / validImages.length;
+
+    validImages.forEach((imgData, i) => {
+      try {
+        doc.addImage(imgData, 'JPEG', MARGIN_LEFT + (i * panelW), currentY, panelW, stripH);
+      } catch {
+        // Silently skip if image fails to render
+      }
+    });
+
+    currentY += stripH;
+  }
+
   currentY += 4;
 
   // Reset
@@ -1579,6 +1735,11 @@ export async function generatePdf(submission: Submission): Promise<void> {
       await addServiceReminderSection(doc, submission);
     } else if (submission.report_type === 'repair') {
       await addRepairMarketingSection(doc);
+    }
+
+    // Add equipment promotion section (both maintenance and repair)
+    if (submission.report_type === 'maintenance' || submission.report_type === 'repair') {
+      await addEquipmentPromoSection(doc);
     }
 
     // Add footer to every page
@@ -1772,6 +1933,11 @@ export async function generatePdfBlob(submission: Submission): Promise<{ blob: B
       await addServiceReminderSection(doc, submission);
     } else if (submission.report_type === 'repair') {
       await addRepairMarketingSection(doc);
+    }
+
+    // Add equipment promotion section (both maintenance and repair)
+    if (submission.report_type === 'maintenance' || submission.report_type === 'repair') {
+      await addEquipmentPromoSection(doc);
     }
 
     // Add footer to every page
