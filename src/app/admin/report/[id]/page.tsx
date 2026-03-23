@@ -144,6 +144,21 @@ const equipmentChecklists: Record<string, string[]> = {
   ],
 };
 
+const ALL_EQUIPMENT_TYPES = [
+  'Backstops',
+  'Bleachers',
+  'Gym Divider Curtain',
+  'Folding Partitions',
+  'Wrestling Mat Hoists',
+  'Batting Cages',
+  'Outdoor Bleachers/Grandstands',
+  'Scoreboard Equipment',
+  'Stage Rigging',
+  'Cafeteria Tables/Benches',
+  'Climbing Ropes/Volleyball/Gymnastics',
+  'Other',
+];
+
 interface Submission {
   id: string;
   created_at: string;
@@ -932,9 +947,97 @@ function FormDataDisplay({
         codeIssues: 'Code Issues Found',
       };
 
+      const toggleEquipment = (equip: string) => {
+        const current = [...selectedEquip];
+        const idx = current.indexOf(equip);
+        if (idx >= 0) {
+          // Remove equipment and clean up associated data
+          current.splice(idx, 1);
+          const updatedChecks = { ...checks };
+          delete updatedChecks[equip];
+          const updatedRepairs = { ...repairs };
+          delete updatedRepairs[equip];
+          if (equip === 'Other') {
+            delete updatedRepairs['Other-Equipment'];
+            delete updatedRepairs['Other-Tasks'];
+          }
+          const updatedFutureParts = { ...futureParts };
+          delete updatedFutureParts[equip];
+          const updatedSafe = { ...maintEquipSafe };
+          delete updatedSafe[equip];
+          onUpdate('selectedEquipment', current);
+          onUpdate('equipmentChecks', updatedChecks);
+          onUpdate('additionalRepairs', updatedRepairs);
+          onUpdate('futurePartsNeeded', updatedFutureParts);
+          onUpdate('equipmentSafe', updatedSafe);
+        } else {
+          // Add equipment and initialize its checklist
+          current.push(equip);
+          onUpdate('selectedEquipment', current);
+          if (equip !== 'Other' && equipmentChecklists[equip]) {
+            const updatedChecks = { ...checks };
+            updatedChecks[equip] = Array(equipmentChecklists[equip].length).fill(false);
+            onUpdate('equipmentChecks', updatedChecks);
+          }
+        }
+      };
+
       return (
         <div>
-          {renderArrayField('selectedEquipment', 'Equipment Inspected')}
+          {/* Editable Equipment Selection */}
+          <div style={{ marginBottom: '1rem' }}>
+            <label className="block text-sm text-gray-500 mb-1">Equipment Inspected</label>
+            {isEditing ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+                {ALL_EQUIPMENT_TYPES.map((equip) => {
+                  const isSelected = selectedEquip.includes(equip);
+                  return (
+                    <button
+                      key={equip}
+                      type="button"
+                      onClick={() => toggleEquipment(equip)}
+                      style={{
+                        padding: '0.5rem',
+                        border: isSelected ? '2px solid #2563eb' : '2px solid #e5e7eb',
+                        borderRadius: '0.5rem',
+                        backgroundColor: isSelected ? '#eff6ff' : '#fff',
+                        color: isSelected ? '#1e40af' : '#374151',
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        minHeight: '2.5rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {equip}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              selectedEquip.length > 0 ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+                  {selectedEquip.map((item, i) => (
+                    <span key={i} style={{
+                      display: 'inline-block',
+                      padding: '0.125rem 0.5rem',
+                      borderRadius: '9999px',
+                      fontSize: '0.75rem',
+                      backgroundColor: '#eff6ff',
+                      color: '#1e40af',
+                      border: '1px solid #bfdbfe',
+                    }}>
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400">None</p>
+              )
+            )}
+          </div>
 
           {/* Equipment Checklists */}
           {selectedEquip.filter(e => e !== 'Other').map((equipment) => {
@@ -1166,87 +1269,163 @@ function FormDataDisplay({
       const partsNeeded = (formData.partsNeeded as Record<string, string>) || {};
       const equipmentSafe = (formData.equipmentSafe as Record<string, string>) || {};
 
+      const toggleRepairEquipment = (equip: string) => {
+        const current = [...selectedEquipment];
+        const idx = current.indexOf(equip);
+        if (idx >= 0) {
+          // Remove equipment and clean up associated data
+          current.splice(idx, 1);
+          const updatedProblems = { ...initialProblems };
+          delete updatedProblems[equip];
+          const updatedSummaries = { ...repairSummaries };
+          delete updatedSummaries[equip];
+          const updatedParts = { ...partsNeeded };
+          delete updatedParts[equip];
+          const updatedSafe = { ...equipmentSafe };
+          delete updatedSafe[equip];
+          onUpdate('selectedEquipment', current);
+          onUpdate('initialProblems', updatedProblems);
+          onUpdate('repairSummaries', updatedSummaries);
+          onUpdate('partsNeeded', updatedParts);
+          onUpdate('equipmentSafe', updatedSafe);
+        } else {
+          current.push(equip);
+          onUpdate('selectedEquipment', current);
+        }
+      };
+
       return (
         <div>
-          {selectedEquipment.length > 0 && (
-            <div style={{ marginBottom: '1rem' }}>
-              <label className="block text-sm text-gray-500 mb-2 font-medium">Equipment Serviced</label>
-              {selectedEquipment.map((equip: string) => (
-                <div key={equip} style={{ marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: '#f9fafb', borderRadius: '0.5rem', borderLeft: '3px solid #2563eb' }}>
-                  <div className="font-semibold text-sm mb-2" style={{ color: '#1e40af' }}>{equip}</div>
+          {/* Editable Equipment Selection */}
+          <div style={{ marginBottom: '1rem' }}>
+            <label className="block text-sm text-gray-500 mb-2 font-medium">Equipment Serviced</label>
+            {isEditing ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', marginBottom: '1rem' }}>
+                {ALL_EQUIPMENT_TYPES.map((equip) => {
+                  const isSelected = selectedEquipment.includes(equip);
+                  return (
+                    <button
+                      key={equip}
+                      type="button"
+                      onClick={() => toggleRepairEquipment(equip)}
+                      style={{
+                        padding: '0.5rem',
+                        border: isSelected ? '2px solid #2563eb' : '2px solid #e5e7eb',
+                        borderRadius: '0.5rem',
+                        backgroundColor: isSelected ? '#eff6ff' : '#fff',
+                        color: isSelected ? '#1e40af' : '#374151',
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        minHeight: '2.5rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {equip}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              selectedEquipment.length > 0 ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: '1rem' }}>
+                  {selectedEquipment.map((item, i) => (
+                    <span key={i} style={{
+                      display: 'inline-block',
+                      padding: '0.125rem 0.5rem',
+                      borderRadius: '9999px',
+                      fontSize: '0.75rem',
+                      backgroundColor: '#eff6ff',
+                      color: '#1e40af',
+                      border: '1px solid #bfdbfe',
+                    }}>
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 mb-1">None</p>
+              )
+            )}
+          </div>
 
-                  {(initialProblems[equip]?.trim()) && (
-                    <div style={{ marginBottom: '0.5rem', paddingLeft: '0.5rem' }}>
-                      <span className="text-xs font-medium text-gray-500">Initial Problem</span>
-                      {isEditing ? (
-                        <textarea
-                          value={initialProblems[equip] || ''}
-                          onChange={(e) => onUpdate('initialProblems', { ...initialProblems, [equip]: e.target.value })}
-                          className="w-full p-2 border rounded mt-1"
-                          style={{ minHeight: '40px' }}
-                        />
-                      ) : (
-                        <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{initialProblems[equip]}</p>
-                      )}
-                    </div>
-                  )}
+          {/* Equipment detail cards */}
+          {selectedEquipment.map((equip: string) => (
+            <div key={equip} style={{ marginBottom: '1.25rem', padding: '0.75rem', backgroundColor: '#f9fafb', borderRadius: '0.5rem', borderLeft: '3px solid #2563eb' }}>
+              <div className="font-semibold text-sm mb-2" style={{ color: '#1e40af' }}>{equip}</div>
 
-                  {(repairSummaries[equip]?.trim()) && (
-                    <div style={{ marginBottom: '0.5rem', paddingLeft: '0.5rem' }}>
-                      <span className="text-xs font-medium text-gray-500">Repairs Made</span>
-                      {isEditing ? (
-                        <textarea
-                          value={repairSummaries[equip] || ''}
-                          onChange={(e) => onUpdate('repairSummaries', { ...repairSummaries, [equip]: e.target.value })}
-                          className="w-full p-2 border rounded mt-1"
-                          style={{ minHeight: '40px' }}
-                        />
-                      ) : (
-                        <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{repairSummaries[equip]}</p>
-                      )}
-                    </div>
-                  )}
-
-                  {(partsNeeded[equip]?.trim()) && (
-                    <div style={{ marginBottom: '0.5rem', paddingLeft: '0.5rem' }}>
-                      <span className="text-xs font-medium text-gray-500">Future Parts/Service Needed</span>
-                      {isEditing ? (
-                        <textarea
-                          value={partsNeeded[equip] || ''}
-                          onChange={(e) => onUpdate('partsNeeded', { ...partsNeeded, [equip]: e.target.value })}
-                          className="w-full p-2 border rounded mt-1"
-                          style={{ minHeight: '40px' }}
-                        />
-                      ) : (
-                        <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{partsNeeded[equip]}</p>
-                      )}
-                    </div>
-                  )}
-
-                  {equipmentSafe[equip] && (
-                    <div style={{ paddingLeft: '0.5rem' }}>
-                      <span className="text-xs font-medium text-gray-500">Equipment Safe for Use</span>
-                      {isEditing ? (
-                        <select
-                          value={equipmentSafe[equip] || ''}
-                          onChange={(e) => onUpdate('equipmentSafe', { ...equipmentSafe, [equip]: e.target.value })}
-                          className="w-full p-2 border rounded mt-1"
-                        >
-                          <option value="">—</option>
-                          <option value="Yes">Yes</option>
-                          <option value="No">No</option>
-                        </select>
-                      ) : (
-                        <p className="text-sm" style={{ color: equipmentSafe[equip] === 'No' ? '#dc2626' : '#16a34a', fontWeight: 600 }}>
-                          {equipmentSafe[equip] === 'Yes' ? '✅ ' : equipmentSafe[equip] === 'No' ? '❌ ' : ''}{equipmentSafe[equip]}
-                        </p>
-                      )}
-                    </div>
+              {(initialProblems[equip]?.trim() || isEditing) && (
+                <div style={{ marginBottom: '0.5rem', paddingLeft: '0.5rem' }}>
+                  <span className="text-xs font-medium text-gray-500">Initial Problem</span>
+                  {isEditing ? (
+                    <textarea
+                      value={initialProblems[equip] || ''}
+                      onChange={(e) => onUpdate('initialProblems', { ...initialProblems, [equip]: e.target.value })}
+                      className="w-full p-2 border rounded mt-1"
+                      style={{ minHeight: '40px' }}
+                    />
+                  ) : (
+                    <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{initialProblems[equip]}</p>
                   )}
                 </div>
-              ))}
+              )}
+
+              {(repairSummaries[equip]?.trim() || isEditing) && (
+                <div style={{ marginBottom: '0.5rem', paddingLeft: '0.5rem' }}>
+                  <span className="text-xs font-medium text-gray-500">Repairs Made</span>
+                  {isEditing ? (
+                    <textarea
+                      value={repairSummaries[equip] || ''}
+                      onChange={(e) => onUpdate('repairSummaries', { ...repairSummaries, [equip]: e.target.value })}
+                      className="w-full p-2 border rounded mt-1"
+                      style={{ minHeight: '40px' }}
+                    />
+                  ) : (
+                    <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{repairSummaries[equip]}</p>
+                  )}
+                </div>
+              )}
+
+              {(partsNeeded[equip]?.trim() || isEditing) && (
+                <div style={{ marginBottom: '0.5rem', paddingLeft: '0.5rem' }}>
+                  <span className="text-xs font-medium text-gray-500">Future Parts/Service Needed</span>
+                  {isEditing ? (
+                    <textarea
+                      value={partsNeeded[equip] || ''}
+                      onChange={(e) => onUpdate('partsNeeded', { ...partsNeeded, [equip]: e.target.value })}
+                      className="w-full p-2 border rounded mt-1"
+                      style={{ minHeight: '40px' }}
+                    />
+                  ) : (
+                    <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{partsNeeded[equip]}</p>
+                  )}
+                </div>
+              )}
+
+              {(equipmentSafe[equip] || isEditing) && (
+                <div style={{ paddingLeft: '0.5rem' }}>
+                  <span className="text-xs font-medium text-gray-500">Equipment Safe for Use</span>
+                  {isEditing ? (
+                    <select
+                      value={equipmentSafe[equip] || ''}
+                      onChange={(e) => onUpdate('equipmentSafe', { ...equipmentSafe, [equip]: e.target.value })}
+                      className="w-full p-2 border rounded mt-1"
+                    >
+                      <option value="">—</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  ) : (
+                    <p className="text-sm" style={{ color: equipmentSafe[equip] === 'No' ? '#dc2626' : '#16a34a', fontWeight: 600 }}>
+                      {equipmentSafe[equip] === 'Yes' ? '✅ ' : equipmentSafe[equip] === 'No' ? '❌ ' : ''}{equipmentSafe[equip]}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
-          )}
+          ))}
           {renderTextField('equipmentTurnover', 'Equipment Turnover')}
           {renderTextField('otherNotes', 'Other Notes')}
         </div>

@@ -104,6 +104,13 @@ export default function RepairForm() {
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // Require at least one equipment type to be selected
+    if (formData.selectedEquipment.length === 0) {
+      alert('Please select at least one equipment type before submitting.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
