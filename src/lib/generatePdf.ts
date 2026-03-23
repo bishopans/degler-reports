@@ -1448,39 +1448,48 @@ async function addEquipmentPromoSection(doc: jsPDF) {
   }
 
   // Add spacing before section
-  currentY += 8;
+  currentY += 10;
 
-  // Draw the brand-colored top border
-  doc.setDrawColor(BRAND_BLUE.r, BRAND_BLUE.g, BRAND_BLUE.b);
-  doc.setLineWidth(1.5);
-  doc.line(MARGIN_LEFT, currentY, PAGE_WIDTH - MARGIN_RIGHT, currentY);
-  currentY += 6;
+  // Background and accent bar - drawn first so content renders on top
+  const bgStartY = currentY;
+  // Pre-calculate section height: 5 padding + ~6 heading + 6 tagline + ~10 body + 14 grid + 5 CTA + 5 contact + 2 pad ≈ 53, plus QR(30)+2=32 min
+  const bgH = 58;
+  doc.setFillColor(245, 247, 250); // very light blue-gray
+  doc.rect(MARGIN_LEFT, bgStartY, CONTENT_WIDTH, bgH, 'F');
+
+  // Crimson left accent bar (contrasts the navy sidebar and blue-bordered service section)
+  doc.setFillColor(BRAND_RED.r, BRAND_RED.g, BRAND_RED.b);
+  doc.rect(MARGIN_LEFT, bgStartY, 2.5, bgH, 'F');
+
+  // Inset content slightly from left accent
+  const promoInsetLeft = MARGIN_LEFT + 7;
+  currentY += 5;
 
   // QR code on the right side
   const qrData = await loadQrAsBase64();
   const qrSize = 30;
-  const qrX = PAGE_WIDTH - MARGIN_RIGHT - qrSize;
+  const qrX = PAGE_WIDTH - MARGIN_RIGHT - qrSize - 4;
   const qrStartY = currentY;
 
   if (qrData) {
     doc.addImage(qrData, 'PNG', qrX, qrStartY, qrSize, qrSize);
   }
 
-  // Text area width (leave room for QR code)
-  const textWidth = CONTENT_WIDTH - qrSize - 8;
+  // Text area width (leave room for QR code + inset)
+  const textWidth = (qrX - 6) - promoInsetLeft;
 
   // "Upgrade Your Facility" heading
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
   doc.setTextColor(BRAND_BLUE.r, BRAND_BLUE.g, BRAND_BLUE.b);
-  doc.text('Upgrade Your Facility', MARGIN_LEFT, currentY + 1);
+  doc.text('Upgrade Your Facility', promoInsetLeft, currentY + 1);
   currentY += 6;
 
   // Tagline
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(BRAND_RED.r, BRAND_RED.g, BRAND_RED.b);
-  doc.text('New Equipment Sales, Installation & Service — We Service What We Sell', MARGIN_LEFT, currentY);
+  doc.text('New Equipment Sales, Installation & Service — We Service What We Sell', promoInsetLeft, currentY);
   currentY += 6;
 
   // Body text
@@ -1489,7 +1498,7 @@ async function addEquipmentPromoSection(doc: jsPDF) {
   doc.setTextColor(60, 60, 60);
   const bodyText = 'From the court to the classroom, Degler Whiting delivers complete facility solutions backed by nearly 70 years of expertise. Whether you\'re planning a renovation or a brand-new build, we handle design, installation, and ongoing service.';
   const wrappedBody = doc.splitTextToSize(bodyText, textWidth);
-  doc.text(wrappedBody, MARGIN_LEFT, currentY);
+  doc.text(wrappedBody, promoInsetLeft, currentY);
   currentY += wrappedBody.length * 3.5 + 3;
 
   // Product grid in 3 columns
@@ -1503,9 +1512,9 @@ async function addEquipmentPromoSection(doc: jsPDF) {
   doc.setFontSize(7.5);
   doc.setTextColor(BRAND_BLUE.r, BRAND_BLUE.g, BRAND_BLUE.b);
 
-  const col1X = MARGIN_LEFT + 2;
-  const col2X = MARGIN_LEFT + (textWidth / 3);
-  const col3X = MARGIN_LEFT + (textWidth * 2 / 3);
+  const col1X = promoInsetLeft + 2;
+  const col2X = promoInsetLeft + (textWidth / 3);
+  const col3X = promoInsetLeft + (textWidth * 2 / 3);
   const colXs = [col1X, col2X, col3X];
   const gridStartY = currentY;
 
@@ -1528,22 +1537,18 @@ async function addEquipmentPromoSection(doc: jsPDF) {
   doc.setFont('helvetica', 'bolditalic');
   doc.setFontSize(8.5);
   doc.setTextColor(BRAND_RED.r, BRAND_RED.g, BRAND_RED.b);
-  doc.text('Ready to upgrade? Contact us for a free consultation and quote.', MARGIN_LEFT, currentY);
+  doc.text('Ready to upgrade? Contact us for a free consultation and quote.', promoInsetLeft, currentY);
   currentY += 5;
 
   // Contact info (phone + website only)
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(80, 80, 80);
-  doc.text('610-644-3157  •  deglerwhiting.com', MARGIN_LEFT, currentY);
+  doc.text('610-644-3157  •  deglerwhiting.com', promoInsetLeft, currentY);
   currentY += 3;
 
-  // Bottom border (ensure it's below the QR code)
+  // Ensure we're below the QR code before ending the background area
   currentY = Math.max(currentY, qrStartY + qrSize + 2);
-  doc.setDrawColor(BRAND_BLUE.r, BRAND_BLUE.g, BRAND_BLUE.b);
-  doc.setLineWidth(1.5);
-  doc.line(MARGIN_LEFT, currentY, PAGE_WIDTH - MARGIN_RIGHT, currentY);
-  currentY += 1;
 
   // Photo collage strip
   const collageImages = await loadCollageImages();
@@ -1753,6 +1758,12 @@ export async function generatePdf(submission: Submission): Promise<void> {
       doc.setFontSize(8);
       doc.setTextColor(120, 120, 120);
       doc.text(footerText, PAGE_WIDTH / 2, footerY, { align: 'center' });
+
+      // Page 1: navy sidebar accent down the left edge
+      if (i === 1) {
+        doc.setFillColor(BRAND_BLUE.r, BRAND_BLUE.g, BRAND_BLUE.b);
+        doc.rect(0, 0, 4, PAGE_HEIGHT, 'F');
+      }
     }
     // Reset text color
     doc.setTextColor(0, 0, 0);
@@ -1951,6 +1962,12 @@ export async function generatePdfBlob(submission: Submission): Promise<{ blob: B
       doc.setFontSize(8);
       doc.setTextColor(120, 120, 120);
       doc.text(footerText, PAGE_WIDTH / 2, footerY, { align: 'center' });
+
+      // Page 1: navy sidebar accent down the left edge
+      if (i === 1) {
+        doc.setFillColor(BRAND_BLUE.r, BRAND_BLUE.g, BRAND_BLUE.b);
+        doc.rect(0, 0, 4, PAGE_HEIGHT, 'F');
+      }
     }
     doc.setTextColor(0, 0, 0);
 
