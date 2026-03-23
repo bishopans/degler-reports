@@ -129,11 +129,30 @@ export async function POST(request: NextRequest) {
       .map((m: { role: string; content: string }) => m.content)
       .join(' ');
 
-    // Look for product names Vulcan mentioned (these are always uppercase in the DB)
+    // Look for product names Vulcan mentioned in its responses
+    // These patterns help maintain context across follow-up questions
     const knownProductPatterns = [
+      // Porter POWR-* products
       /POWR-TOUCH\s+[\d.]+/gi,
       /POWR-(?:NET|RIB|LINE|COURT|CARBON|STEEL|FLEX|SELECT)\s*(?:II|III|IV)?/gi,
-      /\d+\s+SERIES[^.]{0,40}/gi,
+      /POWR\s+(?:RIB|LINE|COURT|CARBON|SAND|HYBRID|VOLLEYBALL)\s*(?:II|III|IV)?[^,.]{0,30}/gi,
+      // Fair-Play model numbers (MP-80, BA-7118, BB-1600, FB-8120, HK-1700, etc.)
+      /(?:MP|BA|BB|FB|HK|CL|SC|SP|ST|TK|TN|VB|WR|QP|PC|PSO|PT|SG|CST|HS)-?\d[\w.-]*/gi,
+      // Daktronics model numbers (All Sport 5000, ADPC-2023, etc.)
+      /All\s+Sport\s*(?:\d+|CG|Lite|MX-\d+|Pro)/gi,
+      /(?:ADPC|ADTI|AR|BA|BB|DA|DB|FB|GN|MS|SB|SO|SS|VS)-\d{3,}/gi,
+      /Galaxy\s+(?:Pro|AF|Max)/gi,
+      /Omni\s+Sport\s*\d*/gi,
+      // Series patterns (500 Series, 600 Series, etc.)
+      /\d+\s+SERIES[^,.]{0,40}/gi,
+      // Hufcor series
+      /(?:GF|GL|GT|GU)\s+Series/gi,
+      /Summit\s+Vertical/gi,
+      // Gill numeric models
+      /(?:Gill|GILL)\s+\d{3,}/gi,
+      // Nevco controllers and products
+      /MPC[W]?-\d+/gi,
+      // Generic manufacturer + product
       /(?:HUFCOR|NEVCO|DAKTRONICS|INTERKAL|GILL)\s+\w+/gi,
     ];
     const previousProductContext: string[] = [];
@@ -196,6 +215,13 @@ export async function POST(request: NextRequest) {
         'kwik-wall': ['kwikwall'],
         'fairplay': ['fair-play'],
         'fair-play': ['fairplay'],
+        'allsport': ['all-sport'],
+        'all-sport': ['allsport'],
+        'omnisport': ['omni-sport'],
+        'omni-sport': ['omnisport'],
+        'galaxypro': ['galaxy-pro'],
+        // Nevco controller aliases
+        'mpcw': ['mpcw'],
       };
 
       // Build expanded search terms
@@ -372,11 +398,14 @@ export async function POST(request: NextRequest) {
         console.log(`[VULCAN] Found ${manuals?.length || 0} manuals`);
         if (manuals && manuals.length > 0) {
           console.log(`[VULCAN] Top results: ${manuals.slice(0, 5).map(m => `${m.manufacturer}/${m.product_model}/${m.manual_type}`).join(' | ')}`);
+          // Decode HTML entities that appear in some DB product names (e.g., &#x27; → ', &amp; → &)
+          const decodeHtml = (s: string) => s.replace(/&#x27;/g, "'").replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
+
           // Build the document list (show top 15 in context, not all 50)
           const docList = manuals.slice(0, 15)
             .map(
               (m) =>
-                `- ${m.manufacturer} / ${m.product_model} / ${m.manual_type}: ${m.filename.replace(/_/g, ' ').replace('.pdf', '')}`
+                `- ${m.manufacturer} / ${decodeHtml(m.product_model)} / ${m.manual_type}: ${m.filename.replace(/_/g, ' ').replace('.pdf', '')}`
             )
             .join('\n');
 
@@ -385,14 +414,21 @@ export async function POST(request: NextRequest) {
           // Score each manual by: (1) how many search terms match its product_model, (2) manual type priority
           const typeOrder: Record<string, number> = {
             'Installation Guide': 1,
+            'installation_guide': 1,
             'user_manual': 1,
             'Manual': 2,
+            'Maintenance Manual': 2,
+            'Quick Guide': 2,
             'Spec Sheet': 3,
+            'spec_sheet': 3,
             'Wiring Diagram': 4,
             'install_drawing': 4,
             'faceview_drawing': 5,
-            'spec_sheet': 3,
             'color_chart': 6,
+            'Safety Data Sheet': 7,
+            'Form': 7,
+            'other': 6,
+            'Other': 6,
           };
 
           // Score relevance: try LATEST message terms first, fall back to full history
@@ -420,7 +456,7 @@ export async function POST(request: NextRequest) {
           };
 
           // Types where larger files = more complete content (prefer bigger)
-          const preferLargerTypes = new Set(['Installation Guide', 'user_manual', 'Manual']);
+          const preferLargerTypes = new Set(['Installation Guide', 'installation_guide', 'user_manual', 'Manual', 'Maintenance Manual']);
 
           const sortedManuals = [...manuals]
             .filter((m) => m.storage_path && m.file_size_bytes < 5_000_000)
@@ -446,8 +482,10 @@ export async function POST(request: NextRequest) {
           if (pdfToFetch) {
             // Check if the assistant already answered about this same product
             // If so, the conversation history has the extracted info — skip the expensive PDF re-download
+            // Skip this optimization for generic/short product names that could match accidentally
             const productModelLower = pdfToFetch.product_model.toLowerCase();
-            const assistantAlreadyCoveredProduct = assistantMessages.toLowerCase().includes(productModelLower);
+            const isGenericModel = productModelLower === 'general' || productModelLower.length <= 3;
+            const assistantAlreadyCoveredProduct = !isGenericModel && assistantMessages.toLowerCase().includes(productModelLower);
             const isFollowUp = recentMessages.filter((m: { role: string }) => m.role === 'assistant').length > 0;
 
             if (isFollowUp && assistantAlreadyCoveredProduct) {
