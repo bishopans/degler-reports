@@ -78,6 +78,7 @@ const SECTION_SPACING = 6;
 // Brand colors
 const BRAND_BLUE = { r: 0, g: 69, b: 124 };
 const BRAND_RED = { r: 171, g: 5, b: 52 };
+const BRAND_GOLD = { r: 200, g: 164, b: 21 }; // logo gold (eagle, stars, laurel)
 const LIGHT_BLUE_BG = { r: 230, g: 240, b: 250 }; // light blue for checklist background
 const LIGHT_GRAY_BG = { r: 245, g: 245, b: 245 };
 
@@ -1457,8 +1458,8 @@ async function addEquipmentPromoSection(doc: jsPDF) {
   doc.setFillColor(245, 247, 250); // very light blue-gray
   doc.rect(MARGIN_LEFT, bgStartY, CONTENT_WIDTH, bgH, 'F');
 
-  // Crimson left accent bar (contrasts the navy sidebar and blue-bordered service section)
-  doc.setFillColor(BRAND_RED.r, BRAND_RED.g, BRAND_RED.b);
+  // Gold left accent bar (matches logo eagle/stars, contrasts the navy sidebar)
+  doc.setFillColor(BRAND_GOLD.r, BRAND_GOLD.g, BRAND_GOLD.b);
   doc.rect(MARGIN_LEFT, bgStartY, 2.5, bgH, 'F');
 
   // Inset content slightly from left accent
@@ -1759,11 +1760,9 @@ export async function generatePdf(submission: Submission): Promise<void> {
       doc.setTextColor(120, 120, 120);
       doc.text(footerText, PAGE_WIDTH / 2, footerY, { align: 'center' });
 
-      // Page 1: navy sidebar accent down the left edge
-      if (i === 1) {
-        doc.setFillColor(BRAND_BLUE.r, BRAND_BLUE.g, BRAND_BLUE.b);
-        doc.rect(0, 0, 4, PAGE_HEIGHT, 'F');
-      }
+      // Navy sidebar accent down the left edge (every page)
+      doc.setFillColor(BRAND_BLUE.r, BRAND_BLUE.g, BRAND_BLUE.b);
+      doc.rect(0, 0, 4, PAGE_HEIGHT, 'F');
     }
     // Reset text color
     doc.setTextColor(0, 0, 0);
@@ -1963,11 +1962,9 @@ export async function generatePdfBlob(submission: Submission): Promise<{ blob: B
       doc.setTextColor(120, 120, 120);
       doc.text(footerText, PAGE_WIDTH / 2, footerY, { align: 'center' });
 
-      // Page 1: navy sidebar accent down the left edge
-      if (i === 1) {
-        doc.setFillColor(BRAND_BLUE.r, BRAND_BLUE.g, BRAND_BLUE.b);
-        doc.rect(0, 0, 4, PAGE_HEIGHT, 'F');
-      }
+      // Navy sidebar accent down the left edge (every page)
+      doc.setFillColor(BRAND_BLUE.r, BRAND_BLUE.g, BRAND_BLUE.b);
+      doc.rect(0, 0, 4, PAGE_HEIGHT, 'F');
     }
     doc.setTextColor(0, 0, 0);
 
