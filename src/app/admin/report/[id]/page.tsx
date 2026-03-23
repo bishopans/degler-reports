@@ -978,7 +978,7 @@ function FormDataDisplay({
           onUpdate('selectedEquipment', current);
           if (equip !== 'Other' && equipmentChecklists[equip]) {
             const updatedChecks = { ...checks };
-            updatedChecks[equip] = Array(equipmentChecklists[equip].length).fill(false);
+            updatedChecks[equip] = Array(equipmentChecklists[equip].length).fill(true);
             onUpdate('equipmentChecks', updatedChecks);
           }
         }
