@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfParse = require('pdf-parse');
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -37,15 +39,15 @@ GUIDELINES:
 - Be friendly but professional — you're helping construction and facilities professionals.
 - Do NOT make up technical specifications. Only share info that's in the provided documents.`;
 
-// Download PDF from Supabase Storage and return as base64
-// Uses direct HTTP fetch with 30s timeout — maxDuration=60 gives us enough headroom
-async function fetchPdfAsBase64(storagePath: string): Promise<string | null> {
+// Download PDF from Supabase Storage and extract text content
+// Text extraction uses ~90% fewer tokens than raw PDF binary
+async function fetchPdfText(storagePath: string): Promise<{ text: string; pages: number } | null> {
   try {
     const publicUrl = `${supabaseUrl}/storage/v1/object/public/manuals/${encodeURIComponent(storagePath).replace(/%2F/g, '/')}`;
     console.log(`[PDF] Fetching: ${publicUrl}`);
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
+    const timeout = setTimeout(() => controller.abort(), 20000);
 
     const response = await fetch(publicUrl, { signal: controller.signal });
     clearTimeout(timeout);
@@ -64,14 +66,25 @@ async function fetchPdfAsBase64(storagePath: string): Promise<string | null> {
       return null;
     }
 
-    const base64 = buffer.toString('base64');
-    console.log(`[PDF] Converted to base64: ${base64.length} chars`);
-    return base64;
+    // Extract text from PDF — dramatically reduces token usage
+    const parsed = await pdfParse(buffer);
+    const text = parsed.text || '';
+    const pages = parsed.numpages || 0;
+    console.log(`[PDF] Extracted ${text.length} chars of text from ${pages} pages`);
+
+    if (text.trim().length < 100) {
+      console.warn(`[PDF] Very little text extracted (${text.trim().length} chars) — may be a scanned/image PDF`);
+    }
+
+    // Cap text at ~30K chars (~8K tokens) to stay well within rate limits
+    const cappedText = text.length > 30000 ? text.substring(0, 30000) + '\n\n[... document continues — text truncated for length ...]' : text;
+
+    return { text: cappedText, pages };
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      console.error(`[PDF] Download timed out after 30s: ${storagePath}`);
+      console.error(`[PDF] Download timed out after 20s: ${storagePath}`);
     } else {
-      console.error('[PDF] Fetch error:', storagePath, error);
+      console.error('[PDF] Text extraction error:', storagePath, error);
     }
     return null;
   }
@@ -169,8 +182,9 @@ export async function POST(request: NextRequest) {
     }
 
     let contextInfo = '';
+    let pdfExtractedText = '';
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pdfContentBlocks: any[] = [];
+    const pdfContentBlocks: any[] = []; // kept for backward compat but no longer used
 
     if (latestQuestion) {
       // Smart keyword search with alias expansion
@@ -507,20 +521,15 @@ export async function POST(request: NextRequest) {
               console.log(`[VULCAN] SKIP PDF re-download — assistant already discussed "${pdfToFetch.product_model}" in previous response. Using conversation history.`);
             } else {
               console.log(`[VULCAN] Selected PDF: ${pdfToFetch.manufacturer}/${pdfToFetch.product_model} - ${pdfToFetch.manual_type} (${pdfToFetch.filename}, ${pdfToFetch.file_size_bytes} bytes, path: ${pdfToFetch.storage_path})`);
-              const base64Data = await fetchPdfAsBase64(pdfToFetch.storage_path);
-              if (base64Data) {
-                console.log(`[VULCAN] PDF base64 ready: ${base64Data.length} chars — attaching to Claude request`);
-                pdfContentBlocks.push({
-                  type: 'document',
-                  source: {
-                    type: 'base64',
-                    media_type: 'application/pdf',
-                    data: base64Data,
-                  },
-                  title: `${pdfToFetch.manufacturer} - ${pdfToFetch.product_model} - ${pdfToFetch.manual_type}`,
-                });
+              const pdfResult = await fetchPdfText(pdfToFetch.storage_path);
+              if (pdfResult && pdfResult.text.trim().length > 100) {
+                console.log(`[VULCAN] Text extracted: ${pdfResult.text.length} chars from ${pdfResult.pages} pages — adding to context`);
+                pdfExtractedText = `\n\n--- DOCUMENT CONTENT: ${pdfToFetch.manufacturer} / ${pdfToFetch.product_model} / ${pdfToFetch.manual_type} (${pdfToFetch.filename}, ${pdfResult.pages} pages) ---\n\n${pdfResult.text}`;
+              } else if (pdfResult) {
+                console.warn(`[VULCAN] PDF text too short (${pdfResult.text.trim().length} chars) — likely scanned/image PDF. Content may be limited.`);
+                pdfExtractedText = `\n\n--- DOCUMENT: ${pdfToFetch.manufacturer} / ${pdfToFetch.product_model} / ${pdfToFetch.manual_type} ---\nNote: This appears to be a scanned/image-based PDF. Only limited text could be extracted:\n${pdfResult.text}`;
               } else {
-                console.error(`[VULCAN] PDF download returned null for ${pdfToFetch.storage_path}`);
+                console.error(`[VULCAN] PDF download/extraction returned null for ${pdfToFetch.storage_path}`);
               }
             }
           } else {
@@ -530,8 +539,8 @@ export async function POST(request: NextRequest) {
           // Build the context info for the system prompt
           contextInfo = `\n\nDOCUMENTS FOUND IN THE LIBRARY:\n${docList}`;
 
-          if (pdfContentBlocks.length > 0) {
-            contextInfo += `\n\nA PDF document has been attached to the user's message below. READ IT CAREFULLY and use its content to answer the user's question with specific details, steps, and technical information. The attached document is: ${pdfToFetch.manufacturer} / ${pdfToFetch.product_model} / ${pdfToFetch.manual_type} (${pdfToFetch.filename}).`;
+          if (pdfExtractedText) {
+            contextInfo += `\n\nThe following document content was extracted from the manual. READ IT CAREFULLY and use it to answer the user's question with specific details, steps, and technical information.${pdfExtractedText}`;
           } else if (pdfToFetch && assistantMessages.toLowerCase().includes(pdfToFetch.product_model.toLowerCase())) {
             contextInfo += `\n\nYou have already discussed the ${pdfToFetch.manufacturer} ${pdfToFetch.product_model} in this conversation. Use the information from your PREVIOUS RESPONSES in the conversation history to answer the user's follow-up question. Provide specific details and steps based on what you already know about this product.`;
           } else {
@@ -541,45 +550,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Build the messages array for Claude API
-    // If we have PDF content blocks, attach them to the latest user message
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const apiMessages = recentMessages.map((msg: any, idx: number) => {
-      if (idx === recentMessages.length - 1 && msg.role === 'user' && pdfContentBlocks.length > 0) {
-        // Attach PDF document(s) to the latest user message
-        return {
-          role: 'user',
-          content: [
-            ...pdfContentBlocks,
-            { type: 'text', text: msg.content },
-          ],
-        };
-      }
-      return msg;
-    });
+    // Build the messages array for Claude API — all content is now text-based
+    const apiMessages = recentMessages.map((msg: { role: string; content: string }) => ({
+      role: msg.role,
+      content: msg.content,
+    }));
 
     // Log what we're sending to Claude
-    console.log(`[VULCAN] API call: ${pdfContentBlocks.length} PDF(s) attached, ${apiMessages.length} messages, context length: ${contextInfo.length} chars`);
+    const systemPromptFull = SYSTEM_PROMPT + contextInfo;
+    console.log(`[VULCAN] API call: ${apiMessages.length} messages, system prompt: ${systemPromptFull.length} chars, extracted text: ${pdfExtractedText.length > 0 ? pdfExtractedText.length + ' chars' : 'none'}`);
 
     // Call Claude API (Haiku 4.5 for speed and cost efficiency)
-    // Only include PDF beta header when actually sending a PDF document
+    // No PDF beta header needed — we send extracted text, not raw PDF binary
     const claudeHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
     };
-    if (pdfContentBlocks.length > 0) {
-      claudeHeaders['anthropic-beta'] = 'pdfs-2024-09-25';
-    }
 
     const claudeBody = {
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 2048,
-      system: SYSTEM_PROMPT + contextInfo,
+      system: systemPromptFull,
       messages: apiMessages,
     };
 
-    console.log(`[VULCAN] Sending to Claude: ${pdfContentBlocks.length > 0 ? 'WITH PDF (beta header)' : 'NO PDF (text only)'}, messages: ${apiMessages.length}`);
+    console.log(`[VULCAN] Sending to Claude: text-only (extracted PDF content in system prompt), messages: ${apiMessages.length}`);
 
     // Retry logic: one quick retry for rate limits, then let frontend handle longer waits
     let response: Response | null = null;
@@ -635,11 +631,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Log rate limit headers so we can monitor usage
-    const rateLimitRemaining = response.headers.get('x-ratelimit-remaining-tokens');
-    const rateLimitReset = response.headers.get('x-ratelimit-reset-tokens');
-    const reqRemaining = response.headers.get('x-ratelimit-remaining-requests');
-    console.log(`[VULCAN] Rate limits: ${rateLimitRemaining} tokens remaining (resets ${rateLimitReset}), ${reqRemaining} requests remaining`);
+    // Log rate limit headers so we can monitor usage (Anthropic header names)
+    const tokensLimit = response.headers.get('anthropic-ratelimit-tokens-limit');
+    const tokensRemaining = response.headers.get('anthropic-ratelimit-tokens-remaining');
+    const tokensReset = response.headers.get('anthropic-ratelimit-tokens-reset');
+    const reqLimit = response.headers.get('anthropic-ratelimit-requests-limit');
+    const reqRemaining = response.headers.get('anthropic-ratelimit-requests-remaining');
+    console.log(`[VULCAN] Rate limits: tokens ${tokensRemaining}/${tokensLimit} (resets ${tokensReset}), requests ${reqRemaining}/${reqLimit}`);
 
     const data = await response.json();
     const assistantMessage = data.content?.[0]?.text || 'I apologize, I could not generate a response.';
