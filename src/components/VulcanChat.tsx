@@ -15,8 +15,10 @@ export default function VulcanChat() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [retryCountdown, setRetryCountdown] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const retryTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check if chatbot is enabled
   useEffect(() => {
@@ -39,8 +41,61 @@ export default function VulcanChat() {
     }
   }, [isOpen]);
 
+  // Core fetch logic — used by both sendMessage and auto-retry
+  const fetchChat = async (messagesToSend: Message[]): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: messagesToSend }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // If rate-limited with retryAfter, start auto-retry countdown
+        if (data.retryAfter && data.retryAfter > 0) {
+          setError('');
+          let remaining = data.retryAfter;
+          setRetryCountdown(remaining);
+
+          return new Promise((resolve) => {
+            const timer = setInterval(() => {
+              remaining -= 1;
+              setRetryCountdown(remaining);
+              if (remaining <= 0) {
+                clearInterval(timer);
+                retryTimerRef.current = null;
+                setRetryCountdown(0);
+                // Auto-retry
+                fetchChat(messagesToSend).then(resolve);
+              }
+            }, 1000);
+            retryTimerRef.current = timer;
+          });
+        }
+
+        setError(data.error || 'Something went wrong.');
+        return false;
+      }
+
+      setMessages([...messagesToSend, { role: 'assistant', content: data.message }]);
+      return true;
+    } catch {
+      setError('Failed to connect. Please try again.');
+      return false;
+    }
+  };
+
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
+
+    // Cancel any pending retry
+    if (retryTimerRef.current) {
+      clearInterval(retryTimerRef.current);
+      retryTimerRef.current = null;
+      setRetryCountdown(0);
+    }
 
     const userMessage: Message = { role: 'user', content: input.trim() };
     const updatedMessages = [...messages, userMessage];
@@ -49,27 +104,8 @@ export default function VulcanChat() {
     setError('');
     setIsLoading(true);
 
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: updatedMessages }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || 'Something went wrong.');
-        setIsLoading(false);
-        return;
-      }
-
-      setMessages([...updatedMessages, { role: 'assistant', content: data.message }]);
-    } catch {
-      setError('Failed to connect. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    await fetchChat(updatedMessages);
+    setIsLoading(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -320,7 +356,7 @@ export default function VulcanChat() {
               </div>
             ))}
 
-            {/* Loading indicator */}
+            {/* Loading / retry countdown indicator */}
             {isLoading && (
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
                 <div style={{ flexShrink: 0, marginTop: '2px' }}>
@@ -337,27 +373,35 @@ export default function VulcanChat() {
                     alignItems: 'center',
                   }}
                 >
-                  <span style={{ animation: 'pulse 1.2s infinite', fontSize: '1.25rem', color: '#f59e0b' }}>
-                    ●
-                  </span>
-                  <span
-                    style={{
-                      animation: 'pulse 1.2s infinite 0.2s',
-                      fontSize: '1.25rem',
-                      color: '#f59e0b',
-                    }}
-                  >
-                    ●
-                  </span>
-                  <span
-                    style={{
-                      animation: 'pulse 1.2s infinite 0.4s',
-                      fontSize: '1.25rem',
-                      color: '#f59e0b',
-                    }}
-                  >
-                    ●
-                  </span>
+                  {retryCountdown > 0 ? (
+                    <span style={{ fontSize: '0.8rem', color: '#92400e' }}>
+                      ⏳ Reading the manual... retrying in {retryCountdown}s
+                    </span>
+                  ) : (
+                    <>
+                      <span style={{ animation: 'pulse 1.2s infinite', fontSize: '1.25rem', color: '#f59e0b' }}>
+                        ●
+                      </span>
+                      <span
+                        style={{
+                          animation: 'pulse 1.2s infinite 0.2s',
+                          fontSize: '1.25rem',
+                          color: '#f59e0b',
+                        }}
+                      >
+                        ●
+                      </span>
+                      <span
+                        style={{
+                          animation: 'pulse 1.2s infinite 0.4s',
+                          fontSize: '1.25rem',
+                          color: '#f59e0b',
+                        }}
+                      >
+                        ●
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
             )}

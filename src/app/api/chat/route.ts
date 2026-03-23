@@ -581,54 +581,65 @@ export async function POST(request: NextRequest) {
 
     console.log(`[VULCAN] Sending to Claude: ${pdfContentBlocks.length > 0 ? 'WITH PDF (beta header)' : 'NO PDF (text only)'}, messages: ${apiMessages.length}`);
 
-    // Retry logic for rate limits (429) and overload (529/503)
-    const MAX_RETRIES = 2;
+    // Retry logic: one quick retry for rate limits, then let frontend handle longer waits
     let response: Response | null = null;
     let lastErrorText = '';
     let lastStatus = 0;
 
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      if (attempt > 0) {
-        // Wait before retrying: 2s for first retry, 5s for second
-        const delayMs = attempt === 1 ? 2000 : 5000;
-        console.log(`[VULCAN] Retry ${attempt}/${MAX_RETRIES} after ${delayMs}ms delay...`);
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-      }
+    response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: claudeHeaders,
+      body: JSON.stringify(claudeBody),
+    });
 
+    // If rate-limited, try ONE more time after 5s (within our 60s budget)
+    if (response.status === 429 || response.status === 529 || response.status === 503) {
+      lastStatus = response.status;
+      const retryAfterHeader = response.headers.get('retry-after');
+      lastErrorText = await response.text();
+      console.error(`[VULCAN] Claude API ${lastStatus} (attempt 1): retry-after=${retryAfterHeader}, body=${lastErrorText.substring(0, 300)}`);
+
+      // Quick retry: wait 5s then try once more
+      await new Promise(resolve => setTimeout(resolve, 5000));
       response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: claudeHeaders,
         body: JSON.stringify(claudeBody),
       });
 
-      if (response.ok) {
-        break; // Success — exit retry loop
+      if (!response.ok) {
+        lastStatus = response.status;
+        lastErrorText = await response.text();
+        console.error(`[VULCAN] Claude API ${lastStatus} (attempt 2): ${lastErrorText.substring(0, 300)}`);
       }
-
+    } else if (!response.ok) {
       lastStatus = response.status;
       lastErrorText = await response.text();
-      console.error(`[VULCAN] Claude API error ${lastStatus} (attempt ${attempt + 1}): ${lastErrorText.substring(0, 500)}`);
-
-      // Only retry on rate limit (429) or overload (529/503)
-      const isRetryable = lastStatus === 429 || lastStatus === 529 || lastStatus === 503;
-      if (!isRetryable) {
-        break; // Non-retryable error — stop immediately
-      }
+      console.error(`[VULCAN] Claude API error ${lastStatus}: ${lastErrorText.substring(0, 500)}`);
     }
 
-    if (!response || !response.ok) {
-      const isOverloaded = lastStatus === 529 || lastStatus === 503;
-      const isRateLimit = lastStatus === 429;
+    if (!response.ok) {
+      const isRateLimitOrOverload = lastStatus === 429 || lastStatus === 529 || lastStatus === 503;
       const isTimeout = lastStatus === 408 || lastStatus === 504;
+      // Tell frontend to auto-retry after 30s for rate limits
       return NextResponse.json(
-        { error: isOverloaded || isRateLimit
-            ? 'Vulcan is experiencing high demand. Please wait a moment and try again.'
+        {
+          error: isRateLimitOrOverload
+            ? 'Vulcan is processing your previous request. Retrying automatically...'
             : isTimeout
             ? 'Vulcan took too long to respond. Please try again.'
-            : `Failed to get a response from Vulcan (error ${lastStatus}). Please try again.` },
-        { status: 502 }
+            : `Failed to get a response from Vulcan (error ${lastStatus}). Please try again.`,
+          retryAfter: isRateLimitOrOverload ? 30 : 0,
+        },
+        { status: isRateLimitOrOverload ? 429 : 502 }
       );
     }
+
+    // Log rate limit headers so we can monitor usage
+    const rateLimitRemaining = response.headers.get('x-ratelimit-remaining-tokens');
+    const rateLimitReset = response.headers.get('x-ratelimit-reset-tokens');
+    const reqRemaining = response.headers.get('x-ratelimit-remaining-requests');
+    console.log(`[VULCAN] Rate limits: ${rateLimitRemaining} tokens remaining (resets ${rateLimitReset}), ${reqRemaining} requests remaining`);
 
     const data = await response.json();
     const assistantMessage = data.content?.[0]?.text || 'I apologize, I could not generate a response.';
