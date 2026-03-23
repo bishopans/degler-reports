@@ -241,17 +241,9 @@ export async function POST(request: NextRequest) {
         });
       });
 
-      // Also try combining consecutive raw terms for compound product names
-      for (let i = 0; i < rawTerms.length - 1; i++) {
-        const combined = rawTerms[i] + rawTerms[i + 1];
-        if (aliasMap[combined]) {
-          aliasMap[combined].forEach((alias: string) => expandedTerms.add(alias));
-        }
-        expandedTerms.add(`${rawTerms[i]}-${rawTerms[i + 1]}`);
-      }
-
       // Handle compound tokens like "powrtouch2.5" or "mp80" — split on letter/digit boundary
       // Also generates hyphenated version (e.g., "mp80" → "mp-80") for database matching
+      // IMPORTANT: Do this BEFORE compound pair combining so product terms get priority in the Set
       rawTerms.forEach((term: string) => {
         const splitMatch = term.match(/^([a-z-]+)([\d].*)$/);
         if (splitMatch) {
@@ -265,6 +257,20 @@ export async function POST(request: NextRequest) {
         }
       });
 
+      // Also try combining consecutive raw terms for compound product names
+      // Only add if at least one part is NOT a stop word (avoids junk like "help-me", "change-the")
+      for (let i = 0; i < rawTerms.length - 1; i++) {
+        const combined = rawTerms[i] + rawTerms[i + 1];
+        if (aliasMap[combined]) {
+          aliasMap[combined].forEach((alias: string) => expandedTerms.add(alias));
+        }
+        // Skip compound pairs where both parts are common words (they'd match nothing useful)
+        const bothPartsGeneric = rawTerms[i].length <= 3 && rawTerms[i + 1].length <= 3;
+        if (!bothPartsGeneric) {
+          expandedTerms.add(`${rawTerms[i]}-${rawTerms[i + 1]}`);
+        }
+      }
+
       // Build expanded terms from LATEST message only (for relevance scoring)
       const latestExpandedTerms = new Set<string>();
       latestRawTerms.forEach((term: string) => {
@@ -273,13 +279,7 @@ export async function POST(request: NextRequest) {
           aliasMap[term].forEach((alias: string) => latestExpandedTerms.add(alias));
         }
       });
-      for (let i = 0; i < latestRawTerms.length - 1; i++) {
-        const combined = latestRawTerms[i] + latestRawTerms[i + 1];
-        if (aliasMap[combined]) {
-          aliasMap[combined].forEach((alias: string) => latestExpandedTerms.add(alias));
-        }
-        latestExpandedTerms.add(`${latestRawTerms[i]}-${latestRawTerms[i + 1]}`);
-      }
+      // Token splitting first (product terms get priority)
       latestRawTerms.forEach((term: string) => {
         const splitMatch = term.match(/^([a-z-]+)([\d].*)$/);
         if (splitMatch) {
@@ -292,17 +292,28 @@ export async function POST(request: NextRequest) {
           }
         }
       });
+      // Then compound pairs (with junk filtering)
+      for (let i = 0; i < latestRawTerms.length - 1; i++) {
+        const combined = latestRawTerms[i] + latestRawTerms[i + 1];
+        if (aliasMap[combined]) {
+          aliasMap[combined].forEach((alias: string) => latestExpandedTerms.add(alias));
+        }
+        const bothPartsGeneric = latestRawTerms[i].length <= 3 && latestRawTerms[i + 1].length <= 3;
+        if (!bothPartsGeneric) {
+          latestExpandedTerms.add(`${latestRawTerms[i]}-${latestRawTerms[i + 1]}`);
+        }
+      }
 
       // Pick the most meaningful search terms (skip generic words)
       const stopWords = new Set(['help', 'with', 'the', 'how', 'can', 'you', 'about', 'what', 'does', 'for', 'and', 'programming', 'program', 'install', 'installation', 'guide', 'manual', 'spec', 'specs', 'sheet', 'wiring', 'diagram', 'troubleshoot', 'troubleshooting', 'need', 'want', 'please', 'tell', 'show', 'me', 'find', 'get', 'look', 'up', 'do', 'is', 'it', 'of', 'to', 'in', 'on', 'at', 'by', 'or', 'an', 'be', 'if', 'so', 'no', 'not', 'but', 'all', 'are', 'was', 'were', 'been', 'have', 'has', 'had', 'will', 'would', 'could', 'should', 'may', 'might', 'shall', 'each', 'every', 'any', 'some', 'this', 'that', 'these', 'those', 'its', 'my', 'your', 'our', 'their', 'im', 'ive', 'know', 'knowing', 'okay', 'ok', 'different', 'topic', 'change', 'switch', 'question', 'scoreboard', 'scoreboards', 'controller', 'panel', 'set', 'setting', 'number', 'group', 'board', 'type', 'model', 'system', 'display', 'timer', 'clock', 'light', 'operate', 'operating', 'use', 'using', 'make', 'made', 'turn', 'give', 'work', 'working', 'run', 'running', 'both', 'two', 'one', 'same', 'time', 'way', 'new', 'old', 'first', 'second', 'also', 'just', 'like', 'from', 'when', 'where', 'which', 'who', 'why', 'then', 'than', 'them', 'only', 'other', 'into', 'over', 'after', 'before', 'between', 'under', 'through', 'during', 'while', 'out', 'off', 'down', 'back', 'here', 'there', 'much', 'many', 'more', 'most', 'very', 'too', 'still', 'already', 'again', 'even', 'never', 'always', 'often', 'sometimes', 'keep', 'going', 'come', 'take', 'put', 'let', 'try', 'thing', 'things', 'able', 'sure', 'right', 'left', 'side', 'top', 'bottom', 'wall', 'floor', 'gym', 'field', 'court', 'sport', 'game', 'play', 'team', 'home', 'away', 'visitor', 'score', 'point', 'reset', 'start', 'stop', 'replace', 'fix', 'replace', 'repair', 'connect', 'disconnect', 'power', 'wire', 'cable', 'plug', 'main', 'split', 'separately']);
       const searchTerms = Array.from(expandedTerms)
         .filter((t: string) => t.length > 1 && !stopWords.has(t))
-        .slice(0, 8);
+        .slice(0, 15);
 
       // Separate scoring terms from LATEST message only
       const latestScoringTerms = Array.from(latestExpandedTerms)
         .filter((t: string) => t.length > 1 && !stopWords.has(t))
-        .slice(0, 8);
+        .slice(0, 15);
 
       console.log(`[VULCAN] Search terms: [${searchTerms.join(', ')}] from conversation`);
       console.log(`[VULCAN] Scoring terms: [${latestScoringTerms.join(', ')}] from latest message`);
