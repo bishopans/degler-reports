@@ -581,23 +581,51 @@ export async function POST(request: NextRequest) {
 
     console.log(`[VULCAN] Sending to Claude: ${pdfContentBlocks.length > 0 ? 'WITH PDF (beta header)' : 'NO PDF (text only)'}, messages: ${apiMessages.length}`);
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: claudeHeaders,
-      body: JSON.stringify(claudeBody),
-    });
+    // Retry logic for rate limits (429) and overload (529/503)
+    const MAX_RETRIES = 2;
+    let response: Response | null = null;
+    let lastErrorText = '';
+    let lastStatus = 0;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[VULCAN] Claude API error ${response.status}: ${errorText.substring(0, 500)}`);
-      const isOverloaded = response.status === 529 || response.status === 503;
-      const isTimeout = response.status === 408 || response.status === 504;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      if (attempt > 0) {
+        // Wait before retrying: 2s for first retry, 5s for second
+        const delayMs = attempt === 1 ? 2000 : 5000;
+        console.log(`[VULCAN] Retry ${attempt}/${MAX_RETRIES} after ${delayMs}ms delay...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+
+      response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: claudeHeaders,
+        body: JSON.stringify(claudeBody),
+      });
+
+      if (response.ok) {
+        break; // Success — exit retry loop
+      }
+
+      lastStatus = response.status;
+      lastErrorText = await response.text();
+      console.error(`[VULCAN] Claude API error ${lastStatus} (attempt ${attempt + 1}): ${lastErrorText.substring(0, 500)}`);
+
+      // Only retry on rate limit (429) or overload (529/503)
+      const isRetryable = lastStatus === 429 || lastStatus === 529 || lastStatus === 503;
+      if (!isRetryable) {
+        break; // Non-retryable error — stop immediately
+      }
+    }
+
+    if (!response || !response.ok) {
+      const isOverloaded = lastStatus === 529 || lastStatus === 503;
+      const isRateLimit = lastStatus === 429;
+      const isTimeout = lastStatus === 408 || lastStatus === 504;
       return NextResponse.json(
-        { error: isOverloaded
-            ? 'Vulcan is experiencing high demand. Please try again in a moment.'
+        { error: isOverloaded || isRateLimit
+            ? 'Vulcan is experiencing high demand. Please wait a moment and try again.'
             : isTimeout
             ? 'Vulcan took too long to respond. Please try again.'
-            : `Failed to get a response from Vulcan (error ${response.status}). Please try again.` },
+            : `Failed to get a response from Vulcan (error ${lastStatus}). Please try again.` },
         { status: 502 }
       );
     }
