@@ -111,6 +111,15 @@ export default function RepairForm() {
       return;
     }
 
+    // Require "Equipment Safe for Use" for every selected equipment
+    const missingSafe = formData.selectedEquipment.filter(
+      equip => !formData.equipmentSafe[equip]
+    );
+    if (missingSafe.length > 0) {
+      alert(`Please select "Equipment Safe for Use" (Yes or No) for: ${missingSafe.join(', ')}`);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
