@@ -76,6 +76,8 @@ const MANUAL_TYPE_LABELS: Record<string, string> = {
   'Table of Contents': 'Table of Contents',
   'Form': 'Form',
   'Warranty': 'Warranty',
+  'Video': 'Video',
+  'Tech Data': 'Tech Data',
 };
 
 const MANUAL_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
@@ -94,6 +96,8 @@ const MANUAL_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
   'Maintenance Manual': { bg: '#e0f2fe', text: '#075985' },
   'Safety Data Sheet': { bg: '#fef9c3', text: '#854d0e' },
   'Change Notice': { bg: '#fce7f3', text: '#831843' },
+  'Video': { bg: '#fee2e2', text: '#991b1b' },
+  'Tech Data': { bg: '#dbeafe', text: '#1e40af' },
   'Safety Notice': { bg: '#fee2e2', text: '#991b1b' },
   'Table of Contents': { bg: '#f3f4f6', text: '#374151' },
   'Form': { bg: '#f0fdf4', text: '#166534' },
@@ -931,11 +935,12 @@ export default function ManualsPage() {
                             .sort((a, b) => a.manual_type.localeCompare(b.manual_type))
                             .map((m) => {
                               const colors = MANUAL_TYPE_COLORS[m.manual_type] || MANUAL_TYPE_COLORS.other;
-                              const pdfUrl = `${SUPABASE_STORAGE_URL}/${m.storage_path}`;
+                              const isVideo = m.manual_type === 'Video';
+                              const linkUrl = isVideo && m.source_url ? m.source_url : `${SUPABASE_STORAGE_URL}/${m.storage_path}`;
                               return (
                                 <a
                                   key={m.id}
-                                  href={pdfUrl}
+                                  href={linkUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   style={{
@@ -950,7 +955,7 @@ export default function ManualsPage() {
                                   onMouseEnter={(e) => { e.currentTarget.style.background = '#f0f7ff'; }}
                                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                                 >
-                                  <span style={{ fontSize: '1rem', flexShrink: 0, color: '#dc2626' }}>📄</span>
+                                  <span style={{ fontSize: '1rem', flexShrink: 0, color: isVideo ? '#7c3aed' : '#dc2626' }}>{isVideo ? '🎬' : '📄'}</span>
                                   <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={{
                                       fontSize: '0.85rem',
