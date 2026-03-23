@@ -272,10 +272,12 @@ export default function ReportDetailPage() {
   };
 
   const updateFormData = (key: string, value: unknown) => {
-    if (!editData) return;
-    setEditData({
-      ...editData,
-      form_data: { ...editData.form_data, [key]: value },
+    setEditData(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        form_data: { ...prev.form_data, [key]: value },
+      };
     });
   };
 
