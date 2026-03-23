@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('submissions')
-      .select('id, created_at, report_type, date, job_name, job_number, technician_name, status, photo_urls, signature_urls, notes, form_data', { count: 'exact' });
+      .select('id, created_at, report_type, date, job_name, job_number, technician_name, status, photo_urls, signature_urls, notes, form_data, claimed_by', { count: 'exact' });
 
     // Filter by report type
     if (reportType) {

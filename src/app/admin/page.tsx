@@ -280,14 +280,32 @@ export default function AdminDashboard() {
   };
 
   const updateReportClaim = async (id: string, claimed_by: string | null) => {
+    // If Sales is selected, prompt for email
+    let salesEmail: string | undefined;
+    if (claimed_by === 'sales') {
+      const email = window.prompt('Enter the sales rep email for this report:');
+      if (email === null) return; // cancelled
+      salesEmail = email;
+    }
+
     try {
+      // Build the update payload
+      const payload: Record<string, unknown> = { claimed_by };
+      if (salesEmail !== undefined) {
+        // Need to merge salesClaimEmail into form_data
+        const sub = submissions.find(s => s.id === id);
+        const existingFormData = sub?.form_data || {};
+        payload.form_data = { ...existingFormData, salesClaimEmail: salesEmail };
+      }
+
       const response = await fetch(`/api/admin/submissions/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ claimed_by }),
+        body: JSON.stringify(payload),
       });
       if (response.ok) {
-        setSubmissions(prev => prev.map(s => s.id === id ? { ...s, claimed_by } : s));
+        const updated = await response.json();
+        setSubmissions(prev => prev.map(s => s.id === id ? { ...s, claimed_by, form_data: updated.form_data } : s));
       }
     } catch (error) {
       console.error('Claim update error:', error);
