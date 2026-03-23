@@ -488,6 +488,7 @@ export async function POST(request: NextRequest) {
             const assistantAlreadyCoveredProduct = !isGenericModel && assistantMessages.toLowerCase().includes(productModelLower);
             const isFollowUp = recentMessages.filter((m: { role: string }) => m.role === 'assistant').length > 0;
 
+            console.log(`[VULCAN] Follow-up check: isFollowUp=${isFollowUp}, assistantCovered=${assistantAlreadyCoveredProduct}, isGeneric=${isGenericModel}, model="${pdfToFetch.product_model}"`);
             if (isFollowUp && assistantAlreadyCoveredProduct) {
               console.log(`[VULCAN] SKIP PDF re-download — assistant already discussed "${pdfToFetch.product_model}" in previous response. Using conversation history.`);
             } else {
@@ -547,20 +548,29 @@ export async function POST(request: NextRequest) {
     console.log(`[VULCAN] API call: ${pdfContentBlocks.length} PDF(s) attached, ${apiMessages.length} messages, context length: ${contextInfo.length} chars`);
 
     // Call Claude API (Haiku 4.5 for speed and cost efficiency)
+    // Only include PDF beta header when actually sending a PDF document
+    const claudeHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    };
+    if (pdfContentBlocks.length > 0) {
+      claudeHeaders['anthropic-beta'] = 'pdfs-2024-09-25';
+    }
+
+    const claudeBody = {
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 2048,
+      system: SYSTEM_PROMPT + contextInfo,
+      messages: apiMessages,
+    };
+
+    console.log(`[VULCAN] Sending to Claude: ${pdfContentBlocks.length > 0 ? 'WITH PDF (beta header)' : 'NO PDF (text only)'}, messages: ${apiMessages.length}`);
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'pdfs-2024-09-25',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 2048,
-        system: SYSTEM_PROMPT + contextInfo,
-        messages: apiMessages,
-      }),
+      headers: claudeHeaders,
+      body: JSON.stringify(claudeBody),
     });
 
     if (!response.ok) {
