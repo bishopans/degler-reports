@@ -17,12 +17,12 @@ export default function Home() {
       </div>
 
       {/* ─── Select a Report ─── */}
-      <h1 style={{ fontSize: '1.875rem', fontWeight: 700, marginBottom: '2.5rem', textAlign: 'center' }}>Select a Report</h1>
+      <h1 style={{ fontSize: '1.875rem', fontWeight: 700, marginBottom: '1.5rem', textAlign: 'center' }}>Select a Report</h1>
 
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '1.5rem',
+        gap: '1rem',
         maxWidth: 900,
         width: '100%',
       }} className="home-grid">
@@ -41,7 +41,7 @@ export default function Home() {
             key={href}
             href={href}
             style={{
-              padding: '2rem 1rem',
+              padding: '1rem 0.75rem',
               border: '2px solid #e5e7eb',
               borderRadius: 8,
               textAlign: 'center',
@@ -49,10 +49,10 @@ export default function Home() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              minHeight: 100,
+              minHeight: 60,
               textDecoration: 'none',
               color: '#111',
-              fontSize: '1.25rem',
+              fontSize: '1.05rem',
               fontWeight: 500,
               transition: 'all 0.15s',
               whiteSpace: 'pre-line',
@@ -87,7 +87,7 @@ export default function Home() {
         <Link
           href="/support/manuals"
           style={{
-            padding: '2rem 1.5rem',
+            padding: '1.25rem 1rem',
             border: '2px solid #00457c',
             borderRadius: 8,
             textAlign: 'center',
@@ -96,7 +96,7 @@ export default function Home() {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            minHeight: 140,
+            minHeight: 100,
             textDecoration: 'none',
             color: '#111',
             transition: 'all 0.15s',
@@ -105,8 +105,8 @@ export default function Home() {
           onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,69,124,0.15)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'white'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,69,124,0.1)'; }}
         >
-          <span style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📖</span>
-          <span style={{ fontSize: '1.15rem', fontWeight: 600, color: '#00457c' }}>Installation Manuals</span>
+          <span style={{ fontSize: '1.5rem', marginBottom: '0.35rem' }}>📖</span>
+          <span style={{ fontSize: '1.05rem', fontWeight: 600, color: '#00457c' }}>Installation Manuals</span>
           <span style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.35rem' }}>Browse guides by equipment</span>
         </Link>
 
@@ -114,7 +114,7 @@ export default function Home() {
         <Link
           href="/support/assistant"
           style={{
-            padding: '2rem 1.5rem',
+            padding: '1.25rem 1rem',
             border: '2px solid #00457c',
             borderRadius: 8,
             textAlign: 'center',
@@ -123,7 +123,7 @@ export default function Home() {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            minHeight: 140,
+            minHeight: 100,
             textDecoration: 'none',
             color: '#111',
             transition: 'all 0.15s',
@@ -132,8 +132,8 @@ export default function Home() {
           onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,69,124,0.15)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'white'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,69,124,0.1)'; }}
         >
-          <Image src="/images/VulcanAIAvatar.png" alt="Vulcan AI" width={48} height={48} style={{ borderRadius: '50%', marginBottom: '0.5rem' }} />
-          <span style={{ fontSize: '1.15rem', fontWeight: 600, color: '#00457c' }}>Vulcan AI</span>
+          <Image src="/images/VulcanAIAvatar.png" alt="Vulcan AI" width={40} height={40} style={{ borderRadius: '50%', marginBottom: '0.35rem' }} />
+          <span style={{ fontSize: '1.05rem', fontWeight: 600, color: '#00457c' }}>Vulcan AI</span>
           <span style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.35rem' }}>AI-powered service assistant</span>
         </Link>
       </div>
