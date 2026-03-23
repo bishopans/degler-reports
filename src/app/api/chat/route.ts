@@ -444,21 +444,31 @@ export async function POST(request: NextRequest) {
           const pdfToFetch = sortedManuals[0];
 
           if (pdfToFetch) {
-            console.log(`[VULCAN] Selected PDF: ${pdfToFetch.manufacturer}/${pdfToFetch.product_model} - ${pdfToFetch.manual_type} (${pdfToFetch.filename}, ${pdfToFetch.file_size_bytes} bytes, path: ${pdfToFetch.storage_path})`);
-            const base64Data = await fetchPdfAsBase64(pdfToFetch.storage_path);
-            if (base64Data) {
-              console.log(`[VULCAN] PDF base64 ready: ${base64Data.length} chars — attaching to Claude request`);
-              pdfContentBlocks.push({
-                type: 'document',
-                source: {
-                  type: 'base64',
-                  media_type: 'application/pdf',
-                  data: base64Data,
-                },
-                title: `${pdfToFetch.manufacturer} - ${pdfToFetch.product_model} - ${pdfToFetch.manual_type}`,
-              });
+            // Check if the assistant already answered about this same product
+            // If so, the conversation history has the extracted info — skip the expensive PDF re-download
+            const productModelLower = pdfToFetch.product_model.toLowerCase();
+            const assistantAlreadyCoveredProduct = assistantMessages.toLowerCase().includes(productModelLower);
+            const isFollowUp = recentMessages.filter((m: { role: string }) => m.role === 'assistant').length > 0;
+
+            if (isFollowUp && assistantAlreadyCoveredProduct) {
+              console.log(`[VULCAN] SKIP PDF re-download — assistant already discussed "${pdfToFetch.product_model}" in previous response. Using conversation history.`);
             } else {
-              console.error(`[VULCAN] PDF download returned null for ${pdfToFetch.storage_path}`);
+              console.log(`[VULCAN] Selected PDF: ${pdfToFetch.manufacturer}/${pdfToFetch.product_model} - ${pdfToFetch.manual_type} (${pdfToFetch.filename}, ${pdfToFetch.file_size_bytes} bytes, path: ${pdfToFetch.storage_path})`);
+              const base64Data = await fetchPdfAsBase64(pdfToFetch.storage_path);
+              if (base64Data) {
+                console.log(`[VULCAN] PDF base64 ready: ${base64Data.length} chars — attaching to Claude request`);
+                pdfContentBlocks.push({
+                  type: 'document',
+                  source: {
+                    type: 'base64',
+                    media_type: 'application/pdf',
+                    data: base64Data,
+                  },
+                  title: `${pdfToFetch.manufacturer} - ${pdfToFetch.product_model} - ${pdfToFetch.manual_type}`,
+                });
+              } else {
+                console.error(`[VULCAN] PDF download returned null for ${pdfToFetch.storage_path}`);
+              }
             }
           } else {
             console.log('[VULCAN] No PDF candidates after filtering (size < 5MB, has storage_path)');
@@ -469,6 +479,8 @@ export async function POST(request: NextRequest) {
 
           if (pdfContentBlocks.length > 0) {
             contextInfo += `\n\nA PDF document has been attached to the user's message below. READ IT CAREFULLY and use its content to answer the user's question with specific details, steps, and technical information. The attached document is: ${pdfToFetch.manufacturer} / ${pdfToFetch.product_model} / ${pdfToFetch.manual_type} (${pdfToFetch.filename}).`;
+          } else if (pdfToFetch && assistantMessages.toLowerCase().includes(pdfToFetch.product_model.toLowerCase())) {
+            contextInfo += `\n\nYou have already discussed the ${pdfToFetch.manufacturer} ${pdfToFetch.product_model} in this conversation. Use the information from your PREVIOUS RESPONSES in the conversation history to answer the user's follow-up question. Provide specific details and steps based on what you already know about this product.`;
           } else {
             contextInfo += `\n\nNote: PDF content could not be loaded at this time. Let the user know what documents are available and suggest they download the relevant ones from the manual library.`;
           }
@@ -516,12 +528,14 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`[VULCAN] Claude API error ${response.status}: ${errorText.substring(0, 500)}`);
-      // Return more detail for debugging — include Claude's status code
       const isOverloaded = response.status === 529 || response.status === 503;
+      const isTimeout = response.status === 408 || response.status === 504;
       return NextResponse.json(
         { error: isOverloaded
             ? 'Vulcan is experiencing high demand. Please try again in a moment.'
-            : 'Failed to get a response from Vulcan. Please try again.' },
+            : isTimeout
+            ? 'Vulcan took too long to respond. Please try again.'
+            : `Failed to get a response from Vulcan (error ${response.status}). Please try again.` },
         { status: 502 }
       );
     }
