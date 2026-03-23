@@ -23,15 +23,16 @@ interface Manual {
 interface CategoryInfo {
   name: string;
   icon: string;
+  imageUrl?: string;
   description: string;
   count: number;
 }
 
-const CATEGORY_META: Record<string, { icon: string; description: string }> = {
+const CATEGORY_META: Record<string, { icon: string; imageUrl?: string; description: string }> = {
   Scoreboards: { icon: '📊', description: 'LED scoreboards, controllers, and display systems' },
   Bleachers: { icon: '🏟️', description: 'Telescopic bleachers, fixed seating, and grandstands' },
   'Athletic Equipment': { icon: '🏀', description: 'Basketball goals, volleyball systems, and gym equipment' },
-  'Folding Partitions': { icon: '🚪', description: 'Operable walls, gym dividers, and partition systems' },
+  'Folding Partitions': { icon: '🚪', imageUrl: 'https://kwik-wall.com/wp-content/uploads/2025/02/Continuously-Hinged-Panels.webp', description: 'Operable walls, gym dividers, and partition systems' },
   Other: { icon: '🔧', description: 'Miscellaneous equipment and accessories' },
 };
 
@@ -189,7 +190,7 @@ export default function ManualsPage() {
     const cats: CategoryInfo[] = [];
     for (const name of order) {
       const meta = CATEGORY_META[name] || { icon: '📄', description: '' };
-      cats.push({ name, icon: meta.icon, description: meta.description, count: counts[name] || 0 });
+      cats.push({ name, icon: meta.icon, imageUrl: meta.imageUrl, description: meta.description, count: counts[name] || 0 });
       delete counts[name];
     }
     for (const [name, count] of Object.entries(counts)) {
@@ -705,7 +706,11 @@ export default function ManualsPage() {
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 >
-                  <span style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{cat.icon}</span>
+                  {cat.imageUrl ? (
+                    <img src={cat.imageUrl} alt={cat.name} style={{ height: 48, width: 48, objectFit: 'cover', borderRadius: 8, marginBottom: '0.5rem' }} />
+                  ) : (
+                    <span style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{cat.icon}</span>
+                  )}
                   <span style={{ fontSize: '1rem', fontWeight: 600, color: '#111', marginBottom: '0.25rem' }}>{cat.name}</span>
                   <span style={{ fontSize: '0.8rem', color: '#6b7280', lineHeight: 1.4 }}>{cat.description}</span>
                   <span style={{
