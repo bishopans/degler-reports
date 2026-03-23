@@ -29,7 +29,7 @@ interface CategoryInfo {
 }
 
 const CATEGORY_META: Record<string, { icon: string; imageUrl?: string; description: string }> = {
-  Scoreboards: { icon: '📊', description: 'LED scoreboards, controllers, and display systems' },
+  Scoreboards: { icon: '📊', imageUrl: 'https://www.fair-play.com/wp-content/uploads/2020/03/PS-1401-4-fp-183x136.png', description: 'LED scoreboards, controllers, and display systems' },
   Bleachers: { icon: '🏟️', description: 'Telescopic bleachers, fixed seating, and grandstands' },
   'Athletic Equipment': { icon: '🏀', description: 'Basketball goals, volleyball systems, and gym equipment' },
   'Folding Partitions': { icon: '🚪', imageUrl: 'https://kwik-wall.com/wp-content/uploads/2025/02/Continuously-Hinged-Panels.webp', description: 'Operable walls, gym dividers, and partition systems' },
