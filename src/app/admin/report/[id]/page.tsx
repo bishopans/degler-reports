@@ -784,12 +784,45 @@ export default function ReportDetailPage() {
                   ×
                 </button>
                 <p style={{
-                  textAlign: 'center', fontSize: '0.75rem', marginTop: '0.25rem',
-                  color: (data.form_data as Record<string, Record<string, string>>)?.photo_captions?.[url] ? '#374151' : '#6b7280',
-                  fontWeight: (data.form_data as Record<string, Record<string, string>>)?.photo_captions?.[url] ? 500 : 400,
+                  textAlign: 'center', fontSize: '0.7rem', marginTop: '0.25rem',
+                  color: '#6b7280',
                 }}>
-                  {(data.form_data as Record<string, Record<string, string>>)?.photo_captions?.[url] || `Photo ${i + 1}`}
+                  Photo {i + 1}
                 </p>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={(editData?.form_data as Record<string, Record<string, string>>)?.photo_captions?.[url] || ''}
+                    placeholder="Add caption..."
+                    onChange={(e) => {
+                      if (!editData) return;
+                      const currentCaptions = ((editData.form_data as Record<string, Record<string, string>>)?.photo_captions) || {};
+                      const updatedCaptions = { ...currentCaptions, [url]: e.target.value };
+                      setEditData({
+                        ...editData,
+                        form_data: { ...editData.form_data, photo_captions: updatedCaptions },
+                      });
+                    }}
+                    style={{
+                      width: '100%',
+                      fontSize: '0.75rem',
+                      padding: '0.25rem 0.5rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.25rem',
+                      textAlign: 'center',
+                      marginTop: '0.125rem',
+                    }}
+                  />
+                ) : (
+                  (data.form_data as Record<string, Record<string, string>>)?.photo_captions?.[url] ? (
+                    <p style={{
+                      textAlign: 'center', fontSize: '0.75rem', marginTop: '0.125rem',
+                      color: '#374151', fontWeight: 500, fontStyle: 'italic',
+                    }}>
+                      {(data.form_data as Record<string, Record<string, string>>)?.photo_captions?.[url]}
+                    </p>
+                  ) : null
+                )}
               </div>
             ))}
           </div>

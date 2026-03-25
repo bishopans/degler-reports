@@ -1119,12 +1119,12 @@ async function addPhotosSection(doc: jsPDF, submission: Submission, forceNewPage
     // Cap at the full-page max so photos on fresh pages stay consistent
     const maxPhotoHeight = Math.min(availableForPhoto, maxPhotoHeightFull);
 
-    // Photo label — use caption if available, otherwise "Photo N"
+    // Photo label — always "Photo N" on top, caption underneath if available
     const formData = submission.form_data as Record<string, unknown> | null;
     const captions = formData?.photo_captions as Record<string, string> | undefined;
     const photoUrl = submission.photo_urls[i];
     const caption = captions?.[photoUrl];
-    const label = caption ? `${caption}` : `Photo ${i + 1}`;
+    const label = `Photo ${i + 1}`;
 
     // Load photo as base64
     const photoData = await loadImageAsBase64(submission.photo_urls[i]);
@@ -1154,10 +1154,21 @@ async function addPhotosSection(doc: jsPDF, submission: Submission, forceNewPage
 
       const photoX = photoCenterX - photoWidth / 2;
 
-      doc.setFont('helvetica', caption ? 'bold' : 'normal');
+      // "Photo N" label
+      doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
       doc.text(label, photoCenterX, currentY, { align: 'center' });
       currentY += 5;
+
+      // Caption underneath label if available
+      if (caption) {
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(8);
+        doc.setTextColor(80, 80, 80);
+        doc.text(caption, photoCenterX, currentY, { align: 'center' });
+        doc.setTextColor(0, 0, 0);
+        currentY += 4;
+      }
 
       try {
         doc.addImage(
