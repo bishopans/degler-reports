@@ -29,8 +29,12 @@ export default function MaterialDeliveryForm() {
   const uploadId = useMemo(() => crypto.randomUUID(), []);
   const [uploadedPhotoUrls, setUploadedPhotoUrls] = useState<string[]>([]);
   const [localPhotoFiles, setLocalPhotoFiles] = useState<File[]>([]);
+  const [photoCaptions, setPhotoCaptions] = useState<Record<string, string>>({});
   const handlePhotosChange = useCallback((urls: string[]) => { setUploadedPhotoUrls(urls); }, []);
   const handleLocalFilesChange = useCallback((files: File[]) => { setLocalPhotoFiles(files); }, []);
+  const handleCaptionsChange = useCallback((captions: Record<string, string>) => {
+    setPhotoCaptions(captions);
+  }, []);
 
   const { draftRestored, draftTimestamp, lastSaveTime, clearDraft, dismissDraftBanner } = useDraftSave('material-delivery', formData, setFormData, isSubmitted);
 
@@ -48,7 +52,8 @@ export default function MaterialDeliveryForm() {
       submitData.append('form_data', JSON.stringify({
         deliveredItems: formData.deliveredItems,
         storageLocation: formData.storageLocation,
-        missingItems: formData.missingItems
+        missingItems: formData.missingItems,
+        photo_captions: photoCaptions
       }));
 
       // Send pre-uploaded photo URLs
@@ -285,6 +290,7 @@ export default function MaterialDeliveryForm() {
             uploadId={uploadId}
             onPhotosChange={handlePhotosChange}
             onLocalFilesChange={handleLocalFilesChange}
+            onCaptionsChange={handleCaptionsChange}
           />
 
           {/* Submit Button */}

@@ -238,6 +238,7 @@ export default function MaintenanceForm() {
   const uploadId = useMemo(() => crypto.randomUUID(), []);
   const [uploadedPhotoUrls, setUploadedPhotoUrls] = useState<string[]>([]);
   const [localPhotoFiles, setLocalPhotoFiles] = useState<File[]>([]);
+  const [photoCaptions, setPhotoCaptions] = useState<Record<string, string>>({});
 
   const { draftRestored, draftTimestamp, lastSaveTime, clearDraft, dismissDraftBanner } = useDraftSave('maintenance', formData, setFormData, isSubmitted);
 
@@ -247,6 +248,10 @@ export default function MaintenanceForm() {
 
   const handleLocalFilesChange = useCallback((files: File[]) => {
     setLocalPhotoFiles(files);
+  }, []);
+
+  const handleCaptionsChange = useCallback((captions: Record<string, string>) => {
+    setPhotoCaptions(captions);
   }, []);
 
   // Handle form submission
@@ -317,6 +322,7 @@ export default function MaintenanceForm() {
         equipmentSafe: filteredEquipmentSafe,
         equipmentTurnover: formData.equipmentTurnover,
         otherNotes: formData.otherNotes,
+        photo_captions: photoCaptions,
         ...(includeOutdoorBleacher ? { outdoorBleacherData: outdoorBleacherData } : {})
       }));
 
@@ -897,6 +903,7 @@ export default function MaintenanceForm() {
               uploadId={uploadId}
               onPhotosChange={handlePhotosChange}
               onLocalFilesChange={handleLocalFilesChange}
+              onCaptionsChange={handleCaptionsChange}
             />
 
             <div className="pt-4">

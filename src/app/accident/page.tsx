@@ -83,8 +83,12 @@ export default function IncidentReportForm() {
   const uploadId = useMemo(() => crypto.randomUUID(), []);
   const [uploadedPhotoUrls, setUploadedPhotoUrls] = useState<string[]>([]);
   const [localPhotoFiles, setLocalPhotoFiles] = useState<File[]>([]);
+  const [photoCaptions, setPhotoCaptions] = useState<Record<string, string>>({});
   const handlePhotosChange = useCallback((urls: string[]) => { setUploadedPhotoUrls(urls); }, []);
   const handleLocalFilesChange = useCallback((files: File[]) => { setLocalPhotoFiles(files); }, []);
+  const handleCaptionsChange = useCallback((captions: Record<string, string>) => {
+    setPhotoCaptions(captions);
+  }, []);
 
   const { draftRestored, draftTimestamp, lastSaveTime, clearDraft, dismissDraftBanner } = useDraftSave('accident', formData, setFormData, isSubmitted);
 
@@ -117,7 +121,8 @@ export default function IncidentReportForm() {
         futurePreventionSteps: formData.futurePreventionSteps,
         reportedTo: formData.reportedTo,
         reportedDate: formData.reportedDate,
-        otherNotes: formData.otherNotes
+        otherNotes: formData.otherNotes,
+        photo_captions: photoCaptions
       }));
 
       // Send pre-uploaded photo URLs
@@ -633,6 +638,7 @@ export default function IncidentReportForm() {
                 uploadId={uploadId}
                 onPhotosChange={handlePhotosChange}
                 onLocalFilesChange={handleLocalFilesChange}
+                onCaptionsChange={handleCaptionsChange}
               />
             </div>
 

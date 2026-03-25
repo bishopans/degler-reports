@@ -70,7 +70,11 @@ export default function TimeSheetForm() {
 
   const uploadId = useMemo(() => crypto.randomUUID(), []);
   const [uploadedPhotoUrls, setUploadedPhotoUrls] = useState<string[]>([]);
+  const [photoCaptions, setPhotoCaptions] = useState<Record<string, string>>({});
   const handlePhotosChange = useCallback((urls: string[]) => { setUploadedPhotoUrls(urls); }, []);
+  const handleCaptionsChange = useCallback((captions: Record<string, string>) => {
+    setPhotoCaptions(captions);
+  }, []);
 
   // Draft save — strip photos from entries before saving
   const { draftRestored, draftTimestamp, lastSaveTime, clearDraft, dismissDraftBanner } = useDraftSave('time-sheets', formData, setFormData, isSubmitted, ['photos']);
@@ -160,7 +164,8 @@ export default function TimeSheetForm() {
         name: formData.name,
         rank: formData.rank,
         entries: formData.entries.map(({photos, ...rest}) => rest),
-        totals: calculateTotals()
+        totals: calculateTotals(),
+        photo_captions: photoCaptions
       }));
 
       // Send pre-uploaded photo URLs
@@ -560,6 +565,7 @@ export default function TimeSheetForm() {
             <PhotoUploader
               uploadId={uploadId}
               onPhotosChange={handlePhotosChange}
+              onCaptionsChange={handleCaptionsChange}
             />
           </div>
 

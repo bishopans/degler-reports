@@ -1,5 +1,6 @@
 'use client';
 import { useState, useRef, useCallback, useEffect } from 'react';
+import PhotoAnnotator from './PhotoAnnotator';
 
 interface UploadedPhoto {
   url: string;
@@ -13,6 +14,8 @@ interface PhotoInProgress {
   progress: number; // 0-100
   url?: string;
   errorMsg?: string;
+  caption?: string;
+  annotatedPreview?: string; // blob URL of annotated version
 }
 
 interface PhotoUploaderProps {
@@ -20,6 +23,8 @@ interface PhotoUploaderProps {
   onPhotosChange: (urls: string[]) => void;
   /** Optional: also keep local File refs for PDF snapshot (blob URLs) */
   onLocalFilesChange?: (files: File[]) => void;
+  /** Optional: callback for caption changes - maps photo URL to caption text */
+  onCaptionsChange?: (captions: Record<string, string>) => void;
 }
 
 // Compress an image file using canvas
@@ -93,12 +98,14 @@ async function compressImage(file: File, maxDimension = 2000, quality = 0.8): Pr
   });
 }
 
-export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesChange }: PhotoUploaderProps) {
+export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesChange, onCaptionsChange }: PhotoUploaderProps) {
   const [photos, setPhotos] = useState<PhotoInProgress[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadedUrlsRef = useRef<string[]>([]);
   const localFilesRef = useRef<File[]>([]);
   const photoCounterRef = useRef(0);
+  const [annotatingIdx, setAnnotatingIdx] = useState<number | null>(null);
+  const [editingCaptionIdx, setEditingCaptionIdx] = useState<number | null>(null);
 
   // Sync URLs back to parent whenever a photo finishes uploading
   useEffect(() => {
@@ -108,6 +115,18 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
       onPhotosChange(doneUrls);
     }
   }, [photos, onPhotosChange]);
+
+  // Sync captions back to parent
+  useEffect(() => {
+    if (!onCaptionsChange) return;
+    const captions: Record<string, string> = {};
+    for (const p of photos) {
+      if (p.status === 'done' && p.url && p.caption) {
+        captions[p.url] = p.caption;
+      }
+    }
+    onCaptionsChange(captions);
+  }, [photos, onCaptionsChange]);
 
   const uploadSinglePhoto = useCallback(async (file: File, idx: number, photoIndex: number) => {
     // Update status to compressing
@@ -186,6 +205,7 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
       preview: URL.createObjectURL(file),
       status: 'compressing' as const,
       progress: 0,
+      caption: '',
     }));
 
     setPhotos(prev => [...prev, ...newPhotos]);
@@ -208,6 +228,9 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
       // Revoke preview URL
       if (updated[idx]) {
         URL.revokeObjectURL(updated[idx].preview);
+        if (updated[idx].annotatedPreview) {
+          URL.revokeObjectURL(updated[idx].annotatedPreview!);
+        }
       }
       updated.splice(idx, 1);
       return updated;
@@ -230,16 +253,163 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
       });
   }, [photos, uploadSinglePhoto]);
 
+  const updateCaption = useCallback((idx: number, caption: string) => {
+    setPhotos(prev => {
+      const updated = [...prev];
+      if (updated[idx]) {
+        updated[idx] = { ...updated[idx], caption };
+      }
+      return updated;
+    });
+  }, []);
+
+  // Handle saving annotated photo — re-upload the annotated version
+  const handleAnnotationSave = useCallback(async (blob: Blob) => {
+    if (annotatingIdx === null) return;
+    const idx = annotatingIdx;
+    const photo = photos[idx];
+    if (!photo) { setAnnotatingIdx(null); return; }
+
+    // Create new preview from annotated blob
+    const annotatedPreview = URL.createObjectURL(blob);
+    // Revoke old annotated preview if exists
+    if (photo.annotatedPreview) {
+      URL.revokeObjectURL(photo.annotatedPreview);
+    }
+
+    // Update preview to show annotated version
+    setPhotos(prev => {
+      const updated = [...prev];
+      if (updated[idx]) {
+        updated[idx] = {
+          ...updated[idx],
+          annotatedPreview,
+          status: 'uploading',
+          progress: 50,
+        };
+      }
+      return updated;
+    });
+
+    setAnnotatingIdx(null);
+
+    // Re-upload the annotated photo
+    const file = new File([blob], photo.name.replace(/\.[^.]+$/, '-annotated.jpg'), {
+      type: 'image/jpeg',
+      lastModified: Date.now(),
+    });
+
+    // Update local files ref
+    if (localFilesRef.current[idx]) {
+      localFilesRef.current[idx] = file;
+      onLocalFilesChange?.(localFilesRef.current);
+    }
+
+    photoCounterRef.current += 1;
+    const newIndex = photoCounterRef.current;
+
+    const formData = new FormData();
+    formData.append('photo', file);
+    formData.append('upload_id', uploadId);
+    formData.append('index', String(newIndex));
+
+    try {
+      const response = await fetch('/api/upload-photo', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Upload failed');
+      const result = await response.json();
+
+      setPhotos(prev => {
+        const updated = [...prev];
+        if (updated[idx]) {
+          updated[idx] = { ...updated[idx], status: 'done', progress: 100, url: result.url };
+        }
+        return updated;
+      });
+    } catch (error) {
+      console.error('Annotated photo upload error:', error);
+      setPhotos(prev => {
+        const updated = [...prev];
+        if (updated[idx]) {
+          updated[idx] = { ...updated[idx], status: 'error', progress: 0, errorMsg: 'Upload failed' };
+        }
+        return updated;
+      });
+    }
+  }, [annotatingIdx, photos, uploadId, onLocalFilesChange]);
+
   const doneCount = photos.filter(p => p.status === 'done').length;
   const errorCount = photos.filter(p => p.status === 'error').length;
   const inProgressCount = photos.filter(p => p.status === 'compressing' || p.status === 'uploading').length;
 
   return (
     <div className="space-y-3">
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        .photo-card {
+          position: relative;
+          padding-top: 4px;
+          padding-right: 4px;
+        }
+        .photo-caption-input {
+          width: 100%;
+          padding: 0.25rem 0.375rem;
+          font-size: 0.7rem;
+          border: 1px solid #d1d5db;
+          border-radius: 0 0 0.25rem 0.25rem;
+          background: white;
+          color: #374151;
+          outline: none;
+          box-sizing: border-box;
+        }
+        .photo-caption-input:focus {
+          border-color: #3b82f6;
+        }
+        .photo-caption-display {
+          font-size: 0.7rem;
+          color: #374151;
+          background: #f3f4f6;
+          padding: 0.2rem 0.375rem;
+          border-radius: 0 0 0.25rem 0.25rem;
+          cursor: pointer;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .photo-markup-btn {
+          position: absolute;
+          bottom: 4px;
+          right: 8px;
+          background: rgba(0,0,0,0.6);
+          color: white;
+          border: none;
+          border-radius: 0.25rem;
+          padding: 0.125rem 0.375rem;
+          font-size: 0.65rem;
+          font-weight: 600;
+          cursor: pointer;
+          z-index: 5;
+          transition: background 0.15s;
+        }
+        .photo-markup-btn:hover {
+          background: rgba(0,0,0,0.8);
+        }
+        @media (max-width: 640px) {
+          .photo-caption-input, .photo-caption-display {
+            font-size: 0.65rem;
+          }
+        }
+      `}</style>
+
       <div>
         <label className="block mb-1">Upload Photos</label>
         <p className="text-sm text-gray-600 mb-2">
-          Please upload any pictures of equipment or maintenance performed
+          Please upload any pictures of equipment or maintenance performed. You can add captions and markup to each photo.
         </p>
         <input
           ref={fileInputRef}
@@ -261,89 +431,116 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
             )}
           </div>
 
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {photos.map((photo, idx) => (
-              <div key={idx} className="relative group" style={{ paddingTop: '4px', paddingRight: '4px' }}>
-                <div className="aspect-square rounded overflow-hidden border bg-gray-100">
-                  <img
-                    src={photo.preview}
-                    alt={photo.name}
-                    className={`w-full h-full object-cover ${
-                      photo.status === 'error' ? 'opacity-40' :
-                      photo.status !== 'done' ? 'opacity-60' : ''
-                    }`}
-                  />
+              <div key={idx} className="photo-card">
+                <div style={{ borderRadius: '0.25rem 0.25rem 0 0', overflow: 'hidden', border: '1px solid #e5e7eb', borderBottom: 'none', position: 'relative' }}>
+                  <div style={{ aspectRatio: '1', position: 'relative', backgroundColor: '#f3f4f6' }}>
+                    <img
+                      src={photo.annotatedPreview || photo.preview}
+                      alt={photo.caption || photo.name}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        opacity: photo.status === 'error' ? 0.4 : photo.status !== 'done' ? 0.6 : 1,
+                      }}
+                    />
 
-                  {/* Overlay for in-progress */}
-                  {(photo.status === 'compressing' || photo.status === 'uploading') && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
-                      <div style={{ width: '2rem', height: '2rem', border: '3px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                      <span style={{ color: 'white', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                        {photo.status === 'compressing' ? 'Resizing...' : 'Uploading...'}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Done checkmark - bottom left corner */}
-                  {photo.status === 'done' && (
-                    <div style={{
-                      position: 'absolute',
-                      bottom: '4px',
-                      left: '4px',
-                      width: '1.5rem',
-                      height: '1.5rem',
-                      backgroundColor: '#22c55e',
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      <svg style={{ width: '0.875rem', height: '0.875rem', color: 'white' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                  )}
-
-                  {/* Error indicator */}
-                  {photo.status === 'error' && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}>
-                      <div style={{ width: '1.75rem', height: '1.75rem', backgroundColor: '#ef4444', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.25rem' }}>
-                        <span style={{ color: 'white', fontSize: '0.8rem', fontWeight: 'bold' }}>!</span>
+                    {/* Overlay for in-progress */}
+                    {(photo.status === 'compressing' || photo.status === 'uploading') && (
+                      <div style={{
+                        position: 'absolute', inset: 0,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        backgroundColor: 'rgba(0,0,0,0.3)',
+                      }}>
+                        <div style={{ width: '2rem', height: '2rem', border: '3px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                        <span style={{ color: 'white', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                          {photo.status === 'compressing' ? 'Resizing...' : 'Uploading...'}
+                        </span>
                       </div>
+                    )}
+
+                    {/* Done checkmark - bottom left */}
+                    {photo.status === 'done' && (
+                      <div style={{
+                        position: 'absolute', bottom: '4px', left: '4px',
+                        width: '1.5rem', height: '1.5rem', backgroundColor: '#22c55e',
+                        borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <svg style={{ width: '0.875rem', height: '0.875rem', color: 'white' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+
+                    {/* Markup button - bottom right, only when done */}
+                    {photo.status === 'done' && (
                       <button
                         type="button"
-                        onClick={() => retryPhoto(idx)}
-                        style={{ color: 'white', fontSize: '0.75rem', textDecoration: 'underline', background: 'none', border: 'none', padding: '0.25rem 0.5rem', cursor: 'pointer' }}
+                        className="photo-markup-btn"
+                        onClick={() => setAnnotatingIdx(idx)}
                       >
-                        Retry
+                        Markup
                       </button>
-                    </div>
-                  )}
+                    )}
+
+                    {/* Error indicator */}
+                    {photo.status === 'error' && (
+                      <div style={{
+                        position: 'absolute', inset: 0,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        backgroundColor: 'rgba(0,0,0,0.3)',
+                      }}>
+                        <div style={{ width: '1.75rem', height: '1.75rem', backgroundColor: '#ef4444', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.25rem' }}>
+                          <span style={{ color: 'white', fontSize: '0.8rem', fontWeight: 'bold' }}>!</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => retryPhoto(idx)}
+                          style={{ color: 'white', fontSize: '0.75rem', textDecoration: 'underline', background: 'none', border: 'none', padding: '0.25rem 0.5rem', cursor: 'pointer' }}
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Remove button - top right, outside the image */}
+                {/* Caption area */}
+                {editingCaptionIdx === idx ? (
+                  <input
+                    type="text"
+                    className="photo-caption-input"
+                    value={photo.caption || ''}
+                    onChange={e => updateCaption(idx, e.target.value)}
+                    onBlur={() => setEditingCaptionIdx(null)}
+                    onKeyDown={e => { if (e.key === 'Enter') setEditingCaptionIdx(null); }}
+                    placeholder="Add a caption..."
+                    autoFocus
+                  />
+                ) : (
+                  <div
+                    className="photo-caption-display"
+                    onClick={() => setEditingCaptionIdx(idx)}
+                    title="Click to edit caption"
+                  >
+                    {photo.caption || 'Tap to add caption...'}
+                  </div>
+                )}
+
+                {/* Remove button */}
                 <button
                   type="button"
                   onClick={() => removePhoto(idx)}
                   className="photo-remove-btn"
                   style={{
-                    position: 'absolute',
-                    top: '-2px',
-                    right: '-2px',
-                    width: '1.625rem',
-                    height: '1.625rem',
-                    backgroundColor: '#ef4444',
-                    color: 'white',
-                    borderRadius: '50%',
-                    fontSize: '1rem',
-                    lineHeight: '1',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: '2px solid white',
-                    cursor: 'pointer',
-                    padding: 0,
-                    zIndex: 10,
+                    position: 'absolute', top: '-2px', right: '-2px',
+                    width: '1.625rem', height: '1.625rem',
+                    backgroundColor: '#ef4444', color: 'white', borderRadius: '50%',
+                    fontSize: '1rem', lineHeight: '1',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: '2px solid white', cursor: 'pointer', padding: 0, zIndex: 10,
                   }}
                 >
                   ×
@@ -354,11 +551,14 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
         </div>
       )}
 
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+      {/* Annotation overlay */}
+      {annotatingIdx !== null && photos[annotatingIdx] && (
+        <PhotoAnnotator
+          imageUrl={photos[annotatingIdx].annotatedPreview || photos[annotatingIdx].preview}
+          onSave={handleAnnotationSave}
+          onCancel={() => setAnnotatingIdx(null)}
+        />
+      )}
     </div>
   );
 }

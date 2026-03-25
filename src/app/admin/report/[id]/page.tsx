@@ -783,8 +783,12 @@ export default function ReportDetailPage() {
                 >
                   ×
                 </button>
-                <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                  Photo {i + 1}
+                <p style={{
+                  textAlign: 'center', fontSize: '0.75rem', marginTop: '0.25rem',
+                  color: (data.form_data as Record<string, Record<string, string>>)?.photo_captions?.[url] ? '#374151' : '#6b7280',
+                  fontWeight: (data.form_data as Record<string, Record<string, string>>)?.photo_captions?.[url] ? 500 : 400,
+                }}>
+                  {(data.form_data as Record<string, Record<string, string>>)?.photo_captions?.[url] || `Photo ${i + 1}`}
                 </p>
               </div>
             ))}

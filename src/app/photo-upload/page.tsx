@@ -45,8 +45,12 @@ export default function PhotoUploadForm() {
   const uploadId = useMemo(() => crypto.randomUUID(), []);
   const [uploadedPhotoUrls, setUploadedPhotoUrls] = useState<string[]>([]);
   const [localPhotoFiles, setLocalPhotoFiles] = useState<File[]>([]);
+  const [photoCaptions, setPhotoCaptions] = useState<Record<string, string>>({});
   const handlePhotosChange = useCallback((urls: string[]) => { setUploadedPhotoUrls(urls); }, []);
   const handleLocalFilesChange = useCallback((files: File[]) => { setLocalPhotoFiles(files); }, []);
+  const handleCaptionsChange = useCallback((captions: Record<string, string>) => {
+    setPhotoCaptions(captions);
+  }, []);
 
   const { draftRestored, draftTimestamp, lastSaveTime, clearDraft, dismissDraftBanner } = useDraftSave('photo-upload', formData, setFormData, isSubmitted);
 
@@ -65,6 +69,7 @@ export default function PhotoUploadForm() {
       submitData.append('form_data', JSON.stringify({
         uploadedBy: formData.yourName,
         jobName: formData.jobName,
+        photo_captions: photoCaptions
       }));
 
       // Send pre-uploaded photo URLs
@@ -238,6 +243,7 @@ export default function PhotoUploadForm() {
               uploadId={uploadId}
               onPhotosChange={handlePhotosChange}
               onLocalFilesChange={handleLocalFilesChange}
+              onCaptionsChange={handleCaptionsChange}
             />
 
             <div className="pt-4">

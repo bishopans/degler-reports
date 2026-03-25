@@ -34,8 +34,12 @@ export default function MaterialTurnoverForm() {
   const uploadId = useMemo(() => crypto.randomUUID(), []);
   const [uploadedPhotoUrls, setUploadedPhotoUrls] = useState<string[]>([]);
   const [localPhotoFiles, setLocalPhotoFiles] = useState<File[]>([]);
+  const [photoCaptions, setPhotoCaptions] = useState<Record<string, string>>({});
   const handlePhotosChange = useCallback((urls: string[]) => { setUploadedPhotoUrls(urls); }, []);
   const handleLocalFilesChange = useCallback((files: File[]) => { setLocalPhotoFiles(files); }, []);
+  const handleCaptionsChange = useCallback((captions: Record<string, string>) => {
+    setPhotoCaptions(captions);
+  }, []);
 
   const { draftRestored, draftTimestamp, lastSaveTime, clearDraft, dismissDraftBanner } = useDraftSave('material-turnover', formData, setFormData, isSubmitted, ['photos', 'signature']);
 
@@ -54,7 +58,8 @@ export default function MaterialTurnoverForm() {
         turnoverItems: formData.turnoverItems,
         recipientName: formData.recipientName,
         recipientType: formData.recipientType,
-        otherSpecification: formData.otherSpecification
+        otherSpecification: formData.otherSpecification,
+        photo_captions: photoCaptions
       }));
 
       // Send pre-uploaded photo URLs
@@ -381,6 +386,7 @@ export default function MaterialTurnoverForm() {
             uploadId={uploadId}
             onPhotosChange={handlePhotosChange}
             onLocalFilesChange={handleLocalFilesChange}
+            onCaptionsChange={handleCaptionsChange}
           />
 
           {/* Submit Button */}

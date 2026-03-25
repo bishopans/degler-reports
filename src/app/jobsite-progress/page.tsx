@@ -27,8 +27,12 @@ export default function JobSiteProgressForm() {
   const uploadId = useMemo(() => crypto.randomUUID(), []);
   const [uploadedPhotoUrls, setUploadedPhotoUrls] = useState<string[]>([]);
   const [localPhotoFiles, setLocalPhotoFiles] = useState<File[]>([]);
+  const [photoCaptions, setPhotoCaptions] = useState<Record<string, string>>({});
   const handlePhotosChange = useCallback((urls: string[]) => { setUploadedPhotoUrls(urls); }, []);
   const handleLocalFilesChange = useCallback((files: File[]) => { setLocalPhotoFiles(files); }, []);
+  const handleCaptionsChange = useCallback((captions: Record<string, string>) => {
+    setPhotoCaptions(captions);
+  }, []);
 
   const { draftRestored, draftTimestamp, lastSaveTime, clearDraft, dismissDraftBanner } = useDraftSave('jobsite-progress', formData, setFormData, isSubmitted);
 
@@ -46,7 +50,8 @@ export default function JobSiteProgressForm() {
       submitData.append('form_data', JSON.stringify({
         equipment: formData.equipment,
         notes: formData.notes,
-        estimatedCompletionDate: formData.estimatedCompletionDate
+        estimatedCompletionDate: formData.estimatedCompletionDate,
+        photo_captions: photoCaptions
       }));
 
       // Send pre-uploaded photo URLs
@@ -283,6 +288,7 @@ export default function JobSiteProgressForm() {
             uploadId={uploadId}
             onPhotosChange={handlePhotosChange}
             onLocalFilesChange={handleLocalFilesChange}
+            onCaptionsChange={handleCaptionsChange}
           />
 
           {/* Submit Button */}

@@ -53,8 +53,12 @@ export default function TrainingForm() {
   const uploadId = useMemo(() => crypto.randomUUID(), []);
   const [uploadedPhotoUrls, setUploadedPhotoUrls] = useState<string[]>([]);
   const [localPhotoFiles, setLocalPhotoFiles] = useState<File[]>([]);
+  const [photoCaptions, setPhotoCaptions] = useState<Record<string, string>>({});
   const handlePhotosChange = useCallback((urls: string[]) => { setUploadedPhotoUrls(urls); }, []);
   const handleLocalFilesChange = useCallback((files: File[]) => { setLocalPhotoFiles(files); }, []);
+  const handleCaptionsChange = useCallback((captions: Record<string, string>) => {
+    setPhotoCaptions(captions);
+  }, []);
 
   const { draftRestored, draftTimestamp, lastSaveTime, clearDraft, dismissDraftBanner } = useDraftSave('training', formData, setFormData, isSubmitted, ['photos', 'signature']);
 
@@ -74,7 +78,8 @@ export default function TrainingForm() {
         selectedEquipment: formData.selectedEquipment,
         otherEquipment: formData.otherEquipment,
         equipmentTurnover: formData.equipmentTurnover,
-        notes: formData.notes
+        notes: formData.notes,
+        photo_captions: photoCaptions
       }));
 
       // Send pre-uploaded photo URLs
@@ -439,6 +444,7 @@ Jane Doe
             uploadId={uploadId}
             onPhotosChange={handlePhotosChange}
             onLocalFilesChange={handleLocalFilesChange}
+            onCaptionsChange={handleCaptionsChange}
           />
 
           {/* Submit Button */}
