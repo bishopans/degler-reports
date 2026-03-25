@@ -167,7 +167,38 @@ export default function RafflePage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f3f4f6', padding: '1.5rem' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f3f4f6', padding: '1rem' }}>
+      <style>{`
+        .raffle-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.5rem;
+        }
+        .raffle-filter-bar {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          flex-wrap: wrap;
+        }
+        .raffle-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        @media (max-width: 768px) {
+          .raffle-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .raffle-filter-bar {
+            gap: 0.5rem;
+          }
+          .raffle-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+          }
+        }
+      `}</style>
       {/* Confetti overlay */}
       {showConfetti && (
         <div style={{
@@ -200,9 +231,9 @@ export default function RafflePage() {
         </div>
       )}
 
-      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+      <div style={{ maxWidth: '900px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <div className="raffle-header" style={{ marginBottom: '1.5rem' }}>
           <div>
             <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#00457c' }}>
               Quarterly Report Raffle
@@ -223,9 +254,8 @@ export default function RafflePage() {
         </div>
 
         {/* Quarter selector + Date range filter */}
-        <div style={{
-          marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem',
-          flexWrap: 'wrap', backgroundColor: 'white', padding: '0.75rem 1rem',
+        <div className="raffle-filter-bar" style={{
+          marginBottom: '1.5rem', backgroundColor: 'white', padding: '0.75rem 1rem',
           borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -353,14 +383,14 @@ export default function RafflePage() {
         </div>
 
         {/* Two-column layout: Entries + Winners */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+        <div className="raffle-grid">
           {/* Entry Tallies */}
           <div style={{
             backgroundColor: 'white', borderRadius: '0.75rem', padding: '1.25rem',
             boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
           }}>
             <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#00457c', marginBottom: '0.75rem', borderBottom: '2px solid #00457c', paddingBottom: '0.5rem' }}>
-              Raffle Entries ({totalEntries} total)
+              Raffle Leaderboard ({totalEntries} total)
             </h2>
             <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.75rem' }}>
               Excludes: Photo Uploads, Time Sheets, Accident Reports
