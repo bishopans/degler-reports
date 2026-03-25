@@ -183,6 +183,16 @@ export default function TimeSheetForm() {
 
       const result = await response.json();
 
+      // Remap captions from Supabase URLs to blob URLs for local PDF
+      const snapshotCaptions: Record<string, string> = {};
+      uploadedPhotoUrls.forEach((supaUrl: string, idx: number) => {
+        if (photoCaptions[supaUrl]) {
+          // For time-sheets, we create blob URLs on-the-fly from form entries
+          // We'll use a placeholder key since photos aren't embedded in snapshot
+          snapshotCaptions[supaUrl] = photoCaptions[supaUrl];
+        }
+      });
+
       // Save snapshot for PDF download
       setSubmittedSnapshot({
         id: result.submission_id,
@@ -196,7 +206,8 @@ export default function TimeSheetForm() {
           name: formData.name,
           rank: formData.rank,
           entries: formData.entries.map(({photos, ...rest}) => rest),
-          totals: calculateTotals()
+          totals: calculateTotals(),
+          photo_captions: snapshotCaptions
         },
         photo_urls: [],
         signature_urls: [],

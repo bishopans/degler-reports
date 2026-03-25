@@ -140,6 +140,15 @@ export default function IncidentReportForm() {
 
       const result = await response.json();
 
+      // Remap captions from Supabase URLs to blob URLs for local PDF
+      const photoBlobUrls = localPhotoFiles.map(p => URL.createObjectURL(p));
+      const snapshotCaptions: Record<string, string> = {};
+      uploadedPhotoUrls.forEach((supaUrl: string, idx: number) => {
+        if (photoCaptions[supaUrl] && photoBlobUrls[idx]) {
+          snapshotCaptions[photoBlobUrls[idx]] = photoCaptions[supaUrl];
+        }
+      });
+
       // Save snapshot for PDF download
       setSubmittedSnapshot({
         id: result.submission_id,
@@ -167,8 +176,9 @@ export default function IncidentReportForm() {
           reportedTo: formData.reportedTo,
           reportedDate: formData.reportedDate,
           otherNotes: formData.otherNotes,
+          photo_captions: snapshotCaptions
         },
-        photo_urls: localPhotoFiles.map(p => URL.createObjectURL(p)),
+        photo_urls: photoBlobUrls,
         signature_urls: [],
         status: 'submitted',
         notes: null,

@@ -90,6 +90,14 @@ export default function PhotoUploadForm() {
       // Build snapshot with photo blob URLs for PDF generation
       const photoBlobUrls = localPhotoFiles.map(p => URL.createObjectURL(p));
 
+      // Remap captions from Supabase URLs to blob URLs for local PDF
+      const snapshotCaptions: Record<string, string> = {};
+      uploadedPhotoUrls.forEach((supaUrl: string, idx: number) => {
+        if (photoCaptions[supaUrl] && photoBlobUrls[idx]) {
+          snapshotCaptions[photoBlobUrls[idx]] = photoCaptions[supaUrl];
+        }
+      });
+
       setSubmittedSnapshot({
         id: result.submission_id,
         created_at: new Date().toISOString(),
@@ -105,6 +113,7 @@ export default function PhotoUploadForm() {
         form_data: {
           uploadedBy: formData.yourName,
           jobName: formData.jobName,
+          photo_captions: snapshotCaptions
         },
       });
 

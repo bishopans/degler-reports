@@ -181,6 +181,15 @@ export default function RepairForm() {
 
       // Capture snapshot for PDF before resetting
       const photoBlobUrls = localPhotoFiles.map(p => URL.createObjectURL(p));
+
+      // Remap captions from Supabase URLs to blob URLs for local PDF
+      const snapshotCaptions: Record<string, string> = {};
+      uploadedPhotoUrls.forEach((supaUrl: string, idx: number) => {
+        if (photoCaptions[supaUrl] && photoBlobUrls[idx]) {
+          snapshotCaptions[photoBlobUrls[idx]] = photoCaptions[supaUrl];
+        }
+      });
+
       setSubmittedSnapshot({
         id: result.submission_id,
         created_at: new Date().toISOString(),
@@ -200,7 +209,8 @@ export default function RepairForm() {
           partsNeeded: filteredPartsNeeded,
           equipmentSafe: filteredEquipmentSafe,
           equipmentTurnover: formData.equipmentTurnover,
-          otherNotes: formData.otherNotes
+          otherNotes: formData.otherNotes,
+          photo_captions: snapshotCaptions
         },
       });
 

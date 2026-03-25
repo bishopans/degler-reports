@@ -73,6 +73,15 @@ export default function MaterialDeliveryForm() {
 
       // Capture snapshot for PDF before resetting
       const photoBlobUrls = localPhotoFiles.map(p => URL.createObjectURL(p));
+
+      // Remap captions from Supabase URLs to blob URLs for local PDF
+      const snapshotCaptions: Record<string, string> = {};
+      uploadedPhotoUrls.forEach((supaUrl: string, idx: number) => {
+        if (photoCaptions[supaUrl] && photoBlobUrls[idx]) {
+          snapshotCaptions[photoBlobUrls[idx]] = photoCaptions[supaUrl];
+        }
+      });
+
       setSubmittedSnapshot({
         id: result.submission_id,
         created_at: new Date().toISOString(),
@@ -88,7 +97,8 @@ export default function MaterialDeliveryForm() {
         form_data: {
           deliveredItems: formData.deliveredItems,
           storageLocation: formData.storageLocation,
-          missingItems: formData.missingItems
+          missingItems: formData.missingItems,
+          photo_captions: snapshotCaptions
         },
       });
 
