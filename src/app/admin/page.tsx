@@ -436,6 +436,20 @@ export default function AdminDashboard() {
           >
             Timesheets
           </Link>
+          <Link
+            href="/admin/raffle"
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#C8A415',
+              color: 'white',
+              borderRadius: '0.375rem',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              textDecoration: 'none',
+            }}
+          >
+            Raffle
+          </Link>
           {/* Vulcan Chatbot Toggle */}
           <div style={{ position: 'relative' }}>
             <button
