@@ -26,13 +26,22 @@ export default function RafflePage() {
   const [selectedWinner, setSelectedWinner] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [quarter, setQuarter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const spinIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Generate current quarter label
+  // Generate current quarter label and default date range
   useEffect(() => {
     const now = new Date();
     const q = Math.ceil((now.getMonth() + 1) / 3);
     setQuarter(`Q${q} ${now.getFullYear()}`);
+
+    // Default date range to current quarter
+    const quarterStartMonth = (q - 1) * 3; // 0-indexed
+    const qStart = new Date(now.getFullYear(), quarterStartMonth, 1);
+    const qEnd = new Date(now.getFullYear(), quarterStartMonth + 3, 0); // last day of quarter
+    setDateFrom(qStart.toISOString().split('T')[0]);
+    setDateTo(qEnd.toISOString().split('T')[0]);
   }, []);
 
   useEffect(() => {
@@ -41,12 +50,22 @@ export default function RafflePage() {
       router.push('/admin');
       return;
     }
-    fetchRaffleData();
-  }, []);
+    // Initial fetch happens once dates are set via the other useEffect
+  }, [router]);
 
-  const fetchRaffleData = async () => {
+  // Re-fetch entries whenever date range changes
+  useEffect(() => {
+    if (!dateFrom || !dateTo) return;
+    fetchRaffleData(dateFrom, dateTo);
+  }, [dateFrom, dateTo, fetchRaffleData]);
+
+  const fetchRaffleData = useCallback(async (from?: string, to?: string) => {
     try {
-      const response = await fetch('/api/admin/raffle');
+      const params = new URLSearchParams();
+      if (from) params.set('from', from);
+      if (to) params.set('to', to);
+      const qs = params.toString();
+      const response = await fetch(`/api/admin/raffle${qs ? `?${qs}` : ''}`);
       if (response.ok) {
         const data = await response.json();
         setEntries(data.entries || []);
@@ -57,7 +76,7 @@ export default function RafflePage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   // Build the weighted pool: each name appears once per entry
   const buildPool = useCallback(() => {
@@ -122,7 +141,7 @@ export default function RafflePage() {
 
       if (response.ok) {
         setSelectedWinner(null);
-        fetchRaffleData();
+        fetchRaffleData(dateFrom, dateTo);
       }
     } catch (error) {
       console.error('Failed to record winner:', error);
@@ -133,7 +152,7 @@ export default function RafflePage() {
     if (!window.confirm('Remove this winner from the log?')) return;
     try {
       await fetch(`/api/admin/raffle?id=${id}`, { method: 'DELETE' });
-      fetchRaffleData();
+      fetchRaffleData(dateFrom, dateTo);
     } catch (error) {
       console.error('Failed to delete winner:', error);
     }
@@ -203,18 +222,49 @@ export default function RafflePage() {
           </Link>
         </div>
 
-        {/* Quarter selector */}
-        <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151' }}>Drawing for:</label>
-          <input
-            type="text"
-            value={quarter}
-            onChange={(e) => setQuarter(e.target.value)}
-            style={{
-              padding: '0.375rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem',
-              fontSize: '0.875rem', width: '120px',
-            }}
-          />
+        {/* Quarter selector + Date range filter */}
+        <div style={{
+          marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem',
+          flexWrap: 'wrap', backgroundColor: 'white', padding: '0.75rem 1rem',
+          borderRadius: '0.75rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151' }}>Drawing for:</label>
+            <input
+              type="text"
+              value={quarter}
+              onChange={(e) => setQuarter(e.target.value)}
+              style={{
+                padding: '0.375rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem',
+                fontSize: '0.875rem', width: '120px',
+              }}
+            />
+          </div>
+          <div style={{ width: '1px', height: '24px', backgroundColor: '#d1d5db' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151' }}>From:</label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              style={{
+                padding: '0.375rem 0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem',
+                fontSize: '0.875rem',
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151' }}>To:</label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              style={{
+                padding: '0.375rem 0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem',
+                fontSize: '0.875rem',
+              }}
+            />
+          </div>
         </div>
 
         {/* Spinner Section */}

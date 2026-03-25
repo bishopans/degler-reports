@@ -12,15 +12,29 @@ const ELIGIBLE_REPORT_TYPES = [
 ];
 
 // GET: Fetch raffle entries + past winners
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const from = searchParams.get('from'); // ISO date string e.g. 2025-01-01
+    const to = searchParams.get('to');     // ISO date string e.g. 2025-03-31
+
     // Get submission counts grouped by technician name (only eligible report types)
-    const { data: submissions, error: subError } = await supabase
+    let query = supabase
       .from('submissions')
       .select('technician_name, report_type')
       .in('report_type', ELIGIBLE_REPORT_TYPES)
       .not('technician_name', 'is', null)
       .neq('technician_name', '');
+
+    // Apply date filters if provided
+    if (from) {
+      query = query.gte('created_at', `${from}T00:00:00.000Z`);
+    }
+    if (to) {
+      query = query.lte('created_at', `${to}T23:59:59.999Z`);
+    }
+
+    const { data: submissions, error: subError } = await query;
 
     if (subError) {
       return NextResponse.json({ error: subError.message }, { status: 500 });
