@@ -1119,6 +1119,13 @@ async function addPhotosSection(doc: jsPDF, submission: Submission, forceNewPage
     // Cap at the full-page max so photos on fresh pages stay consistent
     const maxPhotoHeight = Math.min(availableForPhoto, maxPhotoHeightFull);
 
+    // Photo label — use caption if available, otherwise "Photo N"
+    const formData = submission.form_data as Record<string, unknown> | null;
+    const captions = formData?.photo_captions as Record<string, string> | undefined;
+    const photoUrl = submission.photo_urls[i];
+    const caption = captions?.[photoUrl];
+    const label = caption ? `${caption}` : `Photo ${i + 1}`;
+
     // Load photo as base64
     const photoData = await loadImageAsBase64(submission.photo_urls[i]);
     if (photoData) {
@@ -1147,12 +1154,6 @@ async function addPhotosSection(doc: jsPDF, submission: Submission, forceNewPage
 
       const photoX = photoCenterX - photoWidth / 2;
 
-      // Photo label — use caption if available, otherwise "Photo N"
-      const formData = submission.form_data as Record<string, unknown> | null;
-      const captions = formData?.photo_captions as Record<string, string> | undefined;
-      const photoUrl = submission.photo_urls[i];
-      const caption = captions?.[photoUrl];
-      const label = caption ? `${caption}` : `Photo ${i + 1}`;
       doc.setFont('helvetica', caption ? 'bold' : 'normal');
       doc.setFontSize(9);
       doc.text(label, photoCenterX, currentY, { align: 'center' });
