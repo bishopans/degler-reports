@@ -44,21 +44,6 @@ export default function RafflePage() {
     setDateTo(qEnd.toISOString().split('T')[0]);
   }, []);
 
-  useEffect(() => {
-    const unlocked = sessionStorage.getItem('dw-admin-unlocked');
-    if (unlocked !== 'true') {
-      router.push('/admin');
-      return;
-    }
-    // Initial fetch happens once dates are set via the other useEffect
-  }, [router]);
-
-  // Re-fetch entries whenever date range changes
-  useEffect(() => {
-    if (!dateFrom || !dateTo) return;
-    fetchRaffleData(dateFrom, dateTo);
-  }, [dateFrom, dateTo, fetchRaffleData]);
-
   const fetchRaffleData = useCallback(async (from?: string, to?: string) => {
     try {
       const params = new URLSearchParams();
@@ -77,6 +62,21 @@ export default function RafflePage() {
       setIsLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    const unlocked = sessionStorage.getItem('dw-admin-unlocked');
+    if (unlocked !== 'true') {
+      router.push('/admin');
+      return;
+    }
+    // Initial fetch happens once dates are set via the other useEffect
+  }, [router]);
+
+  // Re-fetch entries whenever date range changes
+  useEffect(() => {
+    if (!dateFrom || !dateTo) return;
+    fetchRaffleData(dateFrom, dateTo);
+  }, [dateFrom, dateTo, fetchRaffleData]);
 
   // Build the weighted pool: each name appears once per entry
   const buildPool = useCallback(() => {
