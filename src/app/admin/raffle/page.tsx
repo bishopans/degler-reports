@@ -5,7 +5,8 @@ import Link from 'next/link';
 
 interface RaffleEntry {
   name: string;
-  entries: number;
+  entries: number;  // points (used as raffle tickets)
+  reports: number;  // actual report count
 }
 
 interface RaffleWinner {
@@ -239,7 +240,7 @@ export default function RafflePage() {
               Quarterly Report Raffle
             </h1>
             <p style={{ color: '#6b7280', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-              Every service report submitted = 1 raffle entry
+              Same-day report = 5 pts &middot; Each day late = &minus;1 pt &middot; Minimum 1 pt
             </p>
           </div>
           <Link
@@ -320,7 +321,7 @@ export default function RafflePage() {
                   {selectedWinner}
                 </p>
                 <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                  {entries.find(e => e.name === selectedWinner)?.entries || 0} entries
+                  {entries.find(e => e.name === selectedWinner)?.entries || 0} pts ({entries.find(e => e.name === selectedWinner)?.reports || 0} reports)
                 </p>
                 <style>{`
                   @keyframes winner-pop {
@@ -390,7 +391,7 @@ export default function RafflePage() {
             boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
           }}>
             <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#00457c', marginBottom: '0.75rem', borderBottom: '2px solid #00457c', paddingBottom: '0.5rem' }}>
-              Raffle Leaderboard ({totalEntries} total)
+              Raffle Leaderboard ({totalEntries} pts)
             </h2>
             <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.75rem' }}>
               Excludes: Photo Uploads, Time Sheets, Accident Reports
@@ -425,7 +426,12 @@ export default function RafflePage() {
                         backgroundColor: '#eff6ff', color: '#1e40af', padding: '0.125rem 0.5rem',
                         borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600,
                       }}>
-                        {entry.entries} {entry.entries === 1 ? 'entry' : 'entries'}
+                        {entry.entries} pts
+                      </div>
+                      <div style={{
+                        color: '#9ca3af', fontSize: '0.7rem',
+                      }}>
+                        {entry.reports} {entry.reports === 1 ? 'report' : 'reports'}
                       </div>
                       <div style={{
                         width: `${Math.min(entry.entries / (entries[0]?.entries || 1) * 60, 60)}px`,
@@ -461,7 +467,7 @@ export default function RafflePage() {
                     <div>
                       <p style={{ fontWeight: 600, fontSize: '0.9rem', color: '#111827' }}>{winner.winner_name}</p>
                       <p style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-                        {winner.quarter} &middot; {winner.entries_at_win} entries &middot; {new Date(winner.drawn_at).toLocaleDateString('en-US')}
+                        {winner.quarter} &middot; {winner.entries_at_win} pts &middot; {new Date(winner.drawn_at).toLocaleDateString('en-US')}
                       </p>
                     </div>
                     <button

@@ -11,6 +11,21 @@ const ELIGIBLE_REPORT_TYPES = [
   'jobsite-progress',
 ];
 
+// Points system: reports submitted same day as service = 5 pts,
+// each day late reduces by 1, minimum 1 point per report
+const MAX_POINTS = 5;
+const MIN_POINTS = 1;
+
+function calculatePoints(serviceDate: string, submittedAt: string): number {
+  const service = new Date(serviceDate + 'T00:00:00.000Z');
+  const submitted = new Date(submittedAt);
+  // Compare calendar dates in UTC
+  const serviceDay = Date.UTC(service.getUTCFullYear(), service.getUTCMonth(), service.getUTCDate());
+  const submittedDay = Date.UTC(submitted.getUTCFullYear(), submitted.getUTCMonth(), submitted.getUTCDate());
+  const daysLate = Math.max(0, Math.floor((submittedDay - serviceDay) / (1000 * 60 * 60 * 24)));
+  return Math.max(MIN_POINTS, MAX_POINTS - daysLate);
+}
+
 // GET: Fetch raffle entries + past winners
 export async function GET(request: NextRequest) {
   try {
@@ -18,20 +33,20 @@ export async function GET(request: NextRequest) {
     const from = searchParams.get('from'); // ISO date string e.g. 2025-01-01
     const to = searchParams.get('to');     // ISO date string e.g. 2025-03-31
 
-    // Get submission counts grouped by technician name (only eligible report types)
+    // Get submissions with service date and created_at for points calculation
     let query = supabase
       .from('submissions')
-      .select('technician_name, report_type')
+      .select('technician_name, report_type, date, created_at')
       .in('report_type', ELIGIBLE_REPORT_TYPES)
       .not('technician_name', 'is', null)
       .neq('technician_name', '');
 
-    // Apply date filters if provided
+    // Apply date filters based on service date
     if (from) {
-      query = query.gte('created_at', `${from}T00:00:00.000Z`);
+      query = query.gte('date', from);
     }
     if (to) {
-      query = query.lte('created_at', `${to}T23:59:59.999Z`);
+      query = query.lte('date', to);
     }
 
     const { data: submissions, error: subError } = await query;
@@ -40,18 +55,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: subError.message }, { status: 500 });
     }
 
-    // Tally entries per technician
-    const tallies: Record<string, number> = {};
+    // Tally points per technician and track report counts
+    const pointTallies: Record<string, number> = {};
+    const reportCounts: Record<string, number> = {};
     for (const sub of submissions || []) {
       const name = sub.technician_name?.trim();
-      if (name) {
-        tallies[name] = (tallies[name] || 0) + 1;
+      if (name && sub.date && sub.created_at) {
+        const pts = calculatePoints(sub.date, sub.created_at);
+        pointTallies[name] = (pointTallies[name] || 0) + pts;
+        reportCounts[name] = (reportCounts[name] || 0) + 1;
       }
     }
 
-    // Sort by entry count descending
-    const entries = Object.entries(tallies)
-      .map(([name, count]) => ({ name, entries: count }))
+    // Sort by points descending
+    const entries = Object.entries(pointTallies)
+      .map(([name, points]) => ({ name, entries: points, reports: reportCounts[name] || 0 }))
       .sort((a, b) => b.entries - a.entries);
 
     // Get past winners
