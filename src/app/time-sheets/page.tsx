@@ -6,7 +6,6 @@ import { generatePdf, generatePdfBlob } from '@/lib/generatePdf';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
 import PhotoUploader from '@/components/PhotoUploader';
-import { VoiceInput, VoiceTextarea } from '@/components/VoiceFields';
 
 interface TimeEntry {
   id: string;
@@ -326,7 +325,7 @@ export default function TimeSheetForm() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block mb-1">Name</label>
-              <VoiceInput
+              <input
                 type="text"
                 value={formData.name}
                 onChange={e => setFormData({...formData, name: e.target.value})}
@@ -369,7 +368,7 @@ export default function TimeSheetForm() {
 
                 <div>
                   <label className="block mb-1">Job Name and Number</label>
-                  <VoiceInput
+                  <input
                     type="text"
                     value={entry.jobNameNumber}
                     onChange={e => updateEntry(entry.id, 'jobNameNumber', e.target.value)}
@@ -381,7 +380,7 @@ export default function TimeSheetForm() {
 
               <div>
                 <label className="block mb-1">Brief Scope of Work</label>
-                <VoiceInput
+                <input
                   type="text"
                   value={entry.scopeOfWork}
                   onChange={e => updateEntry(entry.id, 'scopeOfWork', e.target.value)}
@@ -491,7 +490,7 @@ export default function TimeSheetForm() {
               {entry.expenses > 0 && (
                 <div>
                   <label className="block mb-1">Expense Description</label>
-                  <VoiceInput
+                  <input
                     type="text"
                     value={entry.expenseDescription}
                     onChange={e => updateEntry(entry.id, 'expenseDescription', e.target.value)}

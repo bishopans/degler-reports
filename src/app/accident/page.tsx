@@ -6,7 +6,6 @@ import PhotoUploader from '@/components/PhotoUploader';
 import { generatePdf, generatePdfBlob } from '@/lib/generatePdf';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
-import { VoiceInput, VoiceTextarea } from '@/components/VoiceFields';
 
 // Form data interface
 interface FormData {
@@ -333,7 +332,7 @@ export default function IncidentReportForm() {
                 
                 <div>
                   <label className="block mb-1">Job Name</label>
-                  <VoiceInput
+                  <input
                     type="text"
                     value={formData.jobName}
                     onChange={e => setFormData({...formData, jobName: e.target.value})}
@@ -346,7 +345,7 @@ export default function IncidentReportForm() {
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div>
                   <label className="block mb-1">Technician Name</label>
-                  <VoiceInput
+                  <input
                     type="text"
                     value={formData.technicianName}
                     onChange={e => setFormData({...formData, technicianName: e.target.value})}
@@ -357,7 +356,7 @@ export default function IncidentReportForm() {
                 
                 <div>
                   <label className="block mb-1">Job Number</label>
-                  <VoiceInput
+                  <input
                     type="text"
                     value={formData.jobNumber}
                     onChange={e => setFormData({...formData, jobNumber: e.target.value})}
@@ -398,7 +397,7 @@ export default function IncidentReportForm() {
 
               <div className="mt-4">
                 <label className="block mb-1">Location of Incident</label>
-                <VoiceInput
+                <input
                   type="text"
                   value={formData.location}
                   onChange={e => setFormData({...formData, location: e.target.value})}
@@ -430,7 +429,7 @@ export default function IncidentReportForm() {
                 
                 {formData.incidentType === 'Other' && (
                   <div className="mt-2">
-                    <VoiceInput
+                    <input
                       type="text"
                       value={formData.otherIncidentType}
                       onChange={e => setFormData({...formData, otherIncidentType: e.target.value})}
@@ -449,12 +448,12 @@ export default function IncidentReportForm() {
               
               <div>
                 <label className="block mb-1">People Involved</label>
-                <VoiceTextarea
+                <textarea
                   value={formData.peopleInvolved}
                   onChange={e => setFormData({...formData, peopleInvolved: e.target.value})}
                   onInput={e => handleTextAreaInput(e, 'people-involved')}
                   className="w-full p-2 border rounded"
-                  style={{
+                  style={{ 
                     minHeight: '80px',
                     height: textareaHeights['people-involved'] ? `${textareaHeights['people-involved']}px` : 'auto',
                     resize: 'none'
@@ -466,12 +465,12 @@ export default function IncidentReportForm() {
               
               <div className="mt-4">
                 <label className="block mb-1">Witnesses</label>
-                <VoiceTextarea
+                <textarea
                   value={formData.witness}
                   onChange={e => setFormData({...formData, witness: e.target.value})}
                   onInput={e => handleTextAreaInput(e, 'witness')}
                   className="w-full p-2 border rounded"
-                  style={{
+                  style={{ 
                     minHeight: '80px',
                     height: textareaHeights['witness'] ? `${textareaHeights['witness']}px` : 'auto',
                     resize: 'none'
@@ -487,12 +486,12 @@ export default function IncidentReportForm() {
               
               <div>
                 <label className="block mb-1">Description of Incident</label>
-                <VoiceTextarea
+                <textarea
                   value={formData.description}
                   onChange={e => setFormData({...formData, description: e.target.value})}
                   onInput={e => handleTextAreaInput(e, 'description')}
                   className="w-full p-2 border rounded"
-                  style={{
+                  style={{ 
                     minHeight: '100px',
                     height: textareaHeights['description'] ? `${textareaHeights['description']}px` : 'auto',
                     resize: 'none'
@@ -504,12 +503,12 @@ export default function IncidentReportForm() {
               
               <div className="mt-4">
                 <label className="block mb-1">Cause of Incident</label>
-                <VoiceTextarea
+                <textarea
                   value={formData.cause}
                   onChange={e => setFormData({...formData, cause: e.target.value})}
                   onInput={e => handleTextAreaInput(e, 'cause')}
                   className="w-full p-2 border rounded"
-                  style={{
+                  style={{ 
                     minHeight: '80px',
                     height: textareaHeights['cause'] ? `${textareaHeights['cause']}px` : 'auto',
                     resize: 'none'
@@ -521,12 +520,12 @@ export default function IncidentReportForm() {
               
               <div className="mt-4">
                 <label className="block mb-1">Injuries Sustained</label>
-                <VoiceTextarea
+                <textarea
                   value={formData.injuries}
                   onChange={e => setFormData({...formData, injuries: e.target.value})}
                   onInput={e => handleTextAreaInput(e, 'injuries')}
                   className="w-full p-2 border rounded"
-                  style={{
+                  style={{ 
                     minHeight: '80px',
                     height: textareaHeights['injuries'] ? `${textareaHeights['injuries']}px` : 'auto',
                     resize: 'none'
@@ -538,12 +537,12 @@ export default function IncidentReportForm() {
               
               <div className="mt-4">
                 <label className="block mb-1">Treatment Provided</label>
-                <VoiceTextarea
+                <textarea
                   value={formData.treatment}
                   onChange={e => setFormData({...formData, treatment: e.target.value})}
                   onInput={e => handleTextAreaInput(e, 'treatment')}
                   className="w-full p-2 border rounded"
-                  style={{
+                  style={{ 
                     minHeight: '80px',
                     height: textareaHeights['treatment'] ? `${textareaHeights['treatment']}px` : 'auto',
                     resize: 'none'
@@ -554,12 +553,12 @@ export default function IncidentReportForm() {
               
               <div className="mt-4">
                 <label className="block mb-1">Property/Equipment Damage</label>
-                <VoiceTextarea
+                <textarea
                   value={formData.propertyDamage}
                   onChange={e => setFormData({...formData, propertyDamage: e.target.value})}
                   onInput={e => handleTextAreaInput(e, 'property-damage')}
                   className="w-full p-2 border rounded"
-                  style={{
+                  style={{ 
                     minHeight: '80px',
                     height: textareaHeights['property-damage'] ? `${textareaHeights['property-damage']}px` : 'auto',
                     resize: 'none'
@@ -576,12 +575,12 @@ export default function IncidentReportForm() {
               
               <div>
                 <label className="block mb-1">Immediate Actions Taken</label>
-                <VoiceTextarea
+                <textarea
                   value={formData.immediateActions}
                   onChange={e => setFormData({...formData, immediateActions: e.target.value})}
                   onInput={e => handleTextAreaInput(e, 'immediate-actions')}
                   className="w-full p-2 border rounded"
-                  style={{
+                  style={{ 
                     minHeight: '80px',
                     height: textareaHeights['immediate-actions'] ? `${textareaHeights['immediate-actions']}px` : 'auto',
                     resize: 'none'
@@ -593,12 +592,12 @@ export default function IncidentReportForm() {
               
               <div className="mt-4">
                 <label className="block mb-1">Future Prevention Steps</label>
-                <VoiceTextarea
+                <textarea
                   value={formData.futurePreventionSteps}
                   onChange={e => setFormData({...formData, futurePreventionSteps: e.target.value})}
                   onInput={e => handleTextAreaInput(e, 'prevention-steps')}
                   className="w-full p-2 border rounded"
-                  style={{
+                  style={{ 
                     minHeight: '80px',
                     height: textareaHeights['prevention-steps'] ? `${textareaHeights['prevention-steps']}px` : 'auto',
                     resize: 'none'
@@ -611,7 +610,7 @@ export default function IncidentReportForm() {
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div>
                   <label className="block mb-1">Incident Reported To</label>
-                  <VoiceInput
+                  <input
                     type="text"
                     value={formData.reportedTo}
                     onChange={e => setFormData({...formData, reportedTo: e.target.value})}
@@ -638,12 +637,12 @@ export default function IncidentReportForm() {
             <div className="space-y-4">
               <div>
                 <label className="block mb-1">Any other notes or relevant information?</label>
-                <VoiceTextarea
+                <textarea
                   value={formData.otherNotes}
                   onChange={e => setFormData({...formData, otherNotes: e.target.value})}
                   onInput={e => handleTextAreaInput(e, 'other-notes')}
                   className="w-full p-2 border rounded"
-                  style={{
+                  style={{ 
                     minHeight: '100px',
                     height: textareaHeights['other-notes'] ? `${textareaHeights['other-notes']}px` : 'auto',
                     resize: 'none'

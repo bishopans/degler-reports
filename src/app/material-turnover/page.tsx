@@ -7,7 +7,6 @@ import { generatePdf, generatePdfBlob } from '@/lib/generatePdf';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
 import PhotoUploader from '@/components/PhotoUploader';
-import { VoiceInput, VoiceTextarea } from '@/components/VoiceFields';
 
 const SignaturePad = dynamic(() => import('react-signature-canvas'), {
   ssr: false
@@ -263,7 +262,7 @@ export default function MaterialTurnoverForm() {
 
             <div>
               <label className="block mb-1">Job Name</label>
-              <VoiceInput
+              <input
                 type="text"
                 value={formData.jobName}
                 onChange={e => setFormData({...formData, jobName: e.target.value})}
@@ -276,7 +275,7 @@ export default function MaterialTurnoverForm() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block mb-1">Technician Name</label>
-              <VoiceInput
+              <input
                 type="text"
                 value={formData.technicianName}
                 onChange={e => setFormData({...formData, technicianName: e.target.value})}
@@ -287,7 +286,7 @@ export default function MaterialTurnoverForm() {
 
             <div>
               <label className="block mb-1">Job Number</label>
-              <VoiceInput
+              <input
                 type="text"
                 value={formData.jobNumber}
                 onChange={e => setFormData({...formData, jobNumber: e.target.value})}
@@ -300,7 +299,7 @@ export default function MaterialTurnoverForm() {
           {/* Turnover Items Section */}
           <div className="space-y-2">
             <label className="block mb-1">What are you turning over?</label>
-            <VoiceTextarea
+            <textarea
               value={formData.turnoverItems}
               onChange={e => setFormData({...formData, turnoverItems: e.target.value})}
               className="w-full p-2 border rounded min-h-[150px]"
@@ -312,7 +311,7 @@ export default function MaterialTurnoverForm() {
           {/* Recipient Section */}
           <div>
             <label className="block mb-1">Full name of recipient:</label>
-            <VoiceInput
+            <input
               type="text"
               value={formData.recipientName}
               onChange={e => setFormData({...formData, recipientName: e.target.value})}
@@ -341,7 +340,7 @@ export default function MaterialTurnoverForm() {
             {formData.recipientType === 'Other' && (
               <div className="mt-2">
                 <label className="block mb-1">Please specify:</label>
-                <VoiceInput
+                <input
                   type="text"
                   value={formData.otherSpecification}
                   onChange={e => setFormData({...formData, otherSpecification: e.target.value})}

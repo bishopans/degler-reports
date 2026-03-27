@@ -6,7 +6,6 @@ import { generatePdf, generatePdfBlob } from '@/lib/generatePdf';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
 import PhotoUploader from '@/components/PhotoUploader';
-import { VoiceInput, VoiceTextarea } from '@/components/VoiceFields';
 
 interface FormData {
   yourName: string;
@@ -235,7 +234,7 @@ export default function PhotoUploadForm() {
             {/* Your Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
-              <VoiceInput
+              <input
                 type="text"
                 value={formData.yourName}
                 onChange={(e) => setFormData({ ...formData, yourName: e.target.value })}
@@ -247,7 +246,7 @@ export default function PhotoUploadForm() {
             {/* Job Name (optional) */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Job Name</label>
-              <VoiceInput
+              <input
                 type="text"
                 value={formData.jobName}
                 onChange={(e) => setFormData({ ...formData, jobName: e.target.value })}
