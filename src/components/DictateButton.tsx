@@ -7,7 +7,8 @@ interface DictateButtonProps {
 }
 
 // Check for browser speech recognition support
-function getSpeechRecognition(): typeof SpeechRecognition | null {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getSpeechRecognition(): any {
   if (typeof window === 'undefined') return null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -17,7 +18,8 @@ function getSpeechRecognition(): typeof SpeechRecognition | null {
 export default function DictateButton({ onResult, className = '' }: DictateButtonProps) {
   const [isListening, setIsListening] = useState(false);
   const [supported, setSupported] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     setSupported(!!getSpeechRecognition());
@@ -39,7 +41,8 @@ export default function DictateButton({ onResult, className = '' }: DictateButto
     recognition.lang = 'en-US';
     recognitionRef.current = recognition;
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onresult = (event: any) => {
       let transcript = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
@@ -51,7 +54,8 @@ export default function DictateButton({ onResult, className = '' }: DictateButto
       }
     };
 
-    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    recognition.onerror = (event: any) => {
       if (event.error !== 'aborted') {
         console.error('Speech recognition error:', event.error);
       }
