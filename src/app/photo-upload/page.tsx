@@ -6,6 +6,7 @@ import { generatePdf, generatePdfBlob } from '@/lib/generatePdf';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
 import PhotoUploader from '@/components/PhotoUploader';
+import DictateButton from '@/components/DictateButton';
 
 interface FormData {
   yourName: string;
@@ -234,25 +235,33 @@ export default function PhotoUploadForm() {
             {/* Your Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
-              <input
-                type="text"
-                value={formData.yourName}
-                onChange={(e) => setFormData({ ...formData, yourName: e.target.value })}
-                className="w-full p-3 border rounded"
-                required
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  value={formData.yourName}
+                  onChange={(e) => setFormData({ ...formData, yourName: e.target.value })}
+                  className="w-full p-3 border rounded"
+                  style={{ flex: 1 }}
+                  required
+                />
+                <DictateButton onResult={(text) => { setFormData(prev => ({...prev, yourName: prev.yourName ? prev.yourName + ' ' + text : text})); }} />
+              </div>
             </div>
 
             {/* Job Name (optional) */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Job Name</label>
-              <input
-                type="text"
-                value={formData.jobName}
-                onChange={(e) => setFormData({ ...formData, jobName: e.target.value })}
-                placeholder="optional"
-                className="w-full p-3 border rounded"
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  value={formData.jobName}
+                  onChange={(e) => setFormData({ ...formData, jobName: e.target.value })}
+                  placeholder="optional"
+                  className="w-full p-3 border rounded"
+                  style={{ flex: 1 }}
+                />
+                <DictateButton onResult={(text) => { setFormData(prev => ({...prev, jobName: prev.jobName ? prev.jobName + ' ' + text : text})); }} />
+              </div>
             </div>
 
             {/* Photo Upload */}

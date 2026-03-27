@@ -6,6 +6,7 @@ import { generatePdf, generatePdfBlob } from '@/lib/generatePdf';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
 import PhotoUploader from '@/components/PhotoUploader';
+import DictateButton from '@/components/DictateButton';
 
 interface TimeEntry {
   id: string;
@@ -322,16 +323,20 @@ export default function TimeSheetForm() {
         ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           <DraftBanner draftRestored={draftRestored} draftTimestamp={draftTimestamp} lastSaveTime={lastSaveTime} onDismiss={dismissDraftBanner} onClear={() => { clearDraft(); setFormData(initialFormData); }} />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block mb-1">Name</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={e => setFormData({...formData, name: e.target.value})}
-                className="w-full p-2 border rounded"
-                required
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={e => setFormData({...formData, name: e.target.value})}
+                  className="w-full p-2 border rounded"
+                  style={{ flex: 1 }}
+                  required
+                />
+                <DictateButton onResult={(text) => { setFormData(prev => ({...prev, name: prev.name ? prev.name + ' ' + text : text})); }} />
+              </div>
             </div>
 
             <div>
@@ -354,7 +359,7 @@ export default function TimeSheetForm() {
             <div key={entry.id} className="border rounded p-4 space-y-4">
               <div className="font-bold">Entry #{entry.entryNumber}</div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block mb-1">Date Worked</label>
                   <input
@@ -368,25 +373,33 @@ export default function TimeSheetForm() {
 
                 <div>
                   <label className="block mb-1">Job Name and Number</label>
-                  <input
-                    type="text"
-                    value={entry.jobNameNumber}
-                    onChange={e => updateEntry(entry.id, 'jobNameNumber', e.target.value)}
-                    className="w-full p-2 border rounded"
-                    required
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <input
+                      type="text"
+                      value={entry.jobNameNumber}
+                      onChange={e => updateEntry(entry.id, 'jobNameNumber', e.target.value)}
+                      className="w-full p-2 border rounded"
+                      style={{ flex: 1 }}
+                      required
+                    />
+                    <DictateButton onResult={(text) => { updateEntry(entry.id, 'jobNameNumber', entry.jobNameNumber ? entry.jobNameNumber + ' ' + text : text); }} />
+                  </div>
                 </div>
               </div>
 
               <div>
                 <label className="block mb-1">Brief Scope of Work</label>
-                <input
-                  type="text"
-                  value={entry.scopeOfWork}
-                  onChange={e => updateEntry(entry.id, 'scopeOfWork', e.target.value)}
-                  className="w-full p-2 border rounded"
-                  required
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input
+                    type="text"
+                    value={entry.scopeOfWork}
+                    onChange={e => updateEntry(entry.id, 'scopeOfWork', e.target.value)}
+                    className="w-full p-2 border rounded"
+                    style={{ flex: 1 }}
+                    required
+                  />
+                  <DictateButton onResult={(text) => { updateEntry(entry.id, 'scopeOfWork', entry.scopeOfWork ? entry.scopeOfWork + ' ' + text : text); }} />
+                </div>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -399,7 +412,7 @@ export default function TimeSheetForm() {
                 <label>Working as Foreman</label>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block mb-1">Regular Hours</label>
                   <input
@@ -451,7 +464,7 @@ export default function TimeSheetForm() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block mb-1">Miles</label>
                   <input
@@ -490,13 +503,17 @@ export default function TimeSheetForm() {
               {entry.expenses > 0 && (
                 <div>
                   <label className="block mb-1">Expense Description</label>
-                  <input
-                    type="text"
-                    value={entry.expenseDescription}
-                    onChange={e => updateEntry(entry.id, 'expenseDescription', e.target.value)}
-                    className="w-full p-2 border rounded"
-                    required
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <input
+                      type="text"
+                      value={entry.expenseDescription}
+                      onChange={e => updateEntry(entry.id, 'expenseDescription', e.target.value)}
+                      className="w-full p-2 border rounded"
+                      style={{ flex: 1 }}
+                      required
+                    />
+                    <DictateButton onResult={(text) => { updateEntry(entry.id, 'expenseDescription', entry.expenseDescription ? entry.expenseDescription + ' ' + text : text); }} />
+                  </div>
                 </div>
               )}
 
@@ -529,7 +546,7 @@ export default function TimeSheetForm() {
             <div className="space-y-4">
               <div>
                 <h4 className="font-semibold mb-2">Foreman Hours</h4>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm">Regular</label>
                     <div className="font-bold text-lg">{totals.regularHours.foreman}</div>
@@ -547,7 +564,7 @@ export default function TimeSheetForm() {
 
               <div>
                 <h4 className="font-semibold mb-2">Regular Hours</h4>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm">Regular</label>
                     <div className="font-bold text-lg">{totals.regularHours.regular}</div>
@@ -563,7 +580,7 @@ export default function TimeSheetForm() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm">Total Miles</label>
                   <div className="font-bold text-lg">{totals.miles}</div>

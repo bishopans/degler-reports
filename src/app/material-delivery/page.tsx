@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
 import PhotoUploader from '@/components/PhotoUploader';
+import DictateButton from '@/components/DictateButton';
 
 export default function MaterialDeliveryForm() {
   const [formData, setFormData] = useState({
@@ -220,7 +221,7 @@ export default function MaterialDeliveryForm() {
         ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           <DraftBanner draftRestored={draftRestored} draftTimestamp={draftTimestamp} lastSaveTime={lastSaveTime} onDismiss={dismissDraftBanner} onClear={() => { clearDraft(); setFormData({ date: '', jobName: '', installerName: '', jobNumber: '', deliveredItems: '', storageLocation: '', missingItems: '', photos: [] }); }} />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block mb-1">Date of Service</label>
               <input
@@ -231,40 +232,52 @@ export default function MaterialDeliveryForm() {
                 required
               />
             </div>
-            
+
             <div>
               <label className="block mb-1">Job Name</label>
-              <input
-                type="text"
-                value={formData.jobName}
-                onChange={e => setFormData({...formData, jobName: e.target.value})}
-                className="w-full p-2 border rounded"
-                required
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  value={formData.jobName}
+                  onChange={e => setFormData({...formData, jobName: e.target.value})}
+                  className="w-full p-2 border rounded"
+                  style={{ flex: 1 }}
+                  required
+                />
+                <DictateButton onResult={(text) => { setFormData(prev => ({...prev, jobName: prev.jobName ? prev.jobName + ' ' + text : text})); }} />
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block mb-1">Installer Name</label>
-              <input
-                type="text"
-                value={formData.installerName}
-                onChange={e => setFormData({...formData, installerName: e.target.value})}
-                className="w-full p-2 border rounded"
-                required
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  value={formData.installerName}
+                  onChange={e => setFormData({...formData, installerName: e.target.value})}
+                  className="w-full p-2 border rounded"
+                  style={{ flex: 1 }}
+                  required
+                />
+                <DictateButton onResult={(text) => { setFormData(prev => ({...prev, installerName: prev.installerName ? prev.installerName + ' ' + text : text})); }} />
+              </div>
             </div>
-            
+
             <div>
               <label className="block mb-1">Job Number</label>
-              <input
-                type="text"
-                value={formData.jobNumber}
-                onChange={e => setFormData({...formData, jobNumber: e.target.value})}
-                className="w-full p-2 border rounded"
-                required
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  value={formData.jobNumber}
+                  onChange={e => setFormData({...formData, jobNumber: e.target.value})}
+                  className="w-full p-2 border rounded"
+                  style={{ flex: 1 }}
+                  required
+                />
+                <DictateButton onResult={(text) => { setFormData(prev => ({...prev, jobNumber: prev.jobNumber ? prev.jobNumber + ' ' + text : text})); }} />
+              </div>
             </div>
           </div>
 
@@ -278,6 +291,9 @@ export default function MaterialDeliveryForm() {
               placeholder="List each item and quantity of equipment delivered"
               required
             />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+              <DictateButton onResult={(text) => { setFormData(prev => ({...prev, deliveredItems: prev.deliveredItems ? prev.deliveredItems + ' ' + text : text})); }} />
+            </div>
           </div>
 
           {/* Storage Location Section */}
@@ -290,6 +306,9 @@ export default function MaterialDeliveryForm() {
               placeholder="Describe where the materials are being stored"
               required
             />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+              <DictateButton onResult={(text) => { setFormData(prev => ({...prev, storageLocation: prev.storageLocation ? prev.storageLocation + ' ' + text : text})); }} />
+            </div>
           </div>
 
           {/* Missing Items Section */}
@@ -301,6 +320,9 @@ export default function MaterialDeliveryForm() {
               className="w-full p-2 border rounded min-h-[100px]"
               placeholder="List any missing or damaged items, or write 'None' if all items were received"
             />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+              <DictateButton onResult={(text) => { setFormData(prev => ({...prev, missingItems: prev.missingItems ? prev.missingItems + ' ' + text : text})); }} />
+            </div>
           </div>
 
           {/* Photo Upload Section */}

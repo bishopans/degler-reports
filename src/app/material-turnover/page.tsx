@@ -7,6 +7,7 @@ import { generatePdf, generatePdfBlob } from '@/lib/generatePdf';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
 import PhotoUploader from '@/components/PhotoUploader';
+import DictateButton from '@/components/DictateButton';
 
 const SignaturePad = dynamic(() => import('react-signature-canvas'), {
   ssr: false
@@ -248,7 +249,7 @@ export default function MaterialTurnoverForm() {
         ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           <DraftBanner draftRestored={draftRestored} draftTimestamp={draftTimestamp} lastSaveTime={lastSaveTime} onDismiss={dismissDraftBanner} onClear={() => { clearDraft(); setFormData({ date: '', jobName: '', technicianName: '', jobNumber: '', turnoverItems: '', recipientName: '', recipientType: '', otherSpecification: '', signature: '', photos: [] }); }} />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block mb-1">Date of Service</label>
               <input
@@ -262,37 +263,49 @@ export default function MaterialTurnoverForm() {
 
             <div>
               <label className="block mb-1">Job Name</label>
-              <input
-                type="text"
-                value={formData.jobName}
-                onChange={e => setFormData({...formData, jobName: e.target.value})}
-                className="w-full p-2 border rounded"
-                required
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  value={formData.jobName}
+                  onChange={e => setFormData({...formData, jobName: e.target.value})}
+                  className="w-full p-2 border rounded"
+                  style={{ flex: 1 }}
+                  required
+                />
+                <DictateButton onResult={(text) => { setFormData(prev => ({...prev, jobName: prev.jobName ? prev.jobName + ' ' + text : text})); }} />
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block mb-1">Technician Name</label>
-              <input
-                type="text"
-                value={formData.technicianName}
-                onChange={e => setFormData({...formData, technicianName: e.target.value})}
-                className="w-full p-2 border rounded"
-                required
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  value={formData.technicianName}
+                  onChange={e => setFormData({...formData, technicianName: e.target.value})}
+                  className="w-full p-2 border rounded"
+                  style={{ flex: 1 }}
+                  required
+                />
+                <DictateButton onResult={(text) => { setFormData(prev => ({...prev, technicianName: prev.technicianName ? prev.technicianName + ' ' + text : text})); }} />
+              </div>
             </div>
 
             <div>
               <label className="block mb-1">Job Number</label>
-              <input
-                type="text"
-                value={formData.jobNumber}
-                onChange={e => setFormData({...formData, jobNumber: e.target.value})}
-                className="w-full p-2 border rounded"
-                required
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  value={formData.jobNumber}
+                  onChange={e => setFormData({...formData, jobNumber: e.target.value})}
+                  className="w-full p-2 border rounded"
+                  style={{ flex: 1 }}
+                  required
+                />
+                <DictateButton onResult={(text) => { setFormData(prev => ({...prev, jobNumber: prev.jobNumber ? prev.jobNumber + ' ' + text : text})); }} />
+              </div>
             </div>
           </div>
 
@@ -306,18 +319,25 @@ export default function MaterialTurnoverForm() {
               placeholder="List each item and quantity of equipment being turned over. Example: 2 pair of keys, 1 bleacher pendant switch, 2 MP-80 scoreboard controllers"
               required
             />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+              <DictateButton onResult={(text) => { setFormData(prev => ({...prev, turnoverItems: prev.turnoverItems ? prev.turnoverItems + ' ' + text : text})); }} />
+            </div>
           </div>
 
           {/* Recipient Section */}
           <div>
             <label className="block mb-1">Full name of recipient:</label>
-            <input
-              type="text"
-              value={formData.recipientName}
-              onChange={e => setFormData({...formData, recipientName: e.target.value})}
-              className="w-full p-2 border rounded"
-              required
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <input
+                type="text"
+                value={formData.recipientName}
+                onChange={e => setFormData({...formData, recipientName: e.target.value})}
+                className="w-full p-2 border rounded"
+                style={{ flex: 1 }}
+                required
+              />
+              <DictateButton onResult={(text) => { setFormData(prev => ({...prev, recipientName: prev.recipientName ? prev.recipientName + ' ' + text : text})); }} />
+            </div>
           </div>
 
           {/* Recipient Type Selection */}
@@ -340,13 +360,17 @@ export default function MaterialTurnoverForm() {
             {formData.recipientType === 'Other' && (
               <div className="mt-2">
                 <label className="block mb-1">Please specify:</label>
-                <input
-                  type="text"
-                  value={formData.otherSpecification}
-                  onChange={e => setFormData({...formData, otherSpecification: e.target.value})}
-                  className="w-full p-2 border rounded"
-                  required
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input
+                    type="text"
+                    value={formData.otherSpecification}
+                    onChange={e => setFormData({...formData, otherSpecification: e.target.value})}
+                    className="w-full p-2 border rounded"
+                    style={{ flex: 1 }}
+                    required
+                  />
+                  <DictateButton onResult={(text) => { setFormData(prev => ({...prev, otherSpecification: prev.otherSpecification ? prev.otherSpecification + ' ' + text : text})); }} />
+                </div>
               </div>
             )}
           </div>

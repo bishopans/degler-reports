@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
 import PhotoUploader from '@/components/PhotoUploader';
+import DictateButton from '@/components/DictateButton';
 
 const SignaturePad = dynamic(() => import('react-signature-canvas'), {
   ssr: false
@@ -249,7 +250,7 @@ export default function TrainingForm() {
         ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           <DraftBanner draftRestored={draftRestored} draftTimestamp={draftTimestamp} lastSaveTime={lastSaveTime} onDismiss={dismissDraftBanner} onClear={() => { clearDraft(); setFormData(initialFormData); }} />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block mb-1">Date of Service</label>
               <input
@@ -263,37 +264,49 @@ export default function TrainingForm() {
 
             <div>
               <label className="block mb-1">Job Name</label>
-              <input
-                type="text"
-                value={formData.jobName}
-                onChange={e => setFormData({...formData, jobName: e.target.value})}
-                className="w-full p-2 border rounded"
-                required
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  value={formData.jobName}
+                  onChange={e => setFormData({...formData, jobName: e.target.value})}
+                  className="w-full p-2 border rounded"
+                  style={{ flex: 1 }}
+                  required
+                />
+                <DictateButton onResult={(text) => { setFormData(prev => ({...prev, jobName: prev.jobName ? prev.jobName + ' ' + text : text})); }} />
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block mb-1">Technician Name</label>
-              <input
-                type="text"
-                value={formData.technicianName}
-                onChange={e => setFormData({...formData, technicianName: e.target.value})}
-                className="w-full p-2 border rounded"
-                required
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  value={formData.technicianName}
+                  onChange={e => setFormData({...formData, technicianName: e.target.value})}
+                  className="w-full p-2 border rounded"
+                  style={{ flex: 1 }}
+                  required
+                />
+                <DictateButton onResult={(text) => { setFormData(prev => ({...prev, technicianName: prev.technicianName ? prev.technicianName + ' ' + text : text})); }} />
+              </div>
             </div>
 
             <div>
               <label className="block mb-1">Job Number</label>
-              <input
-                type="text"
-                value={formData.jobNumber}
-                onChange={e => setFormData({...formData, jobNumber: e.target.value})}
-                className="w-full p-2 border rounded"
-                required
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="text"
+                  value={formData.jobNumber}
+                  onChange={e => setFormData({...formData, jobNumber: e.target.value})}
+                  className="w-full p-2 border rounded"
+                  style={{ flex: 1 }}
+                  required
+                />
+                <DictateButton onResult={(text) => { setFormData(prev => ({...prev, jobNumber: prev.jobNumber ? prev.jobNumber + ' ' + text : text})); }} />
+              </div>
             </div>
           </div>
 
@@ -310,6 +323,9 @@ Jane Doe
 ..."
                 required
               />
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                <DictateButton onResult={(text) => { setFormData(prev => ({...prev, attendanceList: prev.attendanceList ? prev.attendanceList + ' ' + text : text})); }} />
+              </div>
               <div className="text-sm text-gray-500 mt-1">
                 Enter each name on a new line
               </div>
@@ -318,7 +334,7 @@ Jane Doe
 
           <div className="space-y-2">
             <label className="block mb-2 font-medium">Select all trained equipment:</label>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
                 'Bleachers',
                 'Basketball Backstops',
@@ -364,18 +380,22 @@ Jane Doe
               </button>
 
               {formData.selectedEquipment.includes('Other') && (
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <label className="block mb-1">Specify Other Equipment:</label>
-                  <input
-                    type="text"
-                    value={formData.otherEquipment}
-                    onChange={e => setFormData(prev => ({
-                      ...prev,
-                      otherEquipment: e.target.value
-                    }))}
-                    className="w-full p-2 border rounded"
-                    required
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <input
+                      type="text"
+                      value={formData.otherEquipment}
+                      onChange={e => setFormData(prev => ({
+                        ...prev,
+                        otherEquipment: e.target.value
+                      }))}
+                      className="w-full p-2 border rounded"
+                      style={{ flex: 1 }}
+                      required
+                    />
+                    <DictateButton onResult={(text) => { setFormData(prev => ({...prev, otherEquipment: prev.otherEquipment ? prev.otherEquipment + ' ' + text : text})); }} />
+                  </div>
                 </div>
               )}
             </div>
@@ -394,6 +414,9 @@ Jane Doe
               className="w-full p-2 border rounded min-h-[80px]"
               placeholder="Describe any equipment left and with whom..."
             />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+              <DictateButton onResult={(text) => { setFormData(prev => ({...prev, equipmentTurnover: prev.equipmentTurnover ? prev.equipmentTurnover + ' ' + text : text})); }} />
+            </div>
           </div>
 
           {/* Notes */}
@@ -405,6 +428,9 @@ Jane Doe
               className="w-full p-2 border rounded min-h-[80px]"
               placeholder="Any additional notes..."
             />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+              <DictateButton onResult={(text) => { setFormData(prev => ({...prev, notes: prev.notes ? prev.notes + ' ' + text : text})); }} />
+            </div>
           </div>
 
           {/* Signature Section */}

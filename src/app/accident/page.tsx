@@ -6,6 +6,7 @@ import PhotoUploader from '@/components/PhotoUploader';
 import { generatePdf, generatePdfBlob } from '@/lib/generatePdf';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
+import DictateButton from '@/components/DictateButton';
 
 // Form data interface
 interface FormData {
@@ -318,7 +319,7 @@ export default function IncidentReportForm() {
             {/* Header Information Section */}
             <div className="border-b pb-6">
               <h2 className="text-lg font-medium mb-4">Report Information</h2>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block mb-1">Today&apos;s Date</label>
                   <input
@@ -329,40 +330,52 @@ export default function IncidentReportForm() {
                     required
                   />
                 </div>
-                
+
                 <div>
                   <label className="block mb-1">Job Name</label>
-                  <input
-                    type="text"
-                    value={formData.jobName}
-                    onChange={e => setFormData({...formData, jobName: e.target.value})}
-                    className="w-full p-2 border rounded"
-                    required
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <input
+                      type="text"
+                      value={formData.jobName}
+                      onChange={e => setFormData({...formData, jobName: e.target.value})}
+                      className="w-full p-2 border rounded"
+                      style={{ flex: 1 }}
+                      required
+                    />
+                    <DictateButton onResult={(text) => setFormData(prev => ({...prev, jobName: prev.jobName ? prev.jobName + ' ' + text : text}))} />
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                 <div>
                   <label className="block mb-1">Technician Name</label>
-                  <input
-                    type="text"
-                    value={formData.technicianName}
-                    onChange={e => setFormData({...formData, technicianName: e.target.value})}
-                    className="w-full p-2 border rounded"
-                    required
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <input
+                      type="text"
+                      value={formData.technicianName}
+                      onChange={e => setFormData({...formData, technicianName: e.target.value})}
+                      className="w-full p-2 border rounded"
+                      style={{ flex: 1 }}
+                      required
+                    />
+                    <DictateButton onResult={(text) => setFormData(prev => ({...prev, technicianName: prev.technicianName ? prev.technicianName + ' ' + text : text}))} />
+                  </div>
                 </div>
-                
+
                 <div>
                   <label className="block mb-1">Job Number</label>
-                  <input
-                    type="text"
-                    value={formData.jobNumber}
-                    onChange={e => setFormData({...formData, jobNumber: e.target.value})}
-                    className="w-full p-2 border rounded"
-                    required
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <input
+                      type="text"
+                      value={formData.jobNumber}
+                      onChange={e => setFormData({...formData, jobNumber: e.target.value})}
+                      className="w-full p-2 border rounded"
+                      style={{ flex: 1 }}
+                      required
+                    />
+                    <DictateButton onResult={(text) => setFormData(prev => ({...prev, jobNumber: prev.jobNumber ? prev.jobNumber + ' ' + text : text}))} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -370,8 +383,8 @@ export default function IncidentReportForm() {
             {/* Incident Information Section */}
             <div className="border-b pb-6">
               <h2 className="text-lg font-medium mb-4">Incident Information</h2>
-              
-              <div className="grid grid-cols-2 gap-4">
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block mb-1">Date of Incident</label>
                   <input
@@ -382,7 +395,7 @@ export default function IncidentReportForm() {
                     required
                   />
                 </div>
-                
+
                 <div>
                   <label className="block mb-1">Time of Incident</label>
                   <input
@@ -397,14 +410,18 @@ export default function IncidentReportForm() {
 
               <div className="mt-4">
                 <label className="block mb-1">Location of Incident</label>
-                <input
-                  type="text"
-                  value={formData.location}
-                  onChange={e => setFormData({...formData, location: e.target.value})}
-                  className="w-full p-2 border rounded"
-                  placeholder="Specific area where incident occurred"
-                  required
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input
+                    type="text"
+                    value={formData.location}
+                    onChange={e => setFormData({...formData, location: e.target.value})}
+                    className="w-full p-2 border rounded"
+                    style={{ flex: 1 }}
+                    placeholder="Specific area where incident occurred"
+                    required
+                  />
+                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, location: prev.location ? prev.location + ' ' + text : text}))} />
+                </div>
               </div>
 
               <div className="mt-4">
@@ -429,14 +446,18 @@ export default function IncidentReportForm() {
                 
                 {formData.incidentType === 'Other' && (
                   <div className="mt-2">
-                    <input
-                      type="text"
-                      value={formData.otherIncidentType}
-                      onChange={e => setFormData({...formData, otherIncidentType: e.target.value})}
-                      className="w-full p-2 border rounded"
-                      placeholder="Please specify incident type"
-                      required
-                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <input
+                        type="text"
+                        value={formData.otherIncidentType}
+                        onChange={e => setFormData({...formData, otherIncidentType: e.target.value})}
+                        className="w-full p-2 border rounded"
+                        style={{ flex: 1 }}
+                        placeholder="Please specify incident type"
+                        required
+                      />
+                      <DictateButton onResult={(text) => setFormData(prev => ({...prev, otherIncidentType: prev.otherIncidentType ? prev.otherIncidentType + ' ' + text : text}))} />
+                    </div>
                   </div>
                 )}
               </div>
@@ -453,7 +474,7 @@ export default function IncidentReportForm() {
                   onChange={e => setFormData({...formData, peopleInvolved: e.target.value})}
                   onInput={e => handleTextAreaInput(e, 'people-involved')}
                   className="w-full p-2 border rounded"
-                  style={{ 
+                  style={{
                     minHeight: '80px',
                     height: textareaHeights['people-involved'] ? `${textareaHeights['people-involved']}px` : 'auto',
                     resize: 'none'
@@ -461,6 +482,9 @@ export default function IncidentReportForm() {
                   placeholder="List all people directly involved in the incident (names and roles)"
                   required
                 />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, peopleInvolved: prev.peopleInvolved ? prev.peopleInvolved + ' ' + text : text}))} />
+                </div>
               </div>
               
               <div className="mt-4">
@@ -470,13 +494,16 @@ export default function IncidentReportForm() {
                   onChange={e => setFormData({...formData, witness: e.target.value})}
                   onInput={e => handleTextAreaInput(e, 'witness')}
                   className="w-full p-2 border rounded"
-                  style={{ 
+                  style={{
                     minHeight: '80px',
                     height: textareaHeights['witness'] ? `${textareaHeights['witness']}px` : 'auto',
                     resize: 'none'
                   }}
                   placeholder="List any witnesses to the incident (names and contact information if available)"
                 />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, witness: prev.witness ? prev.witness + ' ' + text : text}))} />
+                </div>
               </div>
             </div>
 
@@ -491,7 +518,7 @@ export default function IncidentReportForm() {
                   onChange={e => setFormData({...formData, description: e.target.value})}
                   onInput={e => handleTextAreaInput(e, 'description')}
                   className="w-full p-2 border rounded"
-                  style={{ 
+                  style={{
                     minHeight: '100px',
                     height: textareaHeights['description'] ? `${textareaHeights['description']}px` : 'auto',
                     resize: 'none'
@@ -499,6 +526,9 @@ export default function IncidentReportForm() {
                   placeholder="Describe in detail what happened"
                   required
                 />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, description: prev.description ? prev.description + ' ' + text : text}))} />
+                </div>
               </div>
               
               <div className="mt-4">
@@ -508,7 +538,7 @@ export default function IncidentReportForm() {
                   onChange={e => setFormData({...formData, cause: e.target.value})}
                   onInput={e => handleTextAreaInput(e, 'cause')}
                   className="w-full p-2 border rounded"
-                  style={{ 
+                  style={{
                     minHeight: '80px',
                     height: textareaHeights['cause'] ? `${textareaHeights['cause']}px` : 'auto',
                     resize: 'none'
@@ -516,6 +546,9 @@ export default function IncidentReportForm() {
                   placeholder="What led to this incident? Identify root causes if possible"
                   required
                 />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, cause: prev.cause ? prev.cause + ' ' + text : text}))} />
+                </div>
               </div>
               
               <div className="mt-4">
@@ -525,7 +558,7 @@ export default function IncidentReportForm() {
                   onChange={e => setFormData({...formData, injuries: e.target.value})}
                   onInput={e => handleTextAreaInput(e, 'injuries')}
                   className="w-full p-2 border rounded"
-                  style={{ 
+                  style={{
                     minHeight: '80px',
                     height: textareaHeights['injuries'] ? `${textareaHeights['injuries']}px` : 'auto',
                     resize: 'none'
@@ -533,6 +566,9 @@ export default function IncidentReportForm() {
                   placeholder="Describe any injuries. If none, write 'None'"
                   required
                 />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, injuries: prev.injuries ? prev.injuries + ' ' + text : text}))} />
+                </div>
               </div>
               
               <div className="mt-4">
@@ -542,13 +578,16 @@ export default function IncidentReportForm() {
                   onChange={e => setFormData({...formData, treatment: e.target.value})}
                   onInput={e => handleTextAreaInput(e, 'treatment')}
                   className="w-full p-2 border rounded"
-                  style={{ 
+                  style={{
                     minHeight: '80px',
                     height: textareaHeights['treatment'] ? `${textareaHeights['treatment']}px` : 'auto',
                     resize: 'none'
                   }}
                   placeholder="What immediate treatment was provided? Was medical attention sought?"
                 />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, treatment: prev.treatment ? prev.treatment + ' ' + text : text}))} />
+                </div>
               </div>
               
               <div className="mt-4">
@@ -558,7 +597,7 @@ export default function IncidentReportForm() {
                   onChange={e => setFormData({...formData, propertyDamage: e.target.value})}
                   onInput={e => handleTextAreaInput(e, 'property-damage')}
                   className="w-full p-2 border rounded"
-                  style={{ 
+                  style={{
                     minHeight: '80px',
                     height: textareaHeights['property-damage'] ? `${textareaHeights['property-damage']}px` : 'auto',
                     resize: 'none'
@@ -566,6 +605,9 @@ export default function IncidentReportForm() {
                   placeholder="Describe any damage to property or equipment. If none, write 'None'"
                   required
                 />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, propertyDamage: prev.propertyDamage ? prev.propertyDamage + ' ' + text : text}))} />
+                </div>
               </div>
             </div>
 
@@ -580,7 +622,7 @@ export default function IncidentReportForm() {
                   onChange={e => setFormData({...formData, immediateActions: e.target.value})}
                   onInput={e => handleTextAreaInput(e, 'immediate-actions')}
                   className="w-full p-2 border rounded"
-                  style={{ 
+                  style={{
                     minHeight: '80px',
                     height: textareaHeights['immediate-actions'] ? `${textareaHeights['immediate-actions']}px` : 'auto',
                     resize: 'none'
@@ -588,6 +630,9 @@ export default function IncidentReportForm() {
                   placeholder="What actions were taken immediately after the incident?"
                   required
                 />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, immediateActions: prev.immediateActions ? prev.immediateActions + ' ' + text : text}))} />
+                </div>
               </div>
               
               <div className="mt-4">
@@ -597,7 +642,7 @@ export default function IncidentReportForm() {
                   onChange={e => setFormData({...formData, futurePreventionSteps: e.target.value})}
                   onInput={e => handleTextAreaInput(e, 'prevention-steps')}
                   className="w-full p-2 border rounded"
-                  style={{ 
+                  style={{
                     minHeight: '80px',
                     height: textareaHeights['prevention-steps'] ? `${textareaHeights['prevention-steps']}px` : 'auto',
                     resize: 'none'
@@ -605,21 +650,28 @@ export default function IncidentReportForm() {
                   placeholder="What steps should be taken to prevent similar incidents in the future?"
                   required
                 />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, futurePreventionSteps: prev.futurePreventionSteps ? prev.futurePreventionSteps + ' ' + text : text}))} />
+                </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                 <div>
                   <label className="block mb-1">Incident Reported To</label>
-                  <input
-                    type="text"
-                    value={formData.reportedTo}
-                    onChange={e => setFormData({...formData, reportedTo: e.target.value})}
-                    className="w-full p-2 border rounded"
-                    placeholder="Person's name and title"
-                    required
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <input
+                      type="text"
+                      value={formData.reportedTo}
+                      onChange={e => setFormData({...formData, reportedTo: e.target.value})}
+                      className="w-full p-2 border rounded"
+                      style={{ flex: 1 }}
+                      placeholder="Person's name and title"
+                      required
+                    />
+                    <DictateButton onResult={(text) => setFormData(prev => ({...prev, reportedTo: prev.reportedTo ? prev.reportedTo + ' ' + text : text}))} />
+                  </div>
                 </div>
-                
+
                 <div>
                   <label className="block mb-1">Date Reported</label>
                   <input
@@ -642,13 +694,16 @@ export default function IncidentReportForm() {
                   onChange={e => setFormData({...formData, otherNotes: e.target.value})}
                   onInput={e => handleTextAreaInput(e, 'other-notes')}
                   className="w-full p-2 border rounded"
-                  style={{ 
+                  style={{
                     minHeight: '100px',
                     height: textareaHeights['other-notes'] ? `${textareaHeights['other-notes']}px` : 'auto',
                     resize: 'none'
                   }}
                   placeholder="Any additional information that might be relevant"
                 />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, otherNotes: prev.otherNotes ? prev.otherNotes + ' ' + text : text}))} />
+                </div>
               </div>
 
               <PhotoUploader
