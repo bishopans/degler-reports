@@ -42,7 +42,8 @@ function getContactEmail(submission: Submission): string {
 
 // Helper to load an image URL as base64 using an img element (avoids CORS fetch issues)
 // Set whiteBackground=true for logos with transparency
-async function loadImageAsBase64(url: string, whiteBackground = false): Promise<string | null> {
+// quality: JPEG quality 0-1, maxDim: cap width/height for PDF size control
+async function loadImageAsBase64(url: string, whiteBackground = false, quality = 0.92, maxDim = 0): Promise<string | null> {
   return new Promise((resolve) => {
     const timeoutId = setTimeout(() => {
       console.warn('Image load timed out:', url);
@@ -54,18 +55,25 @@ async function loadImageAsBase64(url: string, whiteBackground = false): Promise<
     img.onload = () => {
       clearTimeout(timeoutId);
       try {
+        let w = img.naturalWidth;
+        let h = img.naturalHeight;
+        // Downscale if maxDim is set and image exceeds it
+        if (maxDim > 0 && (w > maxDim || h > maxDim)) {
+          if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+          else { w = Math.round((w * maxDim) / h); h = maxDim; }
+        }
         const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
+        canvas.width = w;
+        canvas.height = h;
         const ctx = canvas.getContext('2d');
         if (ctx) {
           if (whiteBackground) {
             ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
           }
-          ctx.drawImage(img, 0, 0);
+          ctx.drawImage(img, 0, 0, w, h);
           const format = whiteBackground ? 'image/png' : 'image/jpeg';
-          resolve(canvas.toDataURL(format, 0.92));
+          resolve(canvas.toDataURL(format, quality));
         } else {
           resolve(null);
         }
@@ -1076,7 +1084,7 @@ async function getImageDimensions(base64Data: string): Promise<{ width: number; 
   });
 }
 
-async function addPhotosSection(doc: jsPDF, submission: Submission, forceNewPage: boolean = false) {
+async function addPhotosSection(doc: jsPDF, submission: Submission, forceNewPage: boolean = false, photoQuality = 0.92, photoMaxDim = 0) {
   if (!submission.photo_urls || submission.photo_urls.length === 0) {
     return;
   }
@@ -1126,8 +1134,8 @@ async function addPhotosSection(doc: jsPDF, submission: Submission, forceNewPage
     const caption = captions?.[photoUrl];
     const label = `Photo ${i + 1}`;
 
-    // Load photo as base64
-    const photoData = await loadImageAsBase64(submission.photo_urls[i]);
+    // Load photo as base64 (with optional quality/size reduction)
+    const photoData = await loadImageAsBase64(submission.photo_urls[i], false, photoQuality, photoMaxDim);
     if (photoData) {
       // Get actual image dimensions to preserve aspect ratio
       const dims = await getImageDimensions(photoData);
@@ -1669,10 +1677,20 @@ async function addEquipmentPromoSection(doc: jsPDF) {
   doc.setLineWidth(0.5);
 }
 
-export async function generatePdf(submission: Submission): Promise<void> {
-  try {
-    // Load logo
-    const logoData = await loadLogoAsBase64();
+// Maximum PDF size in bytes (25MB)
+const MAX_PDF_SIZE = 25 * 1024 * 1024;
+
+// Quality tiers for progressive compression
+const QUALITY_TIERS = [
+  { quality: 0.92, maxDim: 0,    label: 'original' },
+  { quality: 0.70, maxDim: 1600, label: 'medium' },
+  { quality: 0.50, maxDim: 1200, label: 'reduced' },
+  { quality: 0.35, maxDim: 900,  label: 'compact' },
+];
+
+async function buildPdfDoc(submission: Submission, photoQuality = 0.92, photoMaxDim = 0): Promise<jsPDF> {
+  // Load logo
+  const logoData = await loadLogoAsBase64();
 
     // Initialize PDF
     const doc = new jsPDF();
@@ -1825,7 +1843,7 @@ export async function generatePdf(submission: Submission): Promise<void> {
 
     // Add photos section (at the end, can span multiple pages)
     // For photo-upload, always start photos on page 2
-    await addPhotosSection(doc, submission, isPhotoUpload);
+    await addPhotosSection(doc, submission, isPhotoUpload, photoQuality, photoMaxDim);
 
     // Add marketing sections (report-type specific)
     if (submission.report_type === 'maintenance') {
@@ -1859,33 +1877,52 @@ export async function generatePdf(submission: Submission): Promise<void> {
     // Reset text color
     doc.setTextColor(0, 0, 0);
 
-    // Generate filename and download
-    // Format: [Service Type] Report_[Job Name]_[Job Number].pdf
-    const serviceTypeLabels: Record<string, string> = {
-      maintenance: 'Preventative Maintenance',
-      repair: 'Repair',
-      'material-delivery': 'Material Delivery',
-      'material-turnover': 'Material Turnover',
-      training: 'Training',
-      'jobsite-progress': 'Jobsite Progress',
-      'time-sheets': 'Time Sheets',
-      accident: 'Accident',
-      'photo-upload': 'Photo Upload',
-    };
-    const serviceType = serviceTypeLabels[submission.report_type] || 'Field';
-    let filename: string;
-    if (submission.report_type === 'time-sheets') {
-      const safeName = submission.technician_name.replace(/[^a-z0-9 ]/gi, '').trim();
-      const [yr, mo, dy] = submission.date.split('-');
-      const usDate = `${mo}-${dy}-${yr}`;
-      filename = `Timesheet_${safeName}_${usDate}.pdf`;
-    } else {
-      const safeJobName = submission.job_name.replace(/[^a-z0-9 ]/gi, '').trim();
-      const safeJobNumber = (submission.job_number || '').replace(/[^a-z0-9 ]/gi, '').trim();
-      filename = `${serviceType} Report_${safeJobName}_${safeJobNumber}.pdf`;
+    return doc;
+}
+
+function getPdfFilename(submission: Submission): string {
+  const serviceTypeLabels: Record<string, string> = {
+    maintenance: 'Preventative Maintenance',
+    repair: 'Repair',
+    'material-delivery': 'Material Delivery',
+    'material-turnover': 'Material Turnover',
+    training: 'Training',
+    'jobsite-progress': 'Jobsite Progress',
+    'time-sheets': 'Time Sheets',
+    accident: 'Accident',
+    'photo-upload': 'Photo Upload',
+  };
+  const serviceType = serviceTypeLabels[submission.report_type] || 'Field';
+  if (submission.report_type === 'time-sheets') {
+    const safeName = submission.technician_name.replace(/[^a-z0-9 ]/gi, '').trim();
+    const [yr, mo, dy] = submission.date.split('-');
+    const usDate = `${mo}-${dy}-${yr}`;
+    return `Timesheet_${safeName}_${usDate}.pdf`;
+  }
+  const safeJobName = submission.job_name.replace(/[^a-z0-9 ]/gi, '').trim();
+  const safeJobNumber = (submission.job_number || '').replace(/[^a-z0-9 ]/gi, '').trim();
+  return `${serviceType} Report_${safeJobName}_${safeJobNumber}.pdf`;
+}
+
+export async function generatePdf(submission: Submission): Promise<void> {
+  try {
+    let doc: jsPDF | null = null;
+
+    for (const tier of QUALITY_TIERS) {
+      doc = await buildPdfDoc(submission, tier.quality, tier.maxDim);
+      const size = doc.output('arraybuffer').byteLength;
+      if (size <= MAX_PDF_SIZE) {
+        if (tier.label !== 'original') {
+          console.log(`PDF compressed to ${tier.label} quality (${(size / 1024 / 1024).toFixed(1)}MB)`);
+        }
+        break;
+      }
+      console.log(`PDF at ${tier.label} quality is ${(size / 1024 / 1024).toFixed(1)}MB, trying lower quality...`);
     }
 
-    doc.save(filename);
+    if (doc) {
+      doc.save(getPdfFilename(submission));
+    }
   } catch (error) {
     console.error('Error generating PDF:', error);
     throw new Error(`Failed to generate PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -1893,200 +1930,24 @@ export async function generatePdf(submission: Submission): Promise<void> {
 }
 
 // Returns { blob, filename } instead of auto-downloading — used for Web Share API on mobile
-// This must mirror generatePdf() exactly (same header, same section order, same content)
 export async function generatePdfBlob(submission: Submission): Promise<{ blob: Blob; filename: string }> {
   try {
-    const logoData = await loadLogoAsBase64();
-    const jsPDF = (await import('jspdf')).default;
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+    let doc: jsPDF | null = null;
 
-    currentY = MARGIN_TOP;
-
-    // === HEADER: Logo on left, company info on right (mirrors generatePdf) ===
-    const headerStartY = currentY;
-
-    if (logoData) {
-      const logoSize = 25;
-      doc.addImage(logoData, 'PNG', MARGIN_LEFT, currentY, logoSize, logoSize);
-    }
-
-    // Company info — right-aligned block
-    const companyX = PAGE_WIDTH - MARGIN_RIGHT;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text('Degler Whiting, Inc.', companyX, currentY + 5, { align: 'right' });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text('2025 Ridge Rd, Elverson, PA 19520', companyX, currentY + 11, { align: 'right' });
-    doc.text('610-644-3157', companyX, currentY + 16, { align: 'right' });
-    doc.text(getContactEmail(submission), companyX, currentY + 21, { align: 'right' });
-
-    currentY = headerStartY + 28;
-
-    // Divider line under header
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.5);
-    doc.line(MARGIN_LEFT, currentY, PAGE_WIDTH - MARGIN_RIGHT, currentY);
-    doc.setLineWidth(0.2);
-    currentY += 8;
-
-    // Report title — centered, large (uses same getReportTypeTitle as generatePdf)
-    const reportTitle = getReportTypeTitle(submission.report_type);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.text(reportTitle, PAGE_WIDTH / 2, currentY, { align: 'center' });
-    currentY += 10;
-
-    // Common fields in a clean 2-column grid
-    doc.setDrawColor(200, 200, 200);
-    doc.setFontSize(10);
-
-    const col1X = MARGIN_LEFT;
-    const col1ValX = col1X + 32;
-    const col2X = MARGIN_LEFT + 85;
-    const col2ValX = col2X + 32;
-
-    const isTimeSheet = submission.report_type === 'time-sheets';
-    const isPhotoUpload = submission.report_type === 'photo-upload';
-    const isServiceReport = ['maintenance','repair','material-delivery','material-turnover','training','jobsite-progress'].includes(submission.report_type);
-
-    // Row 1: Date (or Date of Service) + Job Name / Name / Uploaded by
-    const dateLabel = isServiceReport ? 'Date of Service:' : 'Date:';
-    doc.setFont('helvetica', 'bold');
-    doc.text(dateLabel, col1X, currentY);
-    doc.setFont('helvetica', 'normal');
-    doc.text(formatDate(submission.date), col1ValX, currentY);
-
-    if (isTimeSheet) {
-      doc.setFont('helvetica', 'bold');
-      doc.text('Name:', col2X, currentY);
-      doc.setFont('helvetica', 'normal');
-      doc.text(submission.technician_name || '—', col2ValX, currentY);
-    } else if (isPhotoUpload) {
-      doc.setFont('helvetica', 'bold');
-      doc.text('Uploaded by:', col2X, currentY);
-      doc.setFont('helvetica', 'normal');
-      doc.text(submission.technician_name || '—', col2ValX + 8, currentY);
-    } else {
-      doc.setFont('helvetica', 'bold');
-      doc.text('Job Name:', col2X, currentY);
-      doc.setFont('helvetica', 'normal');
-      doc.text(submission.job_name || '—', col2ValX, currentY);
-    }
-    currentY += LINE_HEIGHT;
-
-    // Row 2: Job Number + Technician (or optional job name for photo-upload, skip for time-sheets)
-    if (isPhotoUpload) {
-      const photoFormData = submission.form_data as Record<string, unknown> | null;
-      const photoJobName = photoFormData?.jobName as string || '';
-      if (photoJobName) {
-        doc.setFont('helvetica', 'bold');
-        doc.text('Job Name:', col1X, currentY);
-        doc.setFont('helvetica', 'normal');
-        doc.text(photoJobName, col1ValX, currentY);
-        currentY += LINE_HEIGHT;
+    for (const tier of QUALITY_TIERS) {
+      doc = await buildPdfDoc(submission, tier.quality, tier.maxDim);
+      const size = doc.output('arraybuffer').byteLength;
+      if (size <= MAX_PDF_SIZE) {
+        if (tier.label !== 'original') {
+          console.log(`PDF blob compressed to ${tier.label} quality (${(size / 1024 / 1024).toFixed(1)}MB)`);
+        }
+        break;
       }
-      currentY += 3;
-    } else if (!isTimeSheet) {
-      doc.setFont('helvetica', 'bold');
-      doc.text('Job Number:', col1X, currentY);
-      doc.setFont('helvetica', 'normal');
-      doc.text(submission.job_number || '—', col1ValX, currentY);
-
-      doc.setFont('helvetica', 'bold');
-      doc.text('Technician:', col2X, currentY);
-      doc.setFont('helvetica', 'normal');
-      doc.text(submission.technician_name || '—', col2ValX, currentY);
-      currentY += LINE_HEIGHT + 3;
-    } else {
-      currentY += 3;
+      console.log(`PDF blob at ${tier.label} quality is ${(size / 1024 / 1024).toFixed(1)}MB, trying lower quality...`);
     }
 
-    // Light divider before report content
-    doc.setDrawColor(180, 180, 180);
-    doc.line(MARGIN_LEFT, currentY, PAGE_WIDTH - MARGIN_RIGHT, currentY);
-    currentY += 6;
-
-    // Add report-specific content
-    switch (submission.report_type) {
-      case 'maintenance': handleMaintenanceReport(doc, submission); break;
-      case 'repair': handleRepairReport(doc, submission); break;
-      case 'material-delivery': handleMaterialDeliveryReport(doc, submission); break;
-      case 'material-turnover': handleMaterialTurnoverReport(doc, submission); break;
-      case 'training': handleTrainingReport(doc, submission); break;
-      case 'jobsite-progress': handleJobsiteProgressReport(doc, submission); break;
-      case 'time-sheets': handleTimeSheetsReport(doc, submission); break;
-      case 'accident': handleAccidentReport(doc, submission); break;
-      case 'photo-upload': handlePhotoUploadReport(doc, submission); break;
-    }
-
-    // Add admin comments (if any — only added by admin after submission)
-    addAdminCommentsSection(doc, submission);
-
-    // Add signatures section
-    await addSignaturesSection(doc, submission);
-
-    // Add photos section (at the end, can span multiple pages)
-    // For photo-upload, always start photos on page 2
-    await addPhotosSection(doc, submission, isPhotoUpload);
-
-    // Add marketing sections (report-type specific)
-    if (submission.report_type === 'maintenance') {
-      await addServiceReminderSection(doc, submission);
-    } else if (submission.report_type === 'repair') {
-      await addRepairMarketingSection(doc, submission);
-    }
-
-    // Add crest divider + equipment promotion section (both maintenance and repair)
-    if (submission.report_type === 'maintenance' || submission.report_type === 'repair') {
-      await addCrestDivider(doc);
-      await addEquipmentPromoSection(doc);
-    }
-
-    // Add footer to every page
-    const totalPages = doc.getNumberOfPages();
-    const footerText = 'Degler Whiting, Inc.  •  2025 Ridge Rd, Elverson, PA 19520  •  610-644-3157';
-    const footerY = PAGE_HEIGHT - 8;
-
-    for (let i = 1; i <= totalPages; i++) {
-      doc.setPage(i);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.setTextColor(120, 120, 120);
-      doc.text(footerText, PAGE_WIDTH / 2, footerY, { align: 'center' });
-
-      // Navy sidebar accent down the left edge (every page)
-      doc.setFillColor(BRAND_BLUE.r, BRAND_BLUE.g, BRAND_BLUE.b);
-      doc.rect(0, 0, 4, PAGE_HEIGHT, 'F');
-    }
-    doc.setTextColor(0, 0, 0);
-
-    // Generate filename
-    const serviceTypeLabels: Record<string, string> = {
-      maintenance: 'Preventative Maintenance',
-      repair: 'Repair',
-      'material-delivery': 'Material Delivery',
-      'material-turnover': 'Material Turnover',
-      training: 'Training',
-      'jobsite-progress': 'Jobsite Progress',
-      'time-sheets': 'Time Sheets',
-      accident: 'Accident',
-      'photo-upload': 'Photo Upload',
-    };
-    const serviceType = serviceTypeLabels[submission.report_type] || 'Field';
-    let filename: string;
-    if (submission.report_type === 'time-sheets') {
-      const safeName = submission.technician_name.replace(/[^a-z0-9 ]/gi, '').trim();
-      const [yr, mo, dy] = submission.date.split('-');
-      const usDate = `${mo}-${dy}-${yr}`;
-      filename = `Timesheet_${safeName}_${usDate}.pdf`;
-    } else {
-      const safeJobName = submission.job_name.replace(/[^a-z0-9 ]/gi, '').trim();
-      const safeJobNumber = (submission.job_number || '').replace(/[^a-z0-9 ]/gi, '').trim();
-      filename = `${serviceType} Report_${safeJobName}_${safeJobNumber}.pdf`;
-    }
-
-    const blob = doc.output('blob');
+    const blob = doc!.output('blob');
+    const filename = getPdfFilename(submission);
     return { blob, filename };
   } catch (error) {
     console.error('Error generating PDF blob:', error);

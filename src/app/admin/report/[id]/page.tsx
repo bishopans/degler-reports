@@ -5,6 +5,34 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { generatePdf } from '@/lib/generatePdf';
 
+// Compress an image file using canvas (same as technician-facing forms)
+async function compressImage(file: File, maxDimension = 2000, quality = 0.8): Promise<File> {
+  return new Promise((resolve) => {
+    if (file.size < 500 * 1024) { resolve(file); return; }
+    const img = new window.Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) { height = Math.round((height * maxDimension) / width); width = maxDimension; }
+        else { width = Math.round((width * maxDimension) / height); height = maxDimension; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { resolve(file); return; }
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => {
+        if (!blob || blob.size >= file.size) { resolve(file); return; }
+        resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg', lastModified: Date.now() }));
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
 const REPORT_TYPE_LABELS: Record<string, string> = {
   'maintenance': 'Preventative Maintenance/Inspection',
   'repair': 'Repair',
@@ -336,7 +364,8 @@ export default function ReportDetailPage() {
     setIsUploadingPhoto(true);
 
     try {
-      for (const file of Array.from(e.target.files)) {
+      for (const rawFile of Array.from(e.target.files)) {
+        const file = await compressImage(rawFile);
         const formData = new window.FormData();
         formData.append('submission_id', id);
         formData.append('photo', file);
