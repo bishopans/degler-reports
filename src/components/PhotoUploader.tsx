@@ -413,21 +413,81 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
             font-size: 0.65rem;
           }
         }
+        .photo-upload-zone {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          padding: 1.5rem 1rem;
+          border: 2px dashed #3b82f6;
+          border-radius: 0.75rem;
+          background: #eff6ff;
+          cursor: pointer;
+          transition: background 0.2s, border-color 0.2s;
+        }
+        .photo-upload-zone:hover {
+          background: #dbeafe;
+          border-color: #2563eb;
+        }
+        .photo-upload-zone:active {
+          background: #bfdbfe;
+        }
+        .photo-upload-icon {
+          width: 48px;
+          height: 48px;
+          background: #2563eb;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .photo-upload-icon svg {
+          width: 24px;
+          height: 24px;
+          color: white;
+        }
+        .photo-upload-title {
+          font-size: 1rem;
+          font-weight: 600;
+          color: #1e40af;
+        }
+        .photo-upload-subtitle {
+          font-size: 0.8rem;
+          color: #6b7280;
+          text-align: center;
+        }
       `}</style>
 
       <div>
-        <label className="block mb-1">Upload Photos</label>
-        <p className="text-sm text-gray-600 mb-2">
-          Please upload any pictures of equipment or maintenance performed. You can add captions and markup to each photo.
-        </p>
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
           multiple
           onChange={handleFileSelect}
-          className="w-full p-2 border rounded"
+          style={{ display: 'none' }}
         />
+        <div
+          className="photo-upload-zone"
+          onClick={() => fileInputRef.current?.click()}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click(); }}
+        >
+          <div className="photo-upload-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z" />
+            </svg>
+          </div>
+          <div className="photo-upload-title">
+            {photos.length > 0 ? 'Add More Photos' : 'Tap to Add Photos'}
+          </div>
+          <div className="photo-upload-subtitle">
+            Take a photo or choose from your library. You can add captions and markup.
+          </div>
+        </div>
       </div>
 
       {photos.length > 0 && (
