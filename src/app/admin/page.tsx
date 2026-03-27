@@ -261,6 +261,42 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchDeletedReports = useCallback(async () => {
+    setDeletedLoading(true);
+    try {
+      const response = await fetch('/api/admin/submissions?deleted=true&limit=100');
+      if (response.ok) {
+        const data = await response.json();
+        setDeletedReports(data.submissions);
+      }
+    } catch (error) {
+      console.error('Fetch deleted error:', error);
+    } finally {
+      setDeletedLoading(false);
+    }
+  }, []);
+
+  // Auto-cleanup: permanently delete reports that have been in trash for 30+ days
+  const cleanupOldDeletedReports = useCallback(async () => {
+    try {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const response = await fetch('/api/admin/submissions?deleted=true&limit=100');
+      if (response.ok) {
+        const data = await response.json();
+        const oldReports = data.submissions.filter((r: { deleted_at?: string }) =>
+          r.deleted_at && new Date(r.deleted_at) < thirtyDaysAgo
+        );
+        for (const report of oldReports) {
+          await fetch(`/api/admin/submissions/${report.id}?permanent=true`, { method: 'DELETE' });
+        }
+      }
+    } catch (error) {
+      console.error('Cleanup error:', error);
+    }
+  }, []);
+
   useEffect(() => {
     if (isUnlocked) {
       fetchSubmissions();
@@ -346,21 +382,6 @@ export default function AdminDashboard() {
     setPage(1);
   };
 
-  const fetchDeletedReports = useCallback(async () => {
-    setDeletedLoading(true);
-    try {
-      const response = await fetch('/api/admin/submissions?deleted=true&limit=100');
-      if (response.ok) {
-        const data = await response.json();
-        setDeletedReports(data.submissions);
-      }
-    } catch (error) {
-      console.error('Fetch deleted error:', error);
-    } finally {
-      setDeletedLoading(false);
-    }
-  }, []);
-
   const restoreReport = async (id: string) => {
     setRestoringId(id);
     try {
@@ -397,27 +418,6 @@ export default function AdminDashboard() {
       alert('Error deleting report.');
     }
   };
-
-  // Auto-cleanup: permanently delete reports that have been in trash for 30+ days
-  const cleanupOldDeletedReports = useCallback(async () => {
-    try {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      const response = await fetch('/api/admin/submissions?deleted=true&limit=100');
-      if (response.ok) {
-        const data = await response.json();
-        const oldReports = data.submissions.filter((r: { deleted_at?: string }) =>
-          r.deleted_at && new Date(r.deleted_at) < thirtyDaysAgo
-        );
-        for (const report of oldReports) {
-          await fetch(`/api/admin/submissions/${report.id}?permanent=true`, { method: 'DELETE' });
-        }
-      }
-    } catch (error) {
-      console.error('Cleanup error:', error);
-    }
-  }, []);
 
   if (isLoading) {
     return (
