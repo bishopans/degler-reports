@@ -303,20 +303,13 @@ export default function IncidentReportForm() {
               >
                 Create Another Report
               </button>
-              <a
-                href="/"
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: '#f3f4f6',
-                  color: '#374151',
-                  borderRadius: '0.375rem',
-                  border: '1px solid #d1d5db',
-                  textDecoration: 'none',
-                  fontWeight: 500,
-                }}
+              <button
+                onClick={() => { window.location.href = '/'; }}
+                className="bg-gray-100 text-gray-700 py-2 px-4 rounded hover:bg-gray-200 transition-colors"
+                style={{ border: '1px solid #d1d5db' }}
               >
                 Return to Home
-              </a>
+              </button>
             </div>
           </div>
         ) : (
