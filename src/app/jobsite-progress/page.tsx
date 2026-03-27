@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
 import PhotoUploader from '@/components/PhotoUploader';
-import DictateButton from '@/components/DictateButton';
 
 export default function JobSiteProgressForm() {
   const [formData, setFormData] = useState({
@@ -233,49 +232,37 @@ export default function JobSiteProgressForm() {
 
             <div>
               <label className="block mb-1">Job Name</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <input
-                  type="text"
-                  value={formData.jobName}
-                  onChange={e => setFormData({...formData, jobName: e.target.value})}
-                  className="w-full p-2 border rounded"
-                  style={{ flex: 1 }}
-                  required
-                />
-                <DictateButton onResult={(text) => { setFormData(prev => ({...prev, jobName: prev.jobName ? prev.jobName + ' ' + text : text})); }} />
-              </div>
+              <input
+                type="text"
+                value={formData.jobName}
+                onChange={e => setFormData({...formData, jobName: e.target.value})}
+                className="w-full p-2 border rounded"
+                required
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block mb-1">Technician Name</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <input
-                  type="text"
-                  value={formData.technicianName}
-                  onChange={e => setFormData({...formData, technicianName: e.target.value})}
-                  className="w-full p-2 border rounded"
-                  style={{ flex: 1 }}
-                  required
-                />
-                <DictateButton onResult={(text) => { setFormData(prev => ({...prev, technicianName: prev.technicianName ? prev.technicianName + ' ' + text : text})); }} />
-              </div>
+              <input
+                type="text"
+                value={formData.technicianName}
+                onChange={e => setFormData({...formData, technicianName: e.target.value})}
+                className="w-full p-2 border rounded"
+                required
+              />
             </div>
 
             <div>
               <label className="block mb-1">Job Number</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <input
-                  type="text"
-                  value={formData.jobNumber}
-                  onChange={e => setFormData({...formData, jobNumber: e.target.value})}
-                  className="w-full p-2 border rounded"
-                  style={{ flex: 1 }}
-                  required
-                />
-                <DictateButton onResult={(text) => { setFormData(prev => ({...prev, jobNumber: prev.jobNumber ? prev.jobNumber + ' ' + text : text})); }} />
-              </div>
+              <input
+                type="text"
+                value={formData.jobNumber}
+                onChange={e => setFormData({...formData, jobNumber: e.target.value})}
+                className="w-full p-2 border rounded"
+                required
+              />
             </div>
           </div>
 
@@ -289,9 +276,6 @@ export default function JobSiteProgressForm() {
               placeholder="List what equipment is being installed"
               required
             />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-              <DictateButton onResult={(text) => { setFormData(prev => ({...prev, equipment: prev.equipment ? prev.equipment + ' ' + text : text})); }} />
-            </div>
           </div>
 
           {/* Notes Section */}
@@ -304,9 +288,6 @@ export default function JobSiteProgressForm() {
               placeholder="Install progress notes; site conditions, equipment being worked on, issues found onsite, etc"
               required
             />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-              <DictateButton onResult={(text) => { setFormData(prev => ({...prev, notes: prev.notes ? prev.notes + ' ' + text : text})); }} />
-            </div>
           </div>
 
           {/* Estimated Completion Date */}

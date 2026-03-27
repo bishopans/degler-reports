@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
 import PhotoUploader from '@/components/PhotoUploader';
-import DictateButton from '@/components/DictateButton';
 
 // Define equipment types
 type EquipmentType = 
@@ -584,49 +583,37 @@ export default function MaintenanceForm() {
 
               <div>
                 <label className="block mb-1">Job Name</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <input
-                    type="text"
-                    value={formData.jobName}
-                    onChange={e => setFormData({...formData, jobName: e.target.value})}
-                    className="w-full p-2 border rounded"
-                    style={{ flex: 1 }}
-                    required
-                  />
-                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, jobName: prev.jobName ? prev.jobName + ' ' + text : text}))} />
-                </div>
+                <input
+                  type="text"
+                  value={formData.jobName}
+                  onChange={e => setFormData({...formData, jobName: e.target.value})}
+                  className="w-full p-2 border rounded"
+                  required
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block mb-1">Technician Name</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <input
-                    type="text"
-                    value={formData.technicianName}
-                    onChange={e => setFormData({...formData, technicianName: e.target.value})}
-                    className="w-full p-2 border rounded"
-                    style={{ flex: 1 }}
-                    required
-                  />
-                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, technicianName: prev.technicianName ? prev.technicianName + ' ' + text : text}))} />
-                </div>
+                <input
+                  type="text"
+                  value={formData.technicianName}
+                  onChange={e => setFormData({...formData, technicianName: e.target.value})}
+                  className="w-full p-2 border rounded"
+                  required
+                />
               </div>
 
               <div>
                 <label className="block mb-1">Job Number</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <input
-                    type="text"
-                    value={formData.jobNumber}
-                    onChange={e => setFormData({...formData, jobNumber: e.target.value})}
-                    className="w-full p-2 border rounded"
-                    style={{ flex: 1 }}
-                    required
-                  />
-                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, jobNumber: prev.jobNumber ? prev.jobNumber + ' ' + text : text}))} />
-                </div>
+                <input
+                  type="text"
+                  value={formData.jobNumber}
+                  onChange={e => setFormData({...formData, jobNumber: e.target.value})}
+                  className="w-full p-2 border rounded"
+                  required
+                />
               </div>
             </div>
 
@@ -691,68 +678,48 @@ export default function MaintenanceForm() {
                         <h4 className="font-medium">Additional Information:</h4>
                         <div>
                           <label className="block mb-1">{outdoorBleacherQuestions[0]}</label>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <input
-                              type="text"
-                              value={outdoorBleacherData.location}
-                              onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, location: e.target.value})}
-                              className="w-full p-2 border rounded"
-                              style={{ flex: 1 }}
-                            />
-                            <DictateButton onResult={(text) => setOutdoorBleacherData(prev => ({...prev, location: prev.location ? prev.location + ' ' + text : text}))} />
-                          </div>
+                          <input
+                            type="text"
+                            value={outdoorBleacherData.location}
+                            onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, location: e.target.value})}
+                            className="w-full p-2 border rounded"
+                          />
                         </div>
                         <div>
                           <label className="block mb-1">{outdoorBleacherQuestions[1]}</label>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <input
-                              type="text"
-                              value={outdoorBleacherData.manufacturer}
-                              onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, manufacturer: e.target.value})}
-                              className="w-full p-2 border rounded"
-                              style={{ flex: 1 }}
-                            />
-                            <DictateButton onResult={(text) => setOutdoorBleacherData(prev => ({...prev, manufacturer: prev.manufacturer ? prev.manufacturer + ' ' + text : text}))} />
-                          </div>
+                          <input
+                            type="text"
+                            value={outdoorBleacherData.manufacturer}
+                            onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, manufacturer: e.target.value})}
+                            className="w-full p-2 border rounded"
+                          />
                         </div>
                         <div>
                           <label className="block mb-1">{outdoorBleacherQuestions[2]}</label>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <input
-                              type="text"
-                              value={outdoorBleacherData.height}
-                              onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, height: e.target.value})}
-                              className="w-full p-2 border rounded"
-                              style={{ flex: 1 }}
-                            />
-                            <DictateButton onResult={(text) => setOutdoorBleacherData(prev => ({...prev, height: prev.height ? prev.height + ' ' + text : text}))} />
-                          </div>
+                          <input
+                            type="text"
+                            value={outdoorBleacherData.height}
+                            onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, height: e.target.value})}
+                            className="w-full p-2 border rounded"
+                          />
                         </div>
                         <div>
                           <label className="block mb-1">{outdoorBleacherQuestions[3]}</label>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <input
-                              type="text"
-                              value={outdoorBleacherData.length}
-                              onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, length: e.target.value})}
-                              className="w-full p-2 border rounded"
-                              style={{ flex: 1 }}
-                            />
-                            <DictateButton onResult={(text) => setOutdoorBleacherData(prev => ({...prev, length: prev.length ? prev.length + ' ' + text : text}))} />
-                          </div>
+                          <input
+                            type="text"
+                            value={outdoorBleacherData.length}
+                            onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, length: e.target.value})}
+                            className="w-full p-2 border rounded"
+                          />
                         </div>
                         <div>
                           <label className="block mb-1">{outdoorBleacherQuestions[4]}</label>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <input
-                              type="text"
-                              value={outdoorBleacherData.meetCode}
-                              onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, meetCode: e.target.value})}
-                              className="w-full p-2 border rounded"
-                              style={{ flex: 1 }}
-                            />
-                            <DictateButton onResult={(text) => setOutdoorBleacherData(prev => ({...prev, meetCode: prev.meetCode ? prev.meetCode + ' ' + text : text}))} />
-                          </div>
+                          <input
+                            type="text"
+                            value={outdoorBleacherData.meetCode}
+                            onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, meetCode: e.target.value})}
+                            className="w-full p-2 border rounded"
+                          />
                         </div>
                         <div>
                           <label className="block mb-1">{outdoorBleacherQuestions[5]}</label>
@@ -767,9 +734,6 @@ export default function MaintenanceForm() {
                               resize: 'none'
                             }}
                           />
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                            <DictateButton onResult={(text) => setOutdoorBleacherData(prev => ({...prev, codeIssues: prev.codeIssues ? prev.codeIssues + ' ' + text : text}))} />
-                          </div>
                         </div>
                       </div>
                     )}
@@ -790,9 +754,6 @@ export default function MaintenanceForm() {
                               resize: 'none'
                             }}
                           />
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                            <DictateButton onResult={(text) => handleAdditionalRepairsChange('Other-Equipment', (formData.additionalRepairs['Other-Equipment'] || '') + (formData.additionalRepairs['Other-Equipment'] ? ' ' : '') + text)} />
-                          </div>
                         </div>
                         <div>
                           <label className="block mb-1 font-medium">What tasks were performed?</label>
@@ -808,9 +769,6 @@ export default function MaintenanceForm() {
                               resize: 'none'
                             }}
                           />
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                            <DictateButton onResult={(text) => handleAdditionalRepairsChange('Other-Tasks', (formData.additionalRepairs['Other-Tasks'] || '') + (formData.additionalRepairs['Other-Tasks'] ? ' ' : '') + text)} />
-                          </div>
                         </div>
                         <div>
                           <label className="block mb-1 font-medium">List any future parts or service needed:</label>
@@ -826,9 +784,6 @@ export default function MaintenanceForm() {
                               resize: 'none'
                             }}
                           />
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                            <DictateButton onResult={(text) => handleFuturePartsChange('Other', (formData.futurePartsNeeded['Other'] || '') + (formData.futurePartsNeeded['Other'] ? ' ' : '') + text)} />
-                          </div>
                         </div>
                         <div>
                           <label className="block mb-1 font-medium">Equipment Working & Safe for Use?</label>
@@ -876,9 +831,6 @@ export default function MaintenanceForm() {
                               resize: 'none'
                             }}
                           />
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                            <DictateButton onResult={(text) => handleAdditionalRepairsChange(equipment, (formData.additionalRepairs[equipment] || '') + (formData.additionalRepairs[equipment] ? ' ' : '') + text)} />
-                          </div>
                         </div>
                         <div>
                           <label className="block mb-1 font-medium">List any future parts or service needed:</label>
@@ -894,9 +846,6 @@ export default function MaintenanceForm() {
                               resize: 'none'
                             }}
                           />
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                            <DictateButton onResult={(text) => handleFuturePartsChange(equipment, (formData.futurePartsNeeded[equipment] || '') + (formData.futurePartsNeeded[equipment] ? ' ' : '') + text)} />
-                          </div>
                         </div>
                         <div>
                           <label className="block mb-1 font-medium">Equipment Working & Safe for Use?</label>
@@ -950,9 +899,6 @@ export default function MaintenanceForm() {
                 }}
                 placeholder="Describe any equipment left and with whom..."
               />
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                <DictateButton onResult={(text) => setFormData(prev => ({...prev, equipmentTurnover: prev.equipmentTurnover ? prev.equipmentTurnover + ' ' + text : text}))} />
-              </div>
             </div>
 
             <div className="space-y-2">
@@ -969,9 +915,6 @@ export default function MaintenanceForm() {
                 }}
                 placeholder="Enter any additional notes or observations..."
               />
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                <DictateButton onResult={(text) => setFormData(prev => ({...prev, otherNotes: prev.otherNotes ? prev.otherNotes + ' ' + text : text}))} />
-              </div>
             </div>
 
             <PhotoUploader

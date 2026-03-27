@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
 import PhotoUploader from '@/components/PhotoUploader';
-import DictateButton from '@/components/DictateButton';
 
 // Define equipment types - same as maintenance form
 type EquipmentType = 
@@ -416,49 +415,37 @@ export default function RepairForm() {
 
               <div>
                 <label className="block mb-1">Job Name</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <input
-                    type="text"
-                    value={formData.jobName}
-                    onChange={e => setFormData({...formData, jobName: e.target.value})}
-                    className="w-full p-2 border rounded"
-                    style={{ flex: 1 }}
-                    required
-                  />
-                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, jobName: prev.jobName ? prev.jobName + ' ' + text : text}))} />
-                </div>
+                <input
+                  type="text"
+                  value={formData.jobName}
+                  onChange={e => setFormData({...formData, jobName: e.target.value})}
+                  className="w-full p-2 border rounded"
+                  required
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block mb-1">Technician Name</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <input
-                    type="text"
-                    value={formData.technicianName}
-                    onChange={e => setFormData({...formData, technicianName: e.target.value})}
-                    className="w-full p-2 border rounded"
-                    style={{ flex: 1 }}
-                    required
-                  />
-                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, technicianName: prev.technicianName ? prev.technicianName + ' ' + text : text}))} />
-                </div>
+                <input
+                  type="text"
+                  value={formData.technicianName}
+                  onChange={e => setFormData({...formData, technicianName: e.target.value})}
+                  className="w-full p-2 border rounded"
+                  required
+                />
               </div>
 
               <div>
                 <label className="block mb-1">Job Number</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <input
-                    type="text"
-                    value={formData.jobNumber}
-                    onChange={e => setFormData({...formData, jobNumber: e.target.value})}
-                    className="w-full p-2 border rounded"
-                    style={{ flex: 1 }}
-                    required
-                  />
-                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, jobNumber: prev.jobNumber ? prev.jobNumber + ' ' + text : text}))} />
-                </div>
+                <input
+                  type="text"
+                  value={formData.jobNumber}
+                  onChange={e => setFormData({...formData, jobNumber: e.target.value})}
+                  className="w-full p-2 border rounded"
+                  required
+                />
               </div>
             </div>
 
@@ -504,9 +491,6 @@ export default function RepairForm() {
                           resize: 'none'
                         }}
                       />
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                        <DictateButton onResult={(text) => handleInitialProblemChange(equipment, (formData.initialProblems[equipment] || '') + (formData.initialProblems[equipment] ? ' ' : '') + text)} />
-                      </div>
                     </div>
 
                     <div>
@@ -525,9 +509,6 @@ export default function RepairForm() {
                           resize: 'none'
                         }}
                       />
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                        <DictateButton onResult={(text) => handleRepairSummaryChange(equipment, (formData.repairSummaries[equipment] || '') + (formData.repairSummaries[equipment] ? ' ' : '') + text)} />
-                      </div>
                     </div>
 
                     <div>
@@ -546,9 +527,6 @@ export default function RepairForm() {
                           resize: 'none'
                         }}
                       />
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                        <DictateButton onResult={(text) => handlePartsNeededChange(equipment, (formData.partsNeeded[equipment] || '') + (formData.partsNeeded[equipment] ? ' ' : '') + text)} />
-                      </div>
                     </div>
 
                     <div>
@@ -601,9 +579,6 @@ export default function RepairForm() {
                 }}
                 placeholder="Describe any equipment left and with whom..."
               />
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                <DictateButton onResult={(text) => setFormData(prev => ({...prev, equipmentTurnover: prev.equipmentTurnover ? prev.equipmentTurnover + ' ' + text : text}))} />
-              </div>
             </div>
 
             <div className="space-y-2">
@@ -620,9 +595,6 @@ export default function RepairForm() {
                 }}
                 placeholder="Enter any additional notes or observations..."
               />
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                <DictateButton onResult={(text) => setFormData(prev => ({...prev, otherNotes: prev.otherNotes ? prev.otherNotes + ' ' + text : text}))} />
-              </div>
             </div>
 
             <PhotoUploader

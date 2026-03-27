@@ -1,4 +1,9 @@
 /* Enhanced styles to fix layout issues for ALL pages */
+/* Box-sizing reset — prevents inputs/textareas from overflowing their container */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 /* Force light mode — no dark theme is implemented */
 :root {
   --background: #ffffff;
@@ -12,6 +17,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
 }
 
 /* Layout styles */
@@ -108,6 +114,8 @@ body {
 .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (min-width: 640px) {
   .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sm\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sm\:col-span-2 { grid-column: span 2 / span 2; }
 }
 @media (min-width: 768px) {
   .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }

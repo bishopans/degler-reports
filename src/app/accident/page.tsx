@@ -6,7 +6,6 @@ import PhotoUploader from '@/components/PhotoUploader';
 import { generatePdf, generatePdfBlob } from '@/lib/generatePdf';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
-import DictateButton from '@/components/DictateButton';
 
 // Form data interface
 interface FormData {
@@ -333,49 +332,37 @@ export default function IncidentReportForm() {
 
                 <div>
                   <label className="block mb-1">Job Name</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <input
-                      type="text"
-                      value={formData.jobName}
-                      onChange={e => setFormData({...formData, jobName: e.target.value})}
-                      className="w-full p-2 border rounded"
-                      style={{ flex: 1 }}
-                      required
-                    />
-                    <DictateButton onResult={(text) => setFormData(prev => ({...prev, jobName: prev.jobName ? prev.jobName + ' ' + text : text}))} />
-                  </div>
+                  <input
+                    type="text"
+                    value={formData.jobName}
+                    onChange={e => setFormData({...formData, jobName: e.target.value})}
+                    className="w-full p-2 border rounded"
+                    required
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                 <div>
                   <label className="block mb-1">Technician Name</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <input
-                      type="text"
-                      value={formData.technicianName}
-                      onChange={e => setFormData({...formData, technicianName: e.target.value})}
-                      className="w-full p-2 border rounded"
-                      style={{ flex: 1 }}
-                      required
-                    />
-                    <DictateButton onResult={(text) => setFormData(prev => ({...prev, technicianName: prev.technicianName ? prev.technicianName + ' ' + text : text}))} />
-                  </div>
+                  <input
+                    type="text"
+                    value={formData.technicianName}
+                    onChange={e => setFormData({...formData, technicianName: e.target.value})}
+                    className="w-full p-2 border rounded"
+                    required
+                  />
                 </div>
 
                 <div>
                   <label className="block mb-1">Job Number</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <input
-                      type="text"
-                      value={formData.jobNumber}
-                      onChange={e => setFormData({...formData, jobNumber: e.target.value})}
-                      className="w-full p-2 border rounded"
-                      style={{ flex: 1 }}
-                      required
-                    />
-                    <DictateButton onResult={(text) => setFormData(prev => ({...prev, jobNumber: prev.jobNumber ? prev.jobNumber + ' ' + text : text}))} />
-                  </div>
+                  <input
+                    type="text"
+                    value={formData.jobNumber}
+                    onChange={e => setFormData({...formData, jobNumber: e.target.value})}
+                    className="w-full p-2 border rounded"
+                    required
+                  />
                 </div>
               </div>
             </div>
@@ -410,18 +397,14 @@ export default function IncidentReportForm() {
 
               <div className="mt-4">
                 <label className="block mb-1">Location of Incident</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <input
-                    type="text"
-                    value={formData.location}
-                    onChange={e => setFormData({...formData, location: e.target.value})}
-                    className="w-full p-2 border rounded"
-                    style={{ flex: 1 }}
-                    placeholder="Specific area where incident occurred"
-                    required
-                  />
-                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, location: prev.location ? prev.location + ' ' + text : text}))} />
-                </div>
+                <input
+                  type="text"
+                  value={formData.location}
+                  onChange={e => setFormData({...formData, location: e.target.value})}
+                  className="w-full p-2 border rounded"
+                  placeholder="Specific area where incident occurred"
+                  required
+                />
               </div>
 
               <div className="mt-4">
@@ -446,18 +429,14 @@ export default function IncidentReportForm() {
                 
                 {formData.incidentType === 'Other' && (
                   <div className="mt-2">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <input
-                        type="text"
-                        value={formData.otherIncidentType}
-                        onChange={e => setFormData({...formData, otherIncidentType: e.target.value})}
-                        className="w-full p-2 border rounded"
-                        style={{ flex: 1 }}
-                        placeholder="Please specify incident type"
-                        required
-                      />
-                      <DictateButton onResult={(text) => setFormData(prev => ({...prev, otherIncidentType: prev.otherIncidentType ? prev.otherIncidentType + ' ' + text : text}))} />
-                    </div>
+                    <input
+                      type="text"
+                      value={formData.otherIncidentType}
+                      onChange={e => setFormData({...formData, otherIncidentType: e.target.value})}
+                      className="w-full p-2 border rounded"
+                      placeholder="Please specify incident type"
+                      required
+                    />
                   </div>
                 )}
               </div>
@@ -482,9 +461,6 @@ export default function IncidentReportForm() {
                   placeholder="List all people directly involved in the incident (names and roles)"
                   required
                 />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, peopleInvolved: prev.peopleInvolved ? prev.peopleInvolved + ' ' + text : text}))} />
-                </div>
               </div>
               
               <div className="mt-4">
@@ -501,9 +477,6 @@ export default function IncidentReportForm() {
                   }}
                   placeholder="List any witnesses to the incident (names and contact information if available)"
                 />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, witness: prev.witness ? prev.witness + ' ' + text : text}))} />
-                </div>
               </div>
             </div>
 
@@ -526,9 +499,6 @@ export default function IncidentReportForm() {
                   placeholder="Describe in detail what happened"
                   required
                 />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, description: prev.description ? prev.description + ' ' + text : text}))} />
-                </div>
               </div>
               
               <div className="mt-4">
@@ -546,9 +516,6 @@ export default function IncidentReportForm() {
                   placeholder="What led to this incident? Identify root causes if possible"
                   required
                 />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, cause: prev.cause ? prev.cause + ' ' + text : text}))} />
-                </div>
               </div>
               
               <div className="mt-4">
@@ -566,9 +533,6 @@ export default function IncidentReportForm() {
                   placeholder="Describe any injuries. If none, write 'None'"
                   required
                 />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, injuries: prev.injuries ? prev.injuries + ' ' + text : text}))} />
-                </div>
               </div>
               
               <div className="mt-4">
@@ -585,9 +549,6 @@ export default function IncidentReportForm() {
                   }}
                   placeholder="What immediate treatment was provided? Was medical attention sought?"
                 />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, treatment: prev.treatment ? prev.treatment + ' ' + text : text}))} />
-                </div>
               </div>
               
               <div className="mt-4">
@@ -605,9 +566,6 @@ export default function IncidentReportForm() {
                   placeholder="Describe any damage to property or equipment. If none, write 'None'"
                   required
                 />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, propertyDamage: prev.propertyDamage ? prev.propertyDamage + ' ' + text : text}))} />
-                </div>
               </div>
             </div>
 
@@ -630,9 +588,6 @@ export default function IncidentReportForm() {
                   placeholder="What actions were taken immediately after the incident?"
                   required
                 />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, immediateActions: prev.immediateActions ? prev.immediateActions + ' ' + text : text}))} />
-                </div>
               </div>
               
               <div className="mt-4">
@@ -650,26 +605,19 @@ export default function IncidentReportForm() {
                   placeholder="What steps should be taken to prevent similar incidents in the future?"
                   required
                 />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, futurePreventionSteps: prev.futurePreventionSteps ? prev.futurePreventionSteps + ' ' + text : text}))} />
-                </div>
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                 <div>
                   <label className="block mb-1">Incident Reported To</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <input
-                      type="text"
-                      value={formData.reportedTo}
-                      onChange={e => setFormData({...formData, reportedTo: e.target.value})}
-                      className="w-full p-2 border rounded"
-                      style={{ flex: 1 }}
-                      placeholder="Person's name and title"
-                      required
-                    />
-                    <DictateButton onResult={(text) => setFormData(prev => ({...prev, reportedTo: prev.reportedTo ? prev.reportedTo + ' ' + text : text}))} />
-                  </div>
+                  <input
+                    type="text"
+                    value={formData.reportedTo}
+                    onChange={e => setFormData({...formData, reportedTo: e.target.value})}
+                    className="w-full p-2 border rounded"
+                    placeholder="Person's name and title"
+                    required
+                  />
                 </div>
 
                 <div>
@@ -701,9 +649,6 @@ export default function IncidentReportForm() {
                   }}
                   placeholder="Any additional information that might be relevant"
                 />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                  <DictateButton onResult={(text) => setFormData(prev => ({...prev, otherNotes: prev.otherNotes ? prev.otherNotes + ' ' + text : text}))} />
-                </div>
               </div>
 
               <PhotoUploader
