@@ -43,6 +43,9 @@ export async function PATCH(
       updateData.form_data = body.form_data;
     }
 
+    // Allow restoring soft-deleted reports
+    if (body.deleted_at !== undefined) updateData.deleted_at = body.deleted_at;
+
     // Allow updating common fields
     if (body.job_name !== undefined) updateData.job_name = body.job_name;
     if (body.job_number !== undefined) updateData.job_number = body.job_number;
@@ -84,47 +87,57 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const { searchParams } = new URL(request.url);
+    const permanent = searchParams.get('permanent') === 'true';
 
-    // First fetch the submission to get photo/signature URLs for storage cleanup
-    const { data: submission } = await supabase
-      .from('submissions')
-      .select('photo_urls, signature_urls')
-      .eq('id', id)
-      .single();
+    if (permanent) {
+      // Permanent delete — remove storage files and database record
+      const { data: submission } = await supabase
+        .from('submissions')
+        .select('photo_urls, signature_urls')
+        .eq('id', id)
+        .single();
 
-    // Delete photos from storage if they exist
-    if (submission && submission.photo_urls?.length > 0) {
-      const photoPaths = submission.photo_urls.map((url: string) => {
-        const parts = url.split('/photos/');
-        return parts.length > 1 ? parts[1] : null;
-      }).filter(Boolean);
-
-      if (photoPaths.length > 0) {
-        await supabase.storage.from('photos').remove(photoPaths);
+      if (submission && submission.photo_urls?.length > 0) {
+        const photoPaths = submission.photo_urls.map((url: string) => {
+          const parts = url.split('/photos/');
+          return parts.length > 1 ? parts[1] : null;
+        }).filter(Boolean);
+        if (photoPaths.length > 0) {
+          await supabase.storage.from('photos').remove(photoPaths);
+        }
       }
-    }
 
-    // Delete signatures from storage if they exist
-    if (submission && submission.signature_urls?.length > 0) {
-      const sigPaths = submission.signature_urls.map((url: string) => {
-        const parts = url.split('/signatures/');
-        return parts.length > 1 ? parts[1] : null;
-      }).filter(Boolean);
-
-      if (sigPaths.length > 0) {
-        await supabase.storage.from('signatures').remove(sigPaths);
+      if (submission && submission.signature_urls?.length > 0) {
+        const sigPaths = submission.signature_urls.map((url: string) => {
+          const parts = url.split('/signatures/');
+          return parts.length > 1 ? parts[1] : null;
+        }).filter(Boolean);
+        if (sigPaths.length > 0) {
+          await supabase.storage.from('signatures').remove(sigPaths);
+        }
       }
-    }
 
-    // Delete the submission record
-    const { error } = await supabase
-      .from('submissions')
-      .delete()
-      .eq('id', id);
+      const { error } = await supabase
+        .from('submissions')
+        .delete()
+        .eq('id', id);
 
-    if (error) {
-      console.error('Delete error:', error);
-      return NextResponse.json({ error: 'Failed to delete submission' }, { status: 500 });
+      if (error) {
+        console.error('Permanent delete error:', error);
+        return NextResponse.json({ error: 'Failed to permanently delete submission' }, { status: 500 });
+      }
+    } else {
+      // Soft delete — set deleted_at timestamp
+      const { error } = await supabase
+        .from('submissions')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Soft delete error:', error);
+        return NextResponse.json({ error: 'Failed to delete submission' }, { status: 500 });
+      }
     }
 
     return NextResponse.json({ success: true });

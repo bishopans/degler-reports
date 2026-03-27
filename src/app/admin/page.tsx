@@ -59,6 +59,12 @@ export default function AdminDashboard() {
   const [total, setTotal] = useState(0);
   const [isFetching, setIsFetching] = useState(false);
 
+  // Deleted reports state
+  const [deletedReports, setDeletedReports] = useState<(Submission & { deleted_at?: string })[]>([]);
+  const [showDeleted, setShowDeleted] = useState(false);
+  const [deletedLoading, setDeletedLoading] = useState(false);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+
   // Digest subscribers state
   interface DigestSubscriber {
     id: string;
@@ -261,8 +267,10 @@ export default function AdminDashboard() {
       fetchReminders();
       fetchSubscribers();
       fetchChatbotStatus();
+      fetchDeletedReports();
+      cleanupOldDeletedReports();
     }
-  }, [isUnlocked, fetchSubmissions, fetchReminders, fetchSubscribers, fetchChatbotStatus]);
+  }, [isUnlocked, fetchSubmissions, fetchReminders, fetchSubscribers, fetchChatbotStatus, fetchDeletedReports, cleanupOldDeletedReports]);
 
   const updateReportStatus = async (id: string, status: string) => {
     try {
@@ -337,6 +345,79 @@ export default function AdminDashboard() {
     setDateTo('');
     setPage(1);
   };
+
+  const fetchDeletedReports = useCallback(async () => {
+    setDeletedLoading(true);
+    try {
+      const response = await fetch('/api/admin/submissions?deleted=true&limit=100');
+      if (response.ok) {
+        const data = await response.json();
+        setDeletedReports(data.submissions);
+      }
+    } catch (error) {
+      console.error('Fetch deleted error:', error);
+    } finally {
+      setDeletedLoading(false);
+    }
+  }, []);
+
+  const restoreReport = async (id: string) => {
+    setRestoringId(id);
+    try {
+      const response = await fetch(`/api/admin/submissions/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deleted_at: null }),
+      });
+      if (response.ok) {
+        setDeletedReports(prev => prev.filter(r => r.id !== id));
+        fetchSubmissions();
+      } else {
+        alert('Failed to restore report.');
+      }
+    } catch (error) {
+      console.error('Restore error:', error);
+      alert('Error restoring report.');
+    } finally {
+      setRestoringId(null);
+    }
+  };
+
+  const permanentlyDeleteReport = async (id: string) => {
+    if (!window.confirm('Are you sure you want to PERMANENTLY delete this report? This cannot be undone.')) return;
+    try {
+      const response = await fetch(`/api/admin/submissions/${id}?permanent=true`, { method: 'DELETE' });
+      if (response.ok) {
+        setDeletedReports(prev => prev.filter(r => r.id !== id));
+      } else {
+        alert('Failed to permanently delete report.');
+      }
+    } catch (error) {
+      console.error('Permanent delete error:', error);
+      alert('Error deleting report.');
+    }
+  };
+
+  // Auto-cleanup: permanently delete reports that have been in trash for 30+ days
+  const cleanupOldDeletedReports = useCallback(async () => {
+    try {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const response = await fetch('/api/admin/submissions?deleted=true&limit=100');
+      if (response.ok) {
+        const data = await response.json();
+        const oldReports = data.submissions.filter((r: { deleted_at?: string }) =>
+          r.deleted_at && new Date(r.deleted_at) < thirtyDaysAgo
+        );
+        for (const report of oldReports) {
+          await fetch(`/api/admin/submissions/${report.id}?permanent=true`, { method: 'DELETE' });
+        }
+      }
+    } catch (error) {
+      console.error('Cleanup error:', error);
+    }
+  }, []);
 
   if (isLoading) {
     return (
@@ -1211,6 +1292,211 @@ export default function AdminDashboard() {
             >
               Next
             </button>
+          </div>
+        )}
+      </div>
+
+      {/* Deleted Reports Section */}
+      <div className="bg-white rounded-lg shadow-sm" style={{ marginTop: '1.5rem' }}>
+        <button
+          onClick={() => {
+            setShowDeleted(!showDeleted);
+            if (!showDeleted) fetchDeletedReports();
+          }}
+          style={{
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '0.875rem 1.25rem',
+            backgroundColor: showDeleted ? '#fef2f2' : 'white',
+            border: 'none',
+            borderRadius: '0.5rem',
+            cursor: 'pointer',
+            transition: 'background-color 0.15s',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '1.125rem' }}>🗑️</span>
+            <span style={{ fontWeight: 600, fontSize: '0.9375rem', color: '#374151' }}>Deleted Reports</span>
+            {deletedReports.length > 0 && (
+              <span style={{
+                padding: '0.125rem 0.5rem',
+                borderRadius: '9999px',
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                backgroundColor: '#fee2e2',
+                color: '#dc2626',
+              }}>
+                {deletedReports.length}
+              </span>
+            )}
+          </div>
+          <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>{showDeleted ? '▲' : '▼'}</span>
+        </button>
+
+        {showDeleted && (
+          <div style={{ borderTop: '1px solid #e5e7eb' }}>
+            {deletedLoading ? (
+              <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280', fontSize: '0.875rem' }}>Loading deleted reports...</div>
+            ) : deletedReports.length === 0 ? (
+              <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280', fontSize: '0.875rem' }}>
+                No deleted reports. Reports you delete will appear here for 30 days before being permanently removed.
+              </div>
+            ) : (
+              <>
+                <div style={{ padding: '0.5rem 1.25rem', fontSize: '0.75rem', color: '#6b7280', backgroundColor: '#fef2f2' }}>
+                  Deleted reports are permanently removed after 30 days.
+                </div>
+
+                {/* Desktop table */}
+                <div className="admin-table-desktop" style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid #e5e7eb', backgroundColor: '#f9fafb' }}>
+                        <th style={{ padding: '0.625rem 0.75rem', textAlign: 'left', fontSize: '0.8125rem', fontWeight: 600 }}>Date</th>
+                        <th style={{ padding: '0.625rem 0.75rem', textAlign: 'left', fontSize: '0.8125rem', fontWeight: 600 }}>Type</th>
+                        <th style={{ padding: '0.625rem 0.75rem', textAlign: 'left', fontSize: '0.8125rem', fontWeight: 600 }}>Job Name</th>
+                        <th style={{ padding: '0.625rem 0.75rem', textAlign: 'left', fontSize: '0.8125rem', fontWeight: 600 }}>Technician</th>
+                        <th style={{ padding: '0.625rem 0.75rem', textAlign: 'left', fontSize: '0.8125rem', fontWeight: 600 }}>Deleted</th>
+                        <th style={{ padding: '0.625rem 0.75rem', textAlign: 'left', fontSize: '0.8125rem', fontWeight: 600 }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {deletedReports.map((sub) => {
+                        const deletedDate = sub.deleted_at ? new Date(sub.deleted_at) : null;
+                        const daysLeft = deletedDate ? Math.max(0, 30 - Math.ceil((Date.now() - deletedDate.getTime()) / (1000 * 60 * 60 * 24))) : 30;
+                        return (
+                          <tr key={sub.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                            <td style={{ padding: '0.625rem 0.75rem', fontSize: '0.8125rem' }}>
+                              {new Date(sub.date + 'T00:00:00').toLocaleDateString('en-US')}
+                            </td>
+                            <td style={{ padding: '0.625rem 0.75rem', fontSize: '0.8125rem' }}>
+                              <span style={{
+                                display: 'inline-block',
+                                padding: '0.125rem 0.5rem',
+                                borderRadius: '9999px',
+                                fontSize: '0.7rem',
+                                fontWeight: 500,
+                                backgroundColor: '#f3f4f6',
+                                color: '#6b7280',
+                              }}>
+                                {REPORT_TYPE_LABELS[sub.report_type] || sub.report_type}
+                              </span>
+                            </td>
+                            <td style={{ padding: '0.625rem 0.75rem', fontSize: '0.8125rem', fontWeight: 500 }}>{sub.job_name}</td>
+                            <td style={{ padding: '0.625rem 0.75rem', fontSize: '0.8125rem' }}>{sub.technician_name}</td>
+                            <td style={{ padding: '0.625rem 0.75rem', fontSize: '0.75rem', color: '#6b7280' }}>
+                              {deletedDate ? deletedDate.toLocaleDateString('en-US') : '—'}
+                              <span style={{ display: 'block', fontSize: '0.65rem', color: daysLeft <= 7 ? '#dc2626' : '#9ca3af' }}>
+                                {daysLeft} day{daysLeft !== 1 ? 's' : ''} left
+                              </span>
+                            </td>
+                            <td style={{ padding: '0.625rem 0.75rem' }}>
+                              <div style={{ display: 'flex', gap: '0.375rem' }}>
+                                <button
+                                  onClick={() => restoreReport(sub.id)}
+                                  disabled={restoringId === sub.id}
+                                  style={{
+                                    padding: '0.25rem 0.625rem',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 500,
+                                    backgroundColor: '#2563eb',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '0.25rem',
+                                    cursor: restoringId === sub.id ? 'not-allowed' : 'pointer',
+                                    opacity: restoringId === sub.id ? 0.5 : 1,
+                                  }}
+                                >
+                                  {restoringId === sub.id ? '...' : 'Restore'}
+                                </button>
+                                <button
+                                  onClick={() => permanentlyDeleteReport(sub.id)}
+                                  style={{
+                                    padding: '0.25rem 0.625rem',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 500,
+                                    backgroundColor: 'white',
+                                    color: '#dc2626',
+                                    border: '1px solid #fecaca',
+                                    borderRadius: '0.25rem',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  Delete Forever
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile cards */}
+                <div className="admin-cards-mobile">
+                  {deletedReports.map((sub) => {
+                    const deletedDate = sub.deleted_at ? new Date(sub.deleted_at) : null;
+                    const daysLeft = deletedDate ? Math.max(0, 30 - Math.ceil((Date.now() - deletedDate.getTime()) / (1000 * 60 * 60 * 24))) : 30;
+                    return (
+                      <div key={sub.id} style={{ padding: '0.875rem 1rem', borderBottom: '1px solid #e5e7eb' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.375rem' }}>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{sub.job_name}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                              {sub.technician_name} &middot; {new Date(sub.date + 'T00:00:00').toLocaleDateString('en-US')}
+                            </div>
+                          </div>
+                          <span style={{
+                            fontSize: '0.65rem',
+                            color: daysLeft <= 7 ? '#dc2626' : '#9ca3af',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            {daysLeft}d left
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.375rem' }}>
+                          <button
+                            onClick={() => restoreReport(sub.id)}
+                            disabled={restoringId === sub.id}
+                            style={{
+                              padding: '0.375rem 0.75rem',
+                              fontSize: '0.75rem',
+                              fontWeight: 500,
+                              backgroundColor: '#2563eb',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '0.25rem',
+                              cursor: restoringId === sub.id ? 'not-allowed' : 'pointer',
+                              opacity: restoringId === sub.id ? 0.5 : 1,
+                            }}
+                          >
+                            {restoringId === sub.id ? '...' : 'Restore'}
+                          </button>
+                          <button
+                            onClick={() => permanentlyDeleteReport(sub.id)}
+                            style={{
+                              padding: '0.375rem 0.75rem',
+                              fontSize: '0.75rem',
+                              fontWeight: 500,
+                              backgroundColor: 'white',
+                              color: '#dc2626',
+                              border: '1px solid #fecaca',
+                              borderRadius: '0.25rem',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Delete Forever
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

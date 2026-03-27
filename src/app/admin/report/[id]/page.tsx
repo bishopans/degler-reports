@@ -310,7 +310,7 @@ export default function ReportDetailPage() {
   };
 
   const handleDeleteReport = async () => {
-    if (!window.confirm('Are you sure you want to permanently delete this report? This action cannot be undone.')) {
+    if (!window.confirm('Are you sure you want to delete this report? It will be moved to the Deleted section and permanently removed after 30 days.')) {
       return;
     }
     setIsDeleting(true);

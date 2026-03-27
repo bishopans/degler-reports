@@ -12,9 +12,18 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = (page - 1) * limit;
 
+    const showDeleted = searchParams.get('deleted') === 'true';
+
     let query = supabase
       .from('submissions')
-      .select('id, created_at, report_type, date, job_name, job_number, technician_name, status, photo_urls, signature_urls, notes, form_data, claimed_by', { count: 'exact' });
+      .select('id, created_at, report_type, date, job_name, job_number, technician_name, status, photo_urls, signature_urls, notes, form_data, claimed_by, deleted_at', { count: 'exact' });
+
+    // Filter by deleted status
+    if (showDeleted) {
+      query = query.not('deleted_at', 'is', null);
+    } else {
+      query = query.is('deleted_at', null);
+    }
 
     // Filter by report type
     if (reportType) {
