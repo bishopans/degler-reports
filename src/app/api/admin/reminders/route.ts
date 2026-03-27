@@ -50,6 +50,7 @@ export async function PATCH(request: NextRequest) {
     const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (status) updateData.status = status;
     if (notes !== undefined) updateData.notes = notes;
+    if (body.reminder_date) updateData.reminder_date = body.reminder_date;
 
     const { data, error } = await supabase
       .from('service_reminders')
@@ -65,6 +66,32 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json(data);
   } catch (error) {
     console.error('Reminder update error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+// DELETE: Remove a reminder
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Missing reminder id' }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from('service_reminders')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Reminder delete error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
