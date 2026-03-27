@@ -211,10 +211,19 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
     setPhotos(prev => [...prev, ...newPhotos]);
     photoCounterRef.current += files.length;
 
-    // Start uploading each one
-    files.forEach((file, i) => {
-      uploadSinglePhoto(file, startIdx + i, startCounter + i + 1);
-    });
+    // Upload in batches of 3 to avoid overwhelming serverless function limits
+    const BATCH_SIZE = 3;
+    const uploadBatches = async () => {
+      for (let batch = 0; batch < files.length; batch += BATCH_SIZE) {
+        const batchFiles = files.slice(batch, batch + BATCH_SIZE);
+        await Promise.all(
+          batchFiles.map((file, i) =>
+            uploadSinglePhoto(file, startIdx + batch + i, startCounter + batch + i + 1)
+          )
+        );
+      }
+    };
+    uploadBatches();
 
     // Reset file input so same files can be re-selected
     if (fileInputRef.current) {

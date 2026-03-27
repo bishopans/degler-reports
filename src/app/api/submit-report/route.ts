@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
           .from('report-photos')
           .upload(filePath, file, {
             contentType: file.type,
-            upsert: false,
+            upsert: true,
           });
 
         if (uploadError) {
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
           .from('report-signatures')
           .upload(filePath, file, {
             contentType: 'image/png',
-            upsert: false,
+            upsert: true,
           });
 
         if (uploadError) {
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
           .from('report-signatures')
           .upload(filePath, buffer, {
             contentType: 'image/png',
-            upsert: false,
+            upsert: true,
           });
 
         if (uploadError) {
@@ -132,10 +132,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Insert the submission record
+    // Upsert the submission record (handles retries gracefully)
     const { data, error: insertError } = await supabase
       .from('submissions')
-      .insert({
+      .upsert({
         id: submissionId,
         report_type: reportType,
         date: date,
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
         photo_urls: photoUrls,
         signature_urls: signatureUrls,
         status: 'submitted',
-      })
+      }, { onConflict: 'id' })
       .select()
       .single();
 

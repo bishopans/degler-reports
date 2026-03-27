@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       .from('report-photos')
       .upload(filePath, photo, {
         contentType: photo.type,
-        upsert: false,
+        upsert: true,
       });
 
     if (uploadError) {
