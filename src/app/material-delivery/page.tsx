@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
 import PhotoUploader from '@/components/PhotoUploader';
+import { VoiceInput, VoiceTextarea } from '@/components/VoiceFields';
 
 export default function MaterialDeliveryForm() {
   const [formData, setFormData] = useState({
@@ -234,7 +235,7 @@ export default function MaterialDeliveryForm() {
             
             <div>
               <label className="block mb-1">Job Name</label>
-              <input
+              <VoiceInput
                 type="text"
                 value={formData.jobName}
                 onChange={e => setFormData({...formData, jobName: e.target.value})}
@@ -247,7 +248,7 @@ export default function MaterialDeliveryForm() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block mb-1">Installer Name</label>
-              <input
+              <VoiceInput
                 type="text"
                 value={formData.installerName}
                 onChange={e => setFormData({...formData, installerName: e.target.value})}
@@ -258,7 +259,7 @@ export default function MaterialDeliveryForm() {
             
             <div>
               <label className="block mb-1">Job Number</label>
-              <input
+              <VoiceInput
                 type="text"
                 value={formData.jobNumber}
                 onChange={e => setFormData({...formData, jobNumber: e.target.value})}
@@ -271,7 +272,7 @@ export default function MaterialDeliveryForm() {
           {/* Delivered Items Section */}
           <div className="space-y-2">
             <label className="block mb-1">List all products that delivered</label>
-            <textarea
+            <VoiceTextarea
               value={formData.deliveredItems}
               onChange={e => setFormData({...formData, deliveredItems: e.target.value})}
               className="w-full p-2 border rounded min-h-[150px]"
@@ -283,7 +284,7 @@ export default function MaterialDeliveryForm() {
           {/* Storage Location Section */}
           <div className="space-y-2">
             <label className="block mb-1">What room is the material stored?</label>
-            <textarea
+            <VoiceTextarea
               value={formData.storageLocation}
               onChange={e => setFormData({...formData, storageLocation: e.target.value})}
               className="w-full p-2 border rounded min-h-[100px]"
@@ -295,7 +296,7 @@ export default function MaterialDeliveryForm() {
           {/* Missing Items Section */}
           <div className="space-y-2">
             <label className="block mb-1">Are there any missing items from the shipment? Please list any missing parts:</label>
-            <textarea
+            <VoiceTextarea
               value={formData.missingItems}
               onChange={e => setFormData({...formData, missingItems: e.target.value})}
               className="w-full p-2 border rounded min-h-[100px]"

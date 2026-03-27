@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
 import PhotoUploader from '@/components/PhotoUploader';
+import { VoiceInput, VoiceTextarea } from '@/components/VoiceFields';
 
 const SignaturePad = dynamic(() => import('react-signature-canvas'), {
   ssr: false
@@ -263,7 +264,7 @@ export default function TrainingForm() {
 
             <div>
               <label className="block mb-1">Job Name</label>
-              <input
+              <VoiceInput
                 type="text"
                 value={formData.jobName}
                 onChange={e => setFormData({...formData, jobName: e.target.value})}
@@ -276,7 +277,7 @@ export default function TrainingForm() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block mb-1">Technician Name</label>
-              <input
+              <VoiceInput
                 type="text"
                 value={formData.technicianName}
                 onChange={e => setFormData({...formData, technicianName: e.target.value})}
@@ -287,7 +288,7 @@ export default function TrainingForm() {
 
             <div>
               <label className="block mb-1">Job Number</label>
-              <input
+              <VoiceInput
                 type="text"
                 value={formData.jobNumber}
                 onChange={e => setFormData({...formData, jobNumber: e.target.value})}
@@ -300,7 +301,7 @@ export default function TrainingForm() {
           <div className="space-y-2">
             <label className="block mb-1">Attendance List: Who was trained?</label>
             <div className="relative">
-              <textarea
+              <VoiceTextarea
                 value={formData.attendanceList}
                 onChange={e => setFormData({...formData, attendanceList: e.target.value})}
                 className="w-full p-2 border rounded min-h-[100px]"
@@ -366,7 +367,7 @@ Jane Doe
               {formData.selectedEquipment.includes('Other') && (
                 <div className="col-span-2">
                   <label className="block mb-1">Specify Other Equipment:</label>
-                  <input
+                  <VoiceInput
                     type="text"
                     value={formData.otherEquipment}
                     onChange={e => setFormData(prev => ({
@@ -388,7 +389,7 @@ Jane Doe
               Did you leave scoreboard controller, key switch keys, or bleacher controller
               any place or with anyone?
             </p>
-            <textarea
+            <VoiceTextarea
               value={formData.equipmentTurnover}
               onChange={e => setFormData({...formData, equipmentTurnover: e.target.value})}
               className="w-full p-2 border rounded min-h-[80px]"
@@ -399,7 +400,7 @@ Jane Doe
           {/* Notes */}
           <div className="space-y-2">
             <label className="block mb-1">Notes</label>
-            <textarea
+            <VoiceTextarea
               value={formData.notes}
               onChange={e => setFormData({...formData, notes: e.target.value})}
               className="w-full p-2 border rounded min-h-[80px]"

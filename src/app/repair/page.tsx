@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
 import PhotoUploader from '@/components/PhotoUploader';
+import { VoiceInput, VoiceTextarea } from '@/components/VoiceFields';
 
 // Define equipment types - same as maintenance form
 type EquipmentType = 
@@ -415,7 +416,7 @@ export default function RepairForm() {
               
               <div>
                 <label className="block mb-1">Job Name</label>
-                <input
+                <VoiceInput
                   type="text"
                   value={formData.jobName}
                   onChange={e => setFormData({...formData, jobName: e.target.value})}
@@ -428,7 +429,7 @@ export default function RepairForm() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block mb-1">Technician Name</label>
-                <input
+                <VoiceInput
                   type="text"
                   value={formData.technicianName}
                   onChange={e => setFormData({...formData, technicianName: e.target.value})}
@@ -439,7 +440,7 @@ export default function RepairForm() {
               
               <div>
                 <label className="block mb-1">Job Number</label>
-                <input
+                <VoiceInput
                   type="text"
                   value={formData.jobNumber}
                   onChange={e => setFormData({...formData, jobNumber: e.target.value})}
@@ -480,7 +481,7 @@ export default function RepairForm() {
                       <p className="text-sm text-gray-600 mb-2">
                         Describe the initial problem or reason for service
                       </p>
-                      <textarea
+                      <VoiceTextarea
                         value={formData.initialProblems[equipment] || ''}
                         onChange={(e) => handleInitialProblemChange(equipment, e.target.value)}
                         onInput={(e) => handleTextAreaInput(e, `problem-${equipment}`)}
@@ -498,7 +499,7 @@ export default function RepairForm() {
                       <p className="text-sm text-gray-600 mb-2">
                         Describe the repairs performed
                       </p>
-                      <textarea
+                      <VoiceTextarea
                         value={formData.repairSummaries[equipment] || ''}
                         onChange={(e) => handleRepairSummaryChange(equipment, e.target.value)}
                         onInput={(e) => handleTextAreaInput(e, `summary-${equipment}`)}
@@ -516,7 +517,7 @@ export default function RepairForm() {
                       <p className="text-sm text-gray-600 mb-2">
                         Do you need any other parts or labor after today to get equipment functional?
                       </p>
-                      <textarea
+                      <VoiceTextarea
                         value={formData.partsNeeded[equipment] || ''}
                         onChange={(e) => handlePartsNeededChange(equipment, e.target.value)}
                         onInput={(e) => handleTextAreaInput(e, `parts-${equipment}`)}
@@ -567,12 +568,12 @@ export default function RepairForm() {
                 Did you leave scoreboard controller, key switch keys, or bleacher controller
                 any place or with anyone?
               </p>
-              <textarea
+              <VoiceTextarea
                 value={formData.equipmentTurnover}
                 onChange={e => setFormData({...formData, equipmentTurnover: e.target.value})}
                 onInput={(e) => handleTextAreaInput(e, 'equipment-turnover')}
                 className="w-full p-2 border rounded"
-                style={{ 
+                style={{
                   minHeight: '80px',
                   height: textareaHeights['equipment-turnover'] ? `${textareaHeights['equipment-turnover']}px` : 'auto',
                   resize: 'none'
@@ -583,12 +584,12 @@ export default function RepairForm() {
 
             <div className="space-y-2">
               <label className="block mb-1">Any other notes?</label>
-              <textarea
+              <VoiceTextarea
                 value={formData.otherNotes}
                 onChange={e => setFormData({...formData, otherNotes: e.target.value})}
                 onInput={(e) => handleTextAreaInput(e, 'other-notes')}
                 className="w-full p-2 border rounded"
-                style={{ 
+                style={{
                   minHeight: '100px',
                   height: textareaHeights['other-notes'] ? `${textareaHeights['other-notes']}px` : 'auto',
                   resize: 'none'

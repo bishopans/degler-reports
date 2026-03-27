@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
 import PhotoUploader from '@/components/PhotoUploader';
+import { VoiceInput, VoiceTextarea } from '@/components/VoiceFields';
 
 export default function JobSiteProgressForm() {
   const [formData, setFormData] = useState({
@@ -232,7 +233,7 @@ export default function JobSiteProgressForm() {
 
             <div>
               <label className="block mb-1">Job Name</label>
-              <input
+              <VoiceInput
                 type="text"
                 value={formData.jobName}
                 onChange={e => setFormData({...formData, jobName: e.target.value})}
@@ -245,7 +246,7 @@ export default function JobSiteProgressForm() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block mb-1">Technician Name</label>
-              <input
+              <VoiceInput
                 type="text"
                 value={formData.technicianName}
                 onChange={e => setFormData({...formData, technicianName: e.target.value})}
@@ -256,7 +257,7 @@ export default function JobSiteProgressForm() {
 
             <div>
               <label className="block mb-1">Job Number</label>
-              <input
+              <VoiceInput
                 type="text"
                 value={formData.jobNumber}
                 onChange={e => setFormData({...formData, jobNumber: e.target.value})}
@@ -269,7 +270,7 @@ export default function JobSiteProgressForm() {
           {/* Equipment Section */}
           <div className="space-y-2">
             <label className="block mb-1">Equipment Being Installed</label>
-            <textarea
+            <VoiceTextarea
               value={formData.equipment}
               onChange={e => setFormData({...formData, equipment: e.target.value})}
               className="w-full p-2 border rounded min-h-[150px]"
@@ -281,7 +282,7 @@ export default function JobSiteProgressForm() {
           {/* Notes Section */}
           <div className="space-y-2">
             <label className="block mb-1">Progress Notes</label>
-            <textarea
+            <VoiceTextarea
               value={formData.notes}
               onChange={e => setFormData({...formData, notes: e.target.value})}
               className="w-full p-2 border rounded min-h-[150px]"

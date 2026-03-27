@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
 import PhotoUploader from '@/components/PhotoUploader';
+import { VoiceInput, VoiceTextarea } from '@/components/VoiceFields';
 
 // Define equipment types
 type EquipmentType = 
@@ -583,7 +584,7 @@ export default function MaintenanceForm() {
               
               <div>
                 <label className="block mb-1">Job Name</label>
-                <input
+                <VoiceInput
                   type="text"
                   value={formData.jobName}
                   onChange={e => setFormData({...formData, jobName: e.target.value})}
@@ -596,7 +597,7 @@ export default function MaintenanceForm() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block mb-1">Technician Name</label>
-                <input
+                <VoiceInput
                   type="text"
                   value={formData.technicianName}
                   onChange={e => setFormData({...formData, technicianName: e.target.value})}
@@ -607,7 +608,7 @@ export default function MaintenanceForm() {
               
               <div>
                 <label className="block mb-1">Job Number</label>
-                <input
+                <VoiceInput
                   type="text"
                   value={formData.jobNumber}
                   onChange={e => setFormData({...formData, jobNumber: e.target.value})}
@@ -678,7 +679,7 @@ export default function MaintenanceForm() {
                         <h4 className="font-medium">Additional Information:</h4>
                         <div>
                           <label className="block mb-1">{outdoorBleacherQuestions[0]}</label>
-                          <input
+                          <VoiceInput
                             type="text"
                             value={outdoorBleacherData.location}
                             onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, location: e.target.value})}
@@ -687,7 +688,7 @@ export default function MaintenanceForm() {
                         </div>
                         <div>
                           <label className="block mb-1">{outdoorBleacherQuestions[1]}</label>
-                          <input
+                          <VoiceInput
                             type="text"
                             value={outdoorBleacherData.manufacturer}
                             onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, manufacturer: e.target.value})}
@@ -696,7 +697,7 @@ export default function MaintenanceForm() {
                         </div>
                         <div>
                           <label className="block mb-1">{outdoorBleacherQuestions[2]}</label>
-                          <input
+                          <VoiceInput
                             type="text"
                             value={outdoorBleacherData.height}
                             onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, height: e.target.value})}
@@ -705,7 +706,7 @@ export default function MaintenanceForm() {
                         </div>
                         <div>
                           <label className="block mb-1">{outdoorBleacherQuestions[3]}</label>
-                          <input
+                          <VoiceInput
                             type="text"
                             value={outdoorBleacherData.length}
                             onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, length: e.target.value})}
@@ -714,7 +715,7 @@ export default function MaintenanceForm() {
                         </div>
                         <div>
                           <label className="block mb-1">{outdoorBleacherQuestions[4]}</label>
-                          <input
+                          <VoiceInput
                             type="text"
                             value={outdoorBleacherData.meetCode}
                             onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, meetCode: e.target.value})}
@@ -723,12 +724,12 @@ export default function MaintenanceForm() {
                         </div>
                         <div>
                           <label className="block mb-1">{outdoorBleacherQuestions[5]}</label>
-                          <textarea
+                          <VoiceTextarea
                             value={outdoorBleacherData.codeIssues}
                             onChange={(e) => setOutdoorBleacherData({...outdoorBleacherData, codeIssues: e.target.value})}
                             onInput={(e) => handleTextAreaInput(e, 'outdoor-code-issues')}
                             className="w-full p-2 border rounded"
-                            style={{ 
+                            style={{
                               minHeight: '80px',
                               height: textareaHeights['outdoor-code-issues'] ? `${textareaHeights['outdoor-code-issues']}px` : 'auto',
                               resize: 'none'
@@ -742,7 +743,7 @@ export default function MaintenanceForm() {
                       <div className="mt-4 space-y-4">
                         <div>
                           <label className="block mb-1 font-medium">What equipment was serviced?</label>
-                          <textarea
+                          <VoiceTextarea
                             value={formData.additionalRepairs['Other-Equipment'] || ''}
                             onChange={(e) => handleAdditionalRepairsChange('Other-Equipment', e.target.value)}
                             onInput={(e) => handleTextAreaInput(e, 'other-equipment')}
@@ -757,7 +758,7 @@ export default function MaintenanceForm() {
                         </div>
                         <div>
                           <label className="block mb-1 font-medium">What tasks were performed?</label>
-                          <textarea
+                          <VoiceTextarea
                             value={formData.additionalRepairs['Other-Tasks'] || ''}
                             onChange={(e) => handleAdditionalRepairsChange('Other-Tasks', e.target.value)}
                             onInput={(e) => handleTextAreaInput(e, 'other-tasks')}
@@ -772,7 +773,7 @@ export default function MaintenanceForm() {
                         </div>
                         <div>
                           <label className="block mb-1 font-medium">List any future parts or service needed:</label>
-                          <textarea
+                          <VoiceTextarea
                             value={formData.futurePartsNeeded['Other'] || ''}
                             onChange={(e) => handleFuturePartsChange('Other', e.target.value)}
                             onInput={(e) => handleTextAreaInput(e, 'other-future')}
@@ -819,7 +820,7 @@ export default function MaintenanceForm() {
                       <div className="space-y-4">
                         <div>
                           <label className="block mb-1 font-medium">List any repairs made during this service:</label>
-                          <textarea
+                          <VoiceTextarea
                             value={formData.additionalRepairs[equipment] || ''}
                             onChange={(e) => handleAdditionalRepairsChange(equipment, e.target.value)}
                             onInput={(e) => handleTextAreaInput(e, `repairs-${equipment}`)}
@@ -834,7 +835,7 @@ export default function MaintenanceForm() {
                         </div>
                         <div>
                           <label className="block mb-1 font-medium">List any future parts or service needed:</label>
-                          <textarea
+                          <VoiceTextarea
                             value={formData.futurePartsNeeded[equipment] || ''}
                             onChange={(e) => handleFuturePartsChange(equipment, e.target.value)}
                             onInput={(e) => handleTextAreaInput(e, `future-${equipment}`)}
@@ -887,12 +888,12 @@ export default function MaintenanceForm() {
                 Did you leave scoreboard controller, key switch keys, or bleacher controller
                 any place or with anyone?
               </p>
-              <textarea
+              <VoiceTextarea
                 value={formData.equipmentTurnover}
                 onChange={e => setFormData({...formData, equipmentTurnover: e.target.value})}
                 onInput={(e) => handleTextAreaInput(e, 'equipment-turnover')}
                 className="w-full p-2 border rounded"
-                style={{ 
+                style={{
                   minHeight: '80px',
                   height: textareaHeights['equipment-turnover'] ? `${textareaHeights['equipment-turnover']}px` : 'auto',
                   resize: 'none'
@@ -903,12 +904,12 @@ export default function MaintenanceForm() {
 
             <div className="space-y-2">
               <label className="block mb-1">Any other notes?</label>
-              <textarea
+              <VoiceTextarea
                 value={formData.otherNotes}
                 onChange={e => setFormData({...formData, otherNotes: e.target.value})}
                 onInput={(e) => handleTextAreaInput(e, 'other-notes')}
                 className="w-full p-2 border rounded"
-                style={{ 
+                style={{
                   minHeight: '100px',
                   height: textareaHeights['other-notes'] ? `${textareaHeights['other-notes']}px` : 'auto',
                   resize: 'none'
