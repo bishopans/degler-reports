@@ -396,7 +396,7 @@ export default function ReportDetailPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-gray-500">Loading report...</div>
+        <div className="text-gray-700">Loading report...</div>
       </div>
     );
   }
@@ -404,7 +404,7 @@ export default function ReportDetailPage() {
   if (!submission || !editData) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-white">
-        <div className="text-gray-500 mb-4">Report not found</div>
+        <div className="text-gray-700 mb-4">Report not found</div>
         <Link href="/admin" className="text-blue-600">← Back to Dashboard</Link>
       </div>
     );
@@ -419,10 +419,10 @@ export default function ReportDetailPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <Image src="/images/logo.png" alt="Logo" width={50} height={50} />
           <div>
-            <h1 className="text-xl font-bold">
+            <h1 className="text-xl font-bold" style={{ color: '#111827' }}>
               {REPORT_TYPE_LABELS[data.report_type] || data.report_type} Report
             </h1>
-            <p className="text-gray-500 text-sm">
+            <p className="text-sm" style={{ color: '#4b5563' }}>
               Submitted {new Date(data.created_at).toLocaleString('en-US')}
               {data.edited_at && ` • Last edited ${new Date(data.edited_at).toLocaleString('en-US')}`}
             </p>
@@ -539,7 +539,7 @@ export default function ReportDetailPage() {
 
       {/* Common Fields */}
       <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
-        <h2 className="font-bold mb-4" style={{ fontSize: '1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>Report Information</h2>
+        <h2 className="font-bold mb-4" style={{ fontSize: '1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem', color: '#111827' }}>Report Information</h2>
         <div className="admin-report-info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <FieldDisplay
             label={['maintenance','repair','material-delivery','material-turnover','training','jobsite-progress'].includes(data.report_type) ? 'Date of Service' : 'Date'}
@@ -579,7 +579,7 @@ export default function ReportDetailPage() {
             onChange={(v) => setEditData({ ...editData, technician_name: v })}
           />
           <div>
-            <label className="block text-sm text-gray-500 mb-1">Status</label>
+            <label className="block text-sm text-gray-700 mb-1">Status</label>
             {isEditing ? (
               <select
                 value={data.status}
@@ -605,7 +605,7 @@ export default function ReportDetailPage() {
             )}
           </div>
           <div>
-            <label className="block text-sm text-gray-500 mb-1">Claim Report</label>
+            <label className="block text-sm text-gray-700 mb-1">Claim Report</label>
             <select
               value={submission?.claimed_by || ''}
               onChange={async (e) => {
@@ -679,7 +679,7 @@ export default function ReportDetailPage() {
       {/* Admin Comments (included in PDF) */}
       <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
         <h2 className="font-bold mb-4" style={{ fontSize: '1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
-          Admin Comments <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: '#6b7280' }}>(included in PDF)</span>
+          Admin Comments <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: '#374151' }}>(included in PDF)</span>
         </h2>
         {isEditing ? (
           <textarea
@@ -700,7 +700,7 @@ export default function ReportDetailPage() {
       {/* Admin Notes (internal only) */}
       <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
         <h2 className="font-bold mb-4" style={{ fontSize: '1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
-          Admin Notes <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: '#6b7280' }}>(internal only)</span>
+          Admin Notes <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: '#374151' }}>(internal only)</span>
         </h2>
         {isEditing ? (
           <textarea
@@ -738,7 +738,7 @@ export default function ReportDetailPage() {
               />
             ))}
           </div>
-          <p style={{ fontSize: '0.75rem', color: '#6b7280', fontStyle: 'italic', marginTop: '0.75rem' }}>
+          <p style={{ fontSize: '0.75rem', color: '#374151', fontStyle: 'italic', marginTop: '0.75rem' }}>
             By signing, the recipient acknowledges receipt of the above-listed materials and assumes full possession and responsibility. Degler Whiting is hereby released from any further liability or obligation regarding said materials from the date of transfer forward.
           </p>
         </div>
@@ -814,7 +814,7 @@ export default function ReportDetailPage() {
                 </button>
                 <p style={{
                   textAlign: 'center', fontSize: '0.7rem', marginTop: '0.25rem',
-                  color: '#6b7280',
+                  color: '#374151',
                 }}>
                   Photo {i + 1}
                 </p>
@@ -856,7 +856,7 @@ export default function ReportDetailPage() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-gray-400">No photos uploaded yet.</p>
+          <p className="text-sm text-gray-600">No photos uploaded yet.</p>
         )}
       </div>
 
@@ -876,7 +876,7 @@ function FieldDisplay({
 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
-      <label className="text-sm font-bold" style={{ minWidth: '110px', flexShrink: 0 }}>{label}:</label>
+      <label className="text-sm font-bold" style={{ minWidth: '110px', flexShrink: 0, color: '#374151' }}>{label}:</label>
       {isEditing ? (
         <input
           type={type}
@@ -886,7 +886,7 @@ function FieldDisplay({
           style={{ flex: 1 }}
         />
       ) : (
-        <p className="text-sm">{type === 'date' ? new Date(value + 'T00:00:00').toLocaleDateString('en-US') : value}</p>
+        <p className="text-sm" style={{ color: '#1f2937' }}>{type === 'date' ? new Date(value + 'T00:00:00').toLocaleDateString('en-US') : value}</p>
       )}
     </div>
   );
@@ -913,7 +913,7 @@ function FormDataDisplay({
       : value;
     return (
       <div key={key} style={{ marginBottom: '1rem' }}>
-        <label className="block text-sm text-gray-500 mb-1">{label}</label>
+        <label className="block text-sm text-gray-700 mb-1">{label}</label>
         {isEditing ? (
           isDateField ? (
             <input
@@ -931,7 +931,7 @@ function FormDataDisplay({
             />
           )
         ) : (
-          <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{displayValue || '—'}</p>
+          <p className="text-sm" style={{ whiteSpace: 'pre-wrap', color: '#1f2937' }}>{displayValue || '—'}</p>
         )}
       </div>
     );
@@ -942,7 +942,7 @@ function FormDataDisplay({
     const value = (formData[key] as string[]) || [];
     return (
       <div key={key} style={{ marginBottom: '1rem' }}>
-        <label className="block text-sm text-gray-500 mb-1">{label}</label>
+        <label className="block text-sm text-gray-700 mb-1">{label}</label>
         {value.length > 0 ? (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
             {value.map((item, i) => (
@@ -960,7 +960,7 @@ function FormDataDisplay({
             ))}
           </div>
         ) : (
-          <p className="text-sm text-gray-400">None</p>
+          <p className="text-sm text-gray-600">None</p>
         )}
       </div>
     );
@@ -974,7 +974,7 @@ function FormDataDisplay({
 
     return (
       <div key={key} style={{ marginBottom: '1rem' }}>
-        <label className="block text-sm text-gray-500 mb-1 font-medium">{label}</label>
+        <label className="block text-sm text-gray-700 mb-1 font-medium">{label}</label>
         {entries.map(([equipKey, val]) => (
           <div key={equipKey} style={{ marginBottom: '0.5rem', paddingLeft: '0.75rem', borderLeft: '2px solid #dbeafe' }}>
             <span className="text-sm font-medium">{equipKey}:</span>
@@ -989,7 +989,7 @@ function FormDataDisplay({
                 style={{ minHeight: '40px' }}
               />
             ) : (
-              <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{val}</p>
+              <p className="text-sm" style={{ whiteSpace: 'pre-wrap', color: '#1f2937' }}>{val}</p>
             )}
           </div>
         ))}
@@ -1054,7 +1054,7 @@ function FormDataDisplay({
         <div>
           {/* Editable Equipment Selection */}
           <div style={{ marginBottom: '1rem' }}>
-            <label className="block text-sm text-gray-500 mb-1">Equipment Inspected</label>
+            <label className="block text-sm text-gray-700 mb-1">Equipment Inspected</label>
             {isEditing ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
                 {ALL_EQUIPMENT_TYPES.map((equip) => {
@@ -1102,7 +1102,7 @@ function FormDataDisplay({
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-400">None</p>
+                <p className="text-sm text-gray-600">None</p>
               )
             )}
           </div>
@@ -1115,7 +1115,7 @@ function FormDataDisplay({
 
             return (
               <div key={`checklist-${equipment}`} style={{ marginBottom: '1.5rem', padding: '0.75rem', backgroundColor: '#f9fafb', borderRadius: '0.5rem' }}>
-                <label className="block text-sm text-gray-500 mb-2 font-medium">{equipment} — Checklist</label>
+                <label className="block text-sm text-gray-700 mb-2 font-medium">{equipment} — Checklist</label>
                 {checklistItems.map((item, idx) => {
                   const checked = equipChecks[idx] ?? false;
                   return (
@@ -1133,7 +1133,7 @@ function FormDataDisplay({
                         }}
                         style={{ marginTop: '3px', accentColor: '#16a34a' }}
                       />
-                      <span className="text-sm" style={{ color: checked ? '#111' : '#9ca3af' }}>{item}</span>
+                      <span className="text-sm" style={{ color: checked ? '#111' : '#6b7280' }}>{item}</span>
                     </div>
                   );
                 })}
@@ -1141,7 +1141,7 @@ function FormDataDisplay({
                 {/* Repairs for this equipment */}
                 {equipment !== 'Other' && (
                   <div style={{ marginTop: '0.75rem' }}>
-                    <label className="block text-xs text-gray-500 mb-1">Repairs Made During This Service:</label>
+                    <label className="block text-xs text-gray-700 mb-1">Repairs Made During This Service:</label>
                     {isEditing ? (
                       <textarea
                         value={repairs[equipment] || ''}
@@ -1153,7 +1153,7 @@ function FormDataDisplay({
                         style={{ minHeight: '40px' }}
                       />
                     ) : (
-                      <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{repairs[equipment] || '—'}</p>
+                      <p className="text-sm" style={{ whiteSpace: 'pre-wrap', color: '#1f2937' }}>{repairs[equipment] || '—'}</p>
                     )}
                   </div>
                 )}
@@ -1161,7 +1161,7 @@ function FormDataDisplay({
                 {/* Future parts for this equipment */}
                 {equipment !== 'Other' && (
                   <div style={{ marginTop: '0.5rem' }}>
-                    <label className="block text-xs text-gray-500 mb-1">Future Parts or Service Needed:</label>
+                    <label className="block text-xs text-gray-700 mb-1">Future Parts or Service Needed:</label>
                     {isEditing ? (
                       <textarea
                         value={futureParts[equipment] || ''}
@@ -1173,7 +1173,7 @@ function FormDataDisplay({
                         style={{ minHeight: '40px' }}
                       />
                     ) : (
-                      <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{futureParts[equipment] || '—'}</p>
+                      <p className="text-sm" style={{ whiteSpace: 'pre-wrap', color: '#1f2937' }}>{futureParts[equipment] || '—'}</p>
                     )}
                   </div>
                 )}
@@ -1181,7 +1181,7 @@ function FormDataDisplay({
                 {/* Equipment Safe for Use */}
                 {(maintEquipSafe[equipment] || isEditing) && (
                   <div style={{ marginTop: '0.5rem', paddingLeft: '0.5rem' }}>
-                    <span className="text-xs font-medium text-gray-500">Equipment Safe for Use</span>
+                    <span className="text-xs font-medium text-gray-700">Equipment Safe for Use</span>
                     {isEditing ? (
                       <select
                         value={maintEquipSafe[equipment] || ''}
@@ -1203,13 +1203,13 @@ function FormDataDisplay({
                 {/* Outdoor Bleacher Details — inline with its checklist */}
                 {equipment === 'Outdoor Bleachers/Grandstands' && bleacherData && (
                   <div style={{ marginTop: '0.75rem', padding: '0.75rem', backgroundColor: '#f0f9ff', borderRadius: '0.5rem' }}>
-                    <label className="block text-sm text-gray-500 mb-2 font-medium">Outdoor Bleacher Details</label>
+                    <label className="block text-sm text-gray-700 mb-2 font-medium">Outdoor Bleacher Details</label>
                     {Object.entries(bleacherLabels).map(([key, label]) => {
                       const val = bleacherData[key] || '';
                       if (!val && !isEditing) return null;
                       return (
                         <div key={key} style={{ marginBottom: '0.5rem' }}>
-                          <label className="block text-xs text-gray-500 mb-1">{label}:</label>
+                          <label className="block text-xs text-gray-700 mb-1">{label}:</label>
                           {isEditing ? (
                             key === 'codeIssues' ? (
                               <textarea
@@ -1247,10 +1247,10 @@ function FormDataDisplay({
           {/* Other Equipment section */}
           {selectedEquip.includes('Other') && (
             <div style={{ marginBottom: '1.5rem', padding: '0.75rem', backgroundColor: '#f9fafb', borderRadius: '0.5rem' }}>
-              <label className="block text-sm text-gray-500 mb-2 font-medium">Other Equipment</label>
+              <label className="block text-sm text-gray-700 mb-2 font-medium">Other Equipment</label>
 
               <div style={{ marginBottom: '0.5rem' }}>
-                <label className="block text-xs text-gray-500 mb-1">Equipment Serviced:</label>
+                <label className="block text-xs text-gray-700 mb-1">Equipment Serviced:</label>
                 {isEditing ? (
                   <textarea
                     value={repairs['Other-Equipment'] || ''}
@@ -1262,12 +1262,12 @@ function FormDataDisplay({
                     style={{ minHeight: '40px' }}
                   />
                 ) : (
-                  <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{repairs['Other-Equipment'] || '—'}</p>
+                  <p className="text-sm" style={{ whiteSpace: 'pre-wrap', color: '#1f2937' }}>{repairs['Other-Equipment'] || '—'}</p>
                 )}
               </div>
 
               <div style={{ marginBottom: '0.5rem' }}>
-                <label className="block text-xs text-gray-500 mb-1">Tasks Performed:</label>
+                <label className="block text-xs text-gray-700 mb-1">Tasks Performed:</label>
                 {isEditing ? (
                   <textarea
                     value={repairs['Other-Tasks'] || ''}
@@ -1279,12 +1279,12 @@ function FormDataDisplay({
                     style={{ minHeight: '40px' }}
                   />
                 ) : (
-                  <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{repairs['Other-Tasks'] || '—'}</p>
+                  <p className="text-sm" style={{ whiteSpace: 'pre-wrap', color: '#1f2937' }}>{repairs['Other-Tasks'] || '—'}</p>
                 )}
               </div>
 
               <div style={{ marginBottom: '0.5rem' }}>
-                <label className="block text-xs text-gray-500 mb-1">Future Parts or Service Needed:</label>
+                <label className="block text-xs text-gray-700 mb-1">Future Parts or Service Needed:</label>
                 {isEditing ? (
                   <textarea
                     value={futureParts['Other'] || ''}
@@ -1296,14 +1296,14 @@ function FormDataDisplay({
                     style={{ minHeight: '40px' }}
                   />
                 ) : (
-                  <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{futureParts['Other'] || '—'}</p>
+                  <p className="text-sm" style={{ whiteSpace: 'pre-wrap', color: '#1f2937' }}>{futureParts['Other'] || '—'}</p>
                 )}
               </div>
 
               {/* Equipment Safe for Use — Other */}
               {(maintEquipSafe['Other'] || isEditing) && (
                 <div style={{ marginTop: '0.5rem', paddingLeft: '0.5rem' }}>
-                  <span className="text-xs font-medium text-gray-500">Equipment Safe for Use</span>
+                  <span className="text-xs font-medium text-gray-700">Equipment Safe for Use</span>
                   {isEditing ? (
                     <select
                       value={maintEquipSafe['Other'] || ''}
@@ -1366,7 +1366,7 @@ function FormDataDisplay({
         <div>
           {/* Editable Equipment Selection */}
           <div style={{ marginBottom: '1rem' }}>
-            <label className="block text-sm text-gray-500 mb-2 font-medium">Equipment Serviced</label>
+            <label className="block text-sm text-gray-700 mb-2 font-medium">Equipment Serviced</label>
             {isEditing ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', marginBottom: '1rem' }}>
                 {ALL_EQUIPMENT_TYPES.map((equip) => {
@@ -1414,7 +1414,7 @@ function FormDataDisplay({
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-400 mb-1">None</p>
+                <p className="text-sm text-gray-600 mb-1">None</p>
               )
             )}
           </div>
@@ -1426,7 +1426,7 @@ function FormDataDisplay({
 
               {(initialProblems[equip]?.trim() || isEditing) && (
                 <div style={{ marginBottom: '0.5rem', paddingLeft: '0.5rem' }}>
-                  <span className="text-xs font-medium text-gray-500">Initial Problem</span>
+                  <span className="text-xs font-medium text-gray-700">Initial Problem</span>
                   {isEditing ? (
                     <textarea
                       value={initialProblems[equip] || ''}
@@ -1435,14 +1435,14 @@ function FormDataDisplay({
                       style={{ minHeight: '40px' }}
                     />
                   ) : (
-                    <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{initialProblems[equip]}</p>
+                    <p className="text-sm" style={{ whiteSpace: 'pre-wrap', color: '#1f2937' }}>{initialProblems[equip]}</p>
                   )}
                 </div>
               )}
 
               {(repairSummaries[equip]?.trim() || isEditing) && (
                 <div style={{ marginBottom: '0.5rem', paddingLeft: '0.5rem' }}>
-                  <span className="text-xs font-medium text-gray-500">Repairs Made</span>
+                  <span className="text-xs font-medium text-gray-700">Repairs Made</span>
                   {isEditing ? (
                     <textarea
                       value={repairSummaries[equip] || ''}
@@ -1451,14 +1451,14 @@ function FormDataDisplay({
                       style={{ minHeight: '40px' }}
                     />
                   ) : (
-                    <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{repairSummaries[equip]}</p>
+                    <p className="text-sm" style={{ whiteSpace: 'pre-wrap', color: '#1f2937' }}>{repairSummaries[equip]}</p>
                   )}
                 </div>
               )}
 
               {(partsNeeded[equip]?.trim() || isEditing) && (
                 <div style={{ marginBottom: '0.5rem', paddingLeft: '0.5rem' }}>
-                  <span className="text-xs font-medium text-gray-500">Future Parts/Service Needed</span>
+                  <span className="text-xs font-medium text-gray-700">Future Parts/Service Needed</span>
                   {isEditing ? (
                     <textarea
                       value={partsNeeded[equip] || ''}
@@ -1467,14 +1467,14 @@ function FormDataDisplay({
                       style={{ minHeight: '40px' }}
                     />
                   ) : (
-                    <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>{partsNeeded[equip]}</p>
+                    <p className="text-sm" style={{ whiteSpace: 'pre-wrap', color: '#1f2937' }}>{partsNeeded[equip]}</p>
                   )}
                 </div>
               )}
 
               {(equipmentSafe[equip] || isEditing) && (
                 <div style={{ paddingLeft: '0.5rem' }}>
-                  <span className="text-xs font-medium text-gray-500">Equipment Safe for Use</span>
+                  <span className="text-xs font-medium text-gray-700">Equipment Safe for Use</span>
                   {isEditing ? (
                     <select
                       value={equipmentSafe[equip] || ''}
@@ -1607,7 +1607,7 @@ function FormDataDisplay({
           {/* Entry breakdown below totals */}
           {formData.entries ? (
             <div style={{ marginTop: '1rem' }}>
-              <label className="block text-sm text-gray-500 mb-2 font-medium">Time Entries</label>
+              <label className="block text-sm text-gray-700 mb-2 font-medium">Time Entries</label>
               {(formData.entries as Array<Record<string, unknown>>).map((entry, i) => (
                 <div key={i} style={{ padding: '0.5rem', backgroundColor: '#f9fafb', borderRadius: '0.375rem', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
                   <p><span className="font-medium">#{String(entry.entryNumber)}</span> — {new Date(String(entry.date) + 'T00:00:00').toLocaleDateString('en-US')} — {String(entry.jobNameNumber)}</p>
@@ -1649,17 +1649,17 @@ function FormDataDisplay({
         <div>
           {(formData.uploadedBy as string) && (
             <div style={{ marginBottom: '0.75rem' }}>
-              <label className="block text-sm text-gray-500 mb-1">Uploaded by</label>
+              <label className="block text-sm text-gray-700 mb-1">Uploaded by</label>
               <p className="text-sm">{String(formData.uploadedBy)}</p>
             </div>
           )}
           {(formData.jobName as string) && (
             <div style={{ marginBottom: '0.75rem' }}>
-              <label className="block text-sm text-gray-500 mb-1">Job Name</label>
+              <label className="block text-sm text-gray-700 mb-1">Job Name</label>
               <p className="text-sm">{String(formData.jobName)}</p>
             </div>
           )}
-          <p className="text-sm text-gray-500">See photos below.</p>
+          <p className="text-sm text-gray-700">See photos below.</p>
         </div>
       );
 
@@ -1669,8 +1669,8 @@ function FormDataDisplay({
         <div>
           {Object.entries(formData).map(([key, value]) => (
             <div key={key} style={{ marginBottom: '0.75rem' }}>
-              <label className="block text-sm text-gray-500 mb-1">{key}</label>
-              <p className="text-sm" style={{ whiteSpace: 'pre-wrap' }}>
+              <label className="block text-sm text-gray-700 mb-1">{key}</label>
+              <p className="text-sm" style={{ whiteSpace: 'pre-wrap', color: '#1f2937' }}>
                 {typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
               </p>
             </div>
