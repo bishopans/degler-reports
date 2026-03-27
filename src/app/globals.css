@@ -1,14 +1,9 @@
 /* Enhanced styles to fix layout issues for ALL pages */
+/* Force light mode — no dark theme is implemented */
 :root {
   --background: #ffffff;
   --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  color-scheme: light;
 }
 
 body {
@@ -52,8 +47,8 @@ body {
 .text-xs { font-size: 0.75rem; line-height: 1rem; }
 .text-black { color: black; }
 .text-white { color: white; }
-.text-gray-500 { color: #6b7280; }
-.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #374151; }
+.text-gray-600 { color: #374151; }
 .text-blue-600 { color: #2563eb; }
 .text-blue-800 { color: #1e40af; }
 .text-red-500 { color: #ef4444; }
