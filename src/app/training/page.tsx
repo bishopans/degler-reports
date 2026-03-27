@@ -236,6 +236,14 @@ export default function TrainingForm() {
               >
                 Create Another Report
               </button>
+
+              <a
+                href="/"
+                className="w-full py-3 px-4 rounded font-medium transition-colors text-center"
+                style={{ backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', display: 'block', textDecoration: 'none' }}
+              >
+                Return to Home
+              </a>
             </div>
           </div>
         ) : (

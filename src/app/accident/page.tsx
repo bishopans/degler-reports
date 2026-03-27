@@ -303,6 +303,20 @@ export default function IncidentReportForm() {
               >
                 Create Another Report
               </button>
+              <a
+                href="/"
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#f3f4f6',
+                  color: '#374151',
+                  borderRadius: '0.375rem',
+                  border: '1px solid #d1d5db',
+                  textDecoration: 'none',
+                  fontWeight: 500,
+                }}
+              >
+                Return to Home
+              </a>
             </div>
           </div>
         ) : (
