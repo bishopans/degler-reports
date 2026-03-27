@@ -396,7 +396,7 @@ export default function ReportDetailPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-gray-700">Loading report...</div>
+        <div style={{ color: '#374151' }}>Loading report...</div>
       </div>
     );
   }
@@ -404,7 +404,7 @@ export default function ReportDetailPage() {
   if (!submission || !editData) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-white">
-        <div className="text-gray-700 mb-4">Report not found</div>
+        <div className="mb-4" style={{ color: '#374151' }}>Report not found</div>
         <Link href="/admin" className="text-blue-600">← Back to Dashboard</Link>
       </div>
     );
@@ -579,7 +579,7 @@ export default function ReportDetailPage() {
             onChange={(v) => setEditData({ ...editData, technician_name: v })}
           />
           <div>
-            <label className="block text-sm text-gray-700 mb-1">Status</label>
+            <label className="block text-sm mb-1" style={{ color: '#1f2937' }}>Status</label>
             {isEditing ? (
               <select
                 value={data.status}
@@ -605,7 +605,7 @@ export default function ReportDetailPage() {
             )}
           </div>
           <div>
-            <label className="block text-sm text-gray-700 mb-1">Claim Report</label>
+            <label className="block text-sm mb-1" style={{ color: '#1f2937' }}>Claim Report</label>
             <select
               value={submission?.claimed_by || ''}
               onChange={async (e) => {
@@ -693,7 +693,7 @@ export default function ReportDetailPage() {
             placeholder="Add comments that will appear in the report PDF..."
           />
         ) : (
-          <p className="text-sm">{(data.form_data?.adminComments as string) || 'No comments yet.'}</p>
+          <p className="text-sm" style={{ color: '#1f2937' }}>{(data.form_data?.adminComments as string) || 'No comments yet.'}</p>
         )}
       </div>
 
@@ -711,7 +711,7 @@ export default function ReportDetailPage() {
             placeholder="Add internal notes about this report..."
           />
         ) : (
-          <p className="text-sm">{data.notes || 'No notes yet.'}</p>
+          <p className="text-sm" style={{ color: '#1f2937' }}>{data.notes || 'No notes yet.'}</p>
         )}
       </div>
 
@@ -747,7 +747,7 @@ export default function ReportDetailPage() {
       {/* Photos */}
       <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
-          <h2 className="font-bold" style={{ fontSize: '1rem' }}>
+          <h2 className="font-bold" style={{ fontSize: '1rem', color: '#111827' }}>
             Photos ({data.photo_urls?.length || 0})
           </h2>
           <label style={{
@@ -856,7 +856,7 @@ export default function ReportDetailPage() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-gray-600">No photos uploaded yet.</p>
+          <p className="text-sm" style={{ color: '#374151' }}>No photos uploaded yet.</p>
         )}
       </div>
 
@@ -913,7 +913,7 @@ function FormDataDisplay({
       : value;
     return (
       <div key={key} style={{ marginBottom: '1rem' }}>
-        <label className="block text-sm text-gray-700 mb-1">{label}</label>
+        <label className="block text-sm mb-1" style={{ color: '#1f2937' }}>{label}</label>
         {isEditing ? (
           isDateField ? (
             <input
@@ -942,7 +942,7 @@ function FormDataDisplay({
     const value = (formData[key] as string[]) || [];
     return (
       <div key={key} style={{ marginBottom: '1rem' }}>
-        <label className="block text-sm text-gray-700 mb-1">{label}</label>
+        <label className="block text-sm mb-1" style={{ color: '#1f2937' }}>{label}</label>
         {value.length > 0 ? (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
             {value.map((item, i) => (
@@ -960,7 +960,7 @@ function FormDataDisplay({
             ))}
           </div>
         ) : (
-          <p className="text-sm text-gray-600">None</p>
+          <p className="text-sm" style={{ color: '#374151' }}>None</p>
         )}
       </div>
     );
@@ -974,7 +974,7 @@ function FormDataDisplay({
 
     return (
       <div key={key} style={{ marginBottom: '1rem' }}>
-        <label className="block text-sm text-gray-700 mb-1 font-medium">{label}</label>
+        <label className="block text-sm mb-1 font-medium" style={{ color: '#111827' }}>{label}</label>
         {entries.map(([equipKey, val]) => (
           <div key={equipKey} style={{ marginBottom: '0.5rem', paddingLeft: '0.75rem', borderLeft: '2px solid #dbeafe' }}>
             <span className="text-sm font-medium">{equipKey}:</span>
@@ -1054,7 +1054,7 @@ function FormDataDisplay({
         <div>
           {/* Editable Equipment Selection */}
           <div style={{ marginBottom: '1rem' }}>
-            <label className="block text-sm text-gray-700 mb-1">Equipment Inspected</label>
+            <label className="block text-sm mb-1" style={{ color: '#1f2937' }}>Equipment Inspected</label>
             {isEditing ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
                 {ALL_EQUIPMENT_TYPES.map((equip) => {
@@ -1102,7 +1102,7 @@ function FormDataDisplay({
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-600">None</p>
+                <p className="text-sm" style={{ color: '#374151' }}>None</p>
               )
             )}
           </div>
@@ -1115,7 +1115,7 @@ function FormDataDisplay({
 
             return (
               <div key={`checklist-${equipment}`} style={{ marginBottom: '1.5rem', padding: '0.75rem', backgroundColor: '#f9fafb', borderRadius: '0.5rem' }}>
-                <label className="block text-sm text-gray-700 mb-2 font-medium">{equipment} — Checklist</label>
+                <label className="block text-sm mb-2 font-medium" style={{ color: '#111827' }}>{equipment} — Checklist</label>
                 {checklistItems.map((item, idx) => {
                   const checked = equipChecks[idx] ?? false;
                   return (
@@ -1141,7 +1141,7 @@ function FormDataDisplay({
                 {/* Repairs for this equipment */}
                 {equipment !== 'Other' && (
                   <div style={{ marginTop: '0.75rem' }}>
-                    <label className="block text-xs text-gray-700 mb-1">Repairs Made During This Service:</label>
+                    <label className="block text-xs mb-1" style={{ color: '#1f2937' }}>Repairs Made During This Service:</label>
                     {isEditing ? (
                       <textarea
                         value={repairs[equipment] || ''}
@@ -1161,7 +1161,7 @@ function FormDataDisplay({
                 {/* Future parts for this equipment */}
                 {equipment !== 'Other' && (
                   <div style={{ marginTop: '0.5rem' }}>
-                    <label className="block text-xs text-gray-700 mb-1">Future Parts or Service Needed:</label>
+                    <label className="block text-xs mb-1" style={{ color: '#1f2937' }}>Future Parts or Service Needed:</label>
                     {isEditing ? (
                       <textarea
                         value={futureParts[equipment] || ''}
@@ -1181,7 +1181,7 @@ function FormDataDisplay({
                 {/* Equipment Safe for Use */}
                 {(maintEquipSafe[equipment] || isEditing) && (
                   <div style={{ marginTop: '0.5rem', paddingLeft: '0.5rem' }}>
-                    <span className="text-xs font-medium text-gray-700">Equipment Safe for Use</span>
+                    <span className="text-xs font-medium" style={{ color: '#111827' }}>Equipment Safe for Use</span>
                     {isEditing ? (
                       <select
                         value={maintEquipSafe[equipment] || ''}
@@ -1203,13 +1203,13 @@ function FormDataDisplay({
                 {/* Outdoor Bleacher Details — inline with its checklist */}
                 {equipment === 'Outdoor Bleachers/Grandstands' && bleacherData && (
                   <div style={{ marginTop: '0.75rem', padding: '0.75rem', backgroundColor: '#f0f9ff', borderRadius: '0.5rem' }}>
-                    <label className="block text-sm text-gray-700 mb-2 font-medium">Outdoor Bleacher Details</label>
+                    <label className="block text-sm mb-2 font-medium" style={{ color: '#111827' }}>Outdoor Bleacher Details</label>
                     {Object.entries(bleacherLabels).map(([key, label]) => {
                       const val = bleacherData[key] || '';
                       if (!val && !isEditing) return null;
                       return (
                         <div key={key} style={{ marginBottom: '0.5rem' }}>
-                          <label className="block text-xs text-gray-700 mb-1">{label}:</label>
+                          <label className="block text-xs mb-1" style={{ color: '#1f2937' }}>{label}:</label>
                           {isEditing ? (
                             key === 'codeIssues' ? (
                               <textarea
@@ -1233,7 +1233,7 @@ function FormDataDisplay({
                               />
                             )
                           ) : (
-                            <p className="text-sm">{val || '—'}</p>
+                            <p className="text-sm" style={{ color: '#1f2937' }}>{val || '—'}</p>
                           )}
                         </div>
                       );
@@ -1247,10 +1247,10 @@ function FormDataDisplay({
           {/* Other Equipment section */}
           {selectedEquip.includes('Other') && (
             <div style={{ marginBottom: '1.5rem', padding: '0.75rem', backgroundColor: '#f9fafb', borderRadius: '0.5rem' }}>
-              <label className="block text-sm text-gray-700 mb-2 font-medium">Other Equipment</label>
+              <label className="block text-sm mb-2 font-medium" style={{ color: '#111827' }}>Other Equipment</label>
 
               <div style={{ marginBottom: '0.5rem' }}>
-                <label className="block text-xs text-gray-700 mb-1">Equipment Serviced:</label>
+                <label className="block text-xs mb-1" style={{ color: '#1f2937' }}>Equipment Serviced:</label>
                 {isEditing ? (
                   <textarea
                     value={repairs['Other-Equipment'] || ''}
@@ -1267,7 +1267,7 @@ function FormDataDisplay({
               </div>
 
               <div style={{ marginBottom: '0.5rem' }}>
-                <label className="block text-xs text-gray-700 mb-1">Tasks Performed:</label>
+                <label className="block text-xs mb-1" style={{ color: '#1f2937' }}>Tasks Performed:</label>
                 {isEditing ? (
                   <textarea
                     value={repairs['Other-Tasks'] || ''}
@@ -1284,7 +1284,7 @@ function FormDataDisplay({
               </div>
 
               <div style={{ marginBottom: '0.5rem' }}>
-                <label className="block text-xs text-gray-700 mb-1">Future Parts or Service Needed:</label>
+                <label className="block text-xs mb-1" style={{ color: '#1f2937' }}>Future Parts or Service Needed:</label>
                 {isEditing ? (
                   <textarea
                     value={futureParts['Other'] || ''}
@@ -1303,7 +1303,7 @@ function FormDataDisplay({
               {/* Equipment Safe for Use — Other */}
               {(maintEquipSafe['Other'] || isEditing) && (
                 <div style={{ marginTop: '0.5rem', paddingLeft: '0.5rem' }}>
-                  <span className="text-xs font-medium text-gray-700">Equipment Safe for Use</span>
+                  <span className="text-xs font-medium" style={{ color: '#111827' }}>Equipment Safe for Use</span>
                   {isEditing ? (
                     <select
                       value={maintEquipSafe['Other'] || ''}
@@ -1366,7 +1366,7 @@ function FormDataDisplay({
         <div>
           {/* Editable Equipment Selection */}
           <div style={{ marginBottom: '1rem' }}>
-            <label className="block text-sm text-gray-700 mb-2 font-medium">Equipment Serviced</label>
+            <label className="block text-sm mb-2 font-medium" style={{ color: '#111827' }}>Equipment Serviced</label>
             {isEditing ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', marginBottom: '1rem' }}>
                 {ALL_EQUIPMENT_TYPES.map((equip) => {
@@ -1414,7 +1414,7 @@ function FormDataDisplay({
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-600 mb-1">None</p>
+                <p className="text-sm mb-1" style={{ color: '#374151' }}>None</p>
               )
             )}
           </div>
@@ -1426,7 +1426,7 @@ function FormDataDisplay({
 
               {(initialProblems[equip]?.trim() || isEditing) && (
                 <div style={{ marginBottom: '0.5rem', paddingLeft: '0.5rem' }}>
-                  <span className="text-xs font-medium text-gray-700">Initial Problem</span>
+                  <span className="text-xs font-medium" style={{ color: '#111827' }}>Initial Problem</span>
                   {isEditing ? (
                     <textarea
                       value={initialProblems[equip] || ''}
@@ -1442,7 +1442,7 @@ function FormDataDisplay({
 
               {(repairSummaries[equip]?.trim() || isEditing) && (
                 <div style={{ marginBottom: '0.5rem', paddingLeft: '0.5rem' }}>
-                  <span className="text-xs font-medium text-gray-700">Repairs Made</span>
+                  <span className="text-xs font-medium" style={{ color: '#111827' }}>Repairs Made</span>
                   {isEditing ? (
                     <textarea
                       value={repairSummaries[equip] || ''}
@@ -1458,7 +1458,7 @@ function FormDataDisplay({
 
               {(partsNeeded[equip]?.trim() || isEditing) && (
                 <div style={{ marginBottom: '0.5rem', paddingLeft: '0.5rem' }}>
-                  <span className="text-xs font-medium text-gray-700">Future Parts/Service Needed</span>
+                  <span className="text-xs font-medium" style={{ color: '#111827' }}>Future Parts/Service Needed</span>
                   {isEditing ? (
                     <textarea
                       value={partsNeeded[equip] || ''}
@@ -1474,7 +1474,7 @@ function FormDataDisplay({
 
               {(equipmentSafe[equip] || isEditing) && (
                 <div style={{ paddingLeft: '0.5rem' }}>
-                  <span className="text-xs font-medium text-gray-700">Equipment Safe for Use</span>
+                  <span className="text-xs font-medium" style={{ color: '#111827' }}>Equipment Safe for Use</span>
                   {isEditing ? (
                     <select
                       value={equipmentSafe[equip] || ''}
@@ -1580,7 +1580,7 @@ function FormDataDisplay({
                 <label className="block text-sm font-bold mb-3" style={{ color: '#166534' }}>Timesheet Totals</label>
 
                 <div style={{ marginBottom: '0.75rem' }}>
-                  <div className="text-xs font-semibold text-gray-600 mb-1">Foreman Hours</div>
+                  <div className="text-xs font-semibold mb-1" style={{ color: '#111827' }}>Foreman Hours</div>
                   <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem' }}>
                     <span>Regular: <strong>{totals.regularHours.foreman}</strong></span>
                     <span>1.5X: <strong>{totals.overtimeHours.foreman}</strong></span>
@@ -1589,7 +1589,7 @@ function FormDataDisplay({
                 </div>
 
                 <div style={{ marginBottom: '0.75rem' }}>
-                  <div className="text-xs font-semibold text-gray-600 mb-1">Regular Hours</div>
+                  <div className="text-xs font-semibold mb-1" style={{ color: '#111827' }}>Regular Hours</div>
                   <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem' }}>
                     <span>Regular: <strong>{totals.regularHours.regular}</strong></span>
                     <span>1.5X: <strong>{totals.overtimeHours.regular}</strong></span>
@@ -1607,7 +1607,7 @@ function FormDataDisplay({
           {/* Entry breakdown below totals */}
           {formData.entries ? (
             <div style={{ marginTop: '1rem' }}>
-              <label className="block text-sm text-gray-700 mb-2 font-medium">Time Entries</label>
+              <label className="block text-sm mb-2 font-medium" style={{ color: '#111827' }}>Time Entries</label>
               {(formData.entries as Array<Record<string, unknown>>).map((entry, i) => (
                 <div key={i} style={{ padding: '0.5rem', backgroundColor: '#f9fafb', borderRadius: '0.375rem', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
                   <p><span className="font-medium">#{String(entry.entryNumber)}</span> — {new Date(String(entry.date) + 'T00:00:00').toLocaleDateString('en-US')} — {String(entry.jobNameNumber)}</p>
@@ -1649,17 +1649,17 @@ function FormDataDisplay({
         <div>
           {(formData.uploadedBy as string) && (
             <div style={{ marginBottom: '0.75rem' }}>
-              <label className="block text-sm text-gray-700 mb-1">Uploaded by</label>
-              <p className="text-sm">{String(formData.uploadedBy)}</p>
+              <label className="block text-sm mb-1" style={{ color: '#1f2937' }}>Uploaded by</label>
+              <p className="text-sm" style={{ color: '#1f2937' }}>{String(formData.uploadedBy)}</p>
             </div>
           )}
           {(formData.jobName as string) && (
             <div style={{ marginBottom: '0.75rem' }}>
-              <label className="block text-sm text-gray-700 mb-1">Job Name</label>
-              <p className="text-sm">{String(formData.jobName)}</p>
+              <label className="block text-sm mb-1" style={{ color: '#1f2937' }}>Job Name</label>
+              <p className="text-sm" style={{ color: '#1f2937' }}>{String(formData.jobName)}</p>
             </div>
           )}
-          <p className="text-sm text-gray-700">See photos below.</p>
+          <p className="text-sm" style={{ color: '#374151' }}>See photos below.</p>
         </div>
       );
 
@@ -1669,7 +1669,7 @@ function FormDataDisplay({
         <div>
           {Object.entries(formData).map(([key, value]) => (
             <div key={key} style={{ marginBottom: '0.75rem' }}>
-              <label className="block text-sm text-gray-700 mb-1">{key}</label>
+              <label className="block text-sm mb-1" style={{ color: '#1f2937' }}>{key}</label>
               <p className="text-sm" style={{ whiteSpace: 'pre-wrap', color: '#1f2937' }}>
                 {typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
               </p>
