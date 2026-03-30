@@ -1,9 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import HeicImage from '@/components/HeicImage';
+import { isHeicUrl } from '@/lib/heicSupport';
 import { generatePdf } from '@/lib/generatePdf';
 
 // Detect HEIC/HEIF files by MIME type or extension
@@ -239,6 +240,107 @@ export default function ReportDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [editData, setEditData] = useState<Submission | null>(null);
+  const [isConvertingHeic, setIsConvertingHeic] = useState(false);
+  const heicConvertedRef = useRef(false);
+
+  // Auto-convert any HEIC photos to JPEG permanently in Supabase
+  const convertHeicPhotos = useCallback(async (sub: Submission) => {
+    if (heicConvertedRef.current) return;
+    if (!sub.photo_urls?.length) return;
+
+    const heicUrls = sub.photo_urls.filter(url => isHeicUrl(url));
+    if (heicUrls.length === 0) return;
+
+    heicConvertedRef.current = true;
+    setIsConvertingHeic(true);
+    console.log(`Converting ${heicUrls.length} HEIC photo(s) to JPEG...`);
+
+    try {
+      const heic2any = (await import('heic2any')).default;
+      const newPhotoUrls = [...sub.photo_urls];
+      const captions = (sub.form_data as Record<string, Record<string, string>>)?.photo_captions || {};
+      const newCaptions = { ...captions };
+      let changed = false;
+
+      for (const heicUrl of heicUrls) {
+        try {
+          // Fetch the HEIC file from Supabase
+          const resp = await fetch(heicUrl);
+          if (!resp.ok) continue;
+          const heicBlob = await resp.blob();
+
+          // Convert to JPEG
+          const jpegBlob = await heic2any({ blob: heicBlob, toType: 'image/jpeg', quality: 0.92 });
+          const result = Array.isArray(jpegBlob) ? jpegBlob[0] : jpegBlob;
+
+          // Compress if needed
+          const jpegFile = new File([result], 'converted.jpg', { type: 'image/jpeg' });
+          const compressed = await compressImage(jpegFile);
+
+          // Upload the JPEG via existing admin upload endpoint
+          const formData = new FormData();
+          formData.append('submission_id', sub.id);
+          formData.append('photo', compressed);
+
+          const uploadResp = await fetch('/api/admin/upload-photo', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!uploadResp.ok) continue;
+          const uploadResult = await uploadResp.json();
+
+          // The upload-photo endpoint already appends to photo_urls, but we need
+          // to replace the old HEIC URL, not append. We'll collect all changes
+          // and do a single PATCH at the end.
+          const idx = newPhotoUrls.indexOf(heicUrl);
+          if (idx !== -1) {
+            // Get the newly uploaded URL from the response (it was appended)
+            const newUrl = uploadResult.photo_urls?.[uploadResult.photo_urls.length - 1];
+            if (newUrl) {
+              newPhotoUrls[idx] = newUrl;
+              // Move caption to new URL
+              if (newCaptions[heicUrl]) {
+                newCaptions[newUrl] = newCaptions[heicUrl];
+                delete newCaptions[heicUrl];
+              }
+              // Remove the duplicate that upload-photo appended
+              const dupeIdx = newPhotoUrls.lastIndexOf(newUrl);
+              if (dupeIdx !== idx && dupeIdx !== -1) {
+                newPhotoUrls.splice(dupeIdx, 1);
+              }
+              changed = true;
+            }
+          }
+        } catch (err) {
+          console.warn('Failed to convert HEIC photo:', heicUrl, err);
+        }
+      }
+
+      if (changed) {
+        // PATCH the submission with cleaned-up photo_urls (HEIC replaced with JPEG)
+        const patchResp = await fetch(`/api/admin/submissions/${sub.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            photo_urls: newPhotoUrls,
+            form_data: { ...sub.form_data, photo_captions: newCaptions },
+          }),
+        });
+
+        if (patchResp.ok) {
+          const updated = await patchResp.json();
+          setSubmission(updated);
+          setEditData(updated);
+          console.log('HEIC photos permanently converted to JPEG.');
+        }
+      }
+    } catch (err) {
+      console.error('HEIC auto-conversion error:', err);
+    } finally {
+      setIsConvertingHeic(false);
+    }
+  }, [id]);
 
   useEffect(() => {
     const unlocked = sessionStorage.getItem('dw-admin-unlocked');
@@ -256,6 +358,8 @@ export default function ReportDetailPage() {
         const data = await response.json();
         setSubmission(data);
         setEditData(data);
+        // Auto-convert HEIC photos in background
+        convertHeicPhotos(data);
       }
     } catch (error) {
       console.error('Fetch error:', error);
@@ -478,20 +582,20 @@ export default function ReportDetailPage() {
           {!isEditing && (
             <button
               onClick={handlePdf}
-              disabled={isGeneratingPdf}
+              disabled={isGeneratingPdf || isConvertingHeic}
               style={{
                 padding: '0.5rem 1rem',
                 backgroundColor: '#16a34a',
                 color: 'white',
                 borderRadius: '0.375rem',
                 border: 'none',
-                cursor: isGeneratingPdf ? 'not-allowed' : 'pointer',
+                cursor: (isGeneratingPdf || isConvertingHeic) ? 'not-allowed' : 'pointer',
                 fontSize: '0.875rem',
                 fontWeight: 500,
-                opacity: isGeneratingPdf ? 0.5 : 1,
+                opacity: (isGeneratingPdf || isConvertingHeic) ? 0.5 : 1,
               }}
             >
-              {isGeneratingPdf ? 'Generating...' : 'Save to PDF'}
+              {isConvertingHeic ? 'Converting photos...' : isGeneratingPdf ? 'Generating...' : 'Save to PDF'}
             </button>
           )}
 
@@ -779,6 +883,11 @@ export default function ReportDetailPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
           <h2 className="font-bold" style={{ fontSize: '1rem', color: '#111827' }}>
             Photos ({data.photo_urls?.length || 0})
+            {isConvertingHeic && (
+              <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: '#2563eb', marginLeft: '0.5rem' }}>
+                Converting HEIC photos...
+              </span>
+            )}
           </h2>
           <label style={{
             padding: '0.375rem 0.75rem',
