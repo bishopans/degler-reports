@@ -483,12 +483,17 @@ export default function ReportDetailPage() {
     }
   };
 
-  const handleAddPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!submission || !e.target.files?.length) return;
+  // Core photo upload logic — shared by file input and drag-and-drop
+  const uploadPhotoFiles = async (files: File[]) => {
+    if (!submission || files.length === 0) return;
+    // Filter to only image files
+    const imageFiles = files.filter(f => f.type.startsWith('image/') || isHeicFile(f));
+    if (imageFiles.length === 0) return;
+
     setIsUploadingPhoto(true);
 
     try {
-      for (let rawFile of Array.from(e.target.files)) {
+      for (let rawFile of imageFiles) {
         // Convert HEIC/HEIF to JPEG first
         if (isHeicFile(rawFile)) {
           try {
@@ -522,9 +527,47 @@ export default function ReportDetailPage() {
       alert('Error uploading photo.');
     } finally {
       setIsUploadingPhoto(false);
-      // Reset the file input
-      e.target.value = '';
     }
+  };
+
+  const handleAddPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    await uploadPhotoFiles(Array.from(e.target.files || []));
+    e.target.value = '';
+  };
+
+  // Drag-and-drop state for admin photo section
+  const [isDraggingAdmin, setIsDraggingAdmin] = useState(false);
+  const adminDragCounterRef = useRef(0);
+
+  const handleAdminDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    adminDragCounterRef.current++;
+    if (e.dataTransfer.types.includes('Files')) {
+      setIsDraggingAdmin(true);
+    }
+  };
+
+  const handleAdminDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    adminDragCounterRef.current--;
+    if (adminDragCounterRef.current === 0) {
+      setIsDraggingAdmin(false);
+    }
+  };
+
+  const handleAdminDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleAdminDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingAdmin(false);
+    adminDragCounterRef.current = 0;
+    await uploadPhotoFiles(Array.from(e.dataTransfer.files));
   };
 
   if (isLoading) {
@@ -879,7 +922,18 @@ export default function ReportDetailPage() {
       )}
 
       {/* Photos */}
-      <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
+      <div
+        className="bg-white p-4 rounded-lg shadow-sm mb-4"
+        onDragEnter={handleAdminDragEnter}
+        onDragLeave={handleAdminDragLeave}
+        onDragOver={handleAdminDragOver}
+        onDrop={handleAdminDrop}
+        style={{
+          border: isDraggingAdmin ? '2px dashed #2563eb' : '1px solid transparent',
+          background: isDraggingAdmin ? '#eff6ff' : 'white',
+          transition: 'border 0.2s, background 0.2s',
+        }}
+      >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem', marginBottom: '1rem' }}>
           <h2 className="font-bold" style={{ fontSize: '1rem', color: '#111827' }}>
             Photos ({data.photo_urls?.length || 0})
@@ -910,6 +964,17 @@ export default function ReportDetailPage() {
             />
           </label>
         </div>
+        {isDraggingAdmin && (
+          <div style={{
+            textAlign: 'center',
+            padding: '1rem',
+            color: '#2563eb',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+          }}>
+            Drop photos here to upload
+          </div>
+        )}
         {data.photo_urls && data.photo_urls.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
             {data.photo_urls.map((url, i) => (

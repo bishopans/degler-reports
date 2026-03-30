@@ -257,15 +257,21 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
     }
   }, [uploadId, onLocalFilesChange]);
 
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+  // Core file processing — shared by file input and drag-and-drop
+  const processFiles = useCallback((files: File[]) => {
     if (files.length === 0) return;
+
+    // Filter to only image files
+    const imageFiles = files.filter(f =>
+      f.type.startsWith('image/') || isHeicFile(f)
+    );
+    if (imageFiles.length === 0) return;
 
     const startIdx = photos.length;
     const startCounter = photoCounterRef.current;
 
     // Create preview entries — HEIC files start as 'converting'
-    const newPhotos: PhotoInProgress[] = files.map((file) => ({
+    const newPhotos: PhotoInProgress[] = imageFiles.map((file) => ({
       name: file.name,
       preview: URL.createObjectURL(file),
       status: (isHeicFile(file) ? 'converting' : 'compressing') as PhotoInProgress['status'],
@@ -274,13 +280,13 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
     }));
 
     setPhotos(prev => [...prev, ...newPhotos]);
-    photoCounterRef.current += files.length;
+    photoCounterRef.current += imageFiles.length;
 
     // Upload in batches of 3 to avoid overwhelming serverless function limits
     const BATCH_SIZE = 3;
     const uploadBatches = async () => {
-      for (let batch = 0; batch < files.length; batch += BATCH_SIZE) {
-        const batchFiles = files.slice(batch, batch + BATCH_SIZE);
+      for (let batch = 0; batch < imageFiles.length; batch += BATCH_SIZE) {
+        const batchFiles = imageFiles.slice(batch, batch + BATCH_SIZE);
         await Promise.all(
           batchFiles.map((file, i) =>
             uploadSinglePhoto(file, startIdx + batch + i, startCounter + batch + i + 1)
@@ -289,12 +295,51 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
       }
     };
     uploadBatches();
+  }, [photos.length, uploadSinglePhoto]);
 
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    processFiles(Array.from(e.target.files || []));
     // Reset file input so same files can be re-selected
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  }, [photos.length, uploadSinglePhoto]);
+  }, [processFiles]);
+
+  // Drag-and-drop handlers
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounterRef = useRef(0);
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current++;
+    if (e.dataTransfer.types.includes('Files')) {
+      setIsDragging(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounterRef.current = 0;
+    const files = Array.from(e.dataTransfer.files);
+    processFiles(files);
+  }, [processFiles]);
 
   const removePhoto = useCallback((idx: number) => {
     setPhotos(prev => {
@@ -498,6 +543,11 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
         .photo-upload-zone:active {
           background: #bfdbfe;
         }
+        .photo-upload-zone.dragging {
+          background: #dbeafe;
+          border-color: #2563eb;
+          border-width: 3px;
+        }
         .photo-upload-icon {
           width: 48px;
           height: 48px;
@@ -534,11 +584,15 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
           style={{ display: 'none' }}
         />
         <div
-          className="photo-upload-zone"
+          className={`photo-upload-zone${isDragging ? ' dragging' : ''}`}
           onClick={() => fileInputRef.current?.click()}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click(); }}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
         >
           <div className="photo-upload-icon">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -547,10 +601,12 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
             </svg>
           </div>
           <div className="photo-upload-title">
-            {photos.length > 0 ? 'Add More Photos' : 'Tap to Add Photos'}
+            {isDragging ? 'Drop Photos Here' : photos.length > 0 ? 'Add More Photos' : 'Tap to Add Photos'}
           </div>
           <div className="photo-upload-subtitle">
-            Take a photo or choose from your library. You can add captions and markup.
+            {isDragging
+              ? 'Release to upload'
+              : 'Take a photo, choose from your library, or drag & drop files here.'}
           </div>
         </div>
       </div>
