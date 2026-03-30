@@ -3,7 +3,27 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import HeicImage from '@/components/HeicImage';
 import { generatePdf } from '@/lib/generatePdf';
+
+// Detect HEIC/HEIF files by MIME type or extension
+function isHeicFile(file: File): boolean {
+  const type = file.type.toLowerCase();
+  const name = file.name.toLowerCase();
+  return type === 'image/heic' || type === 'image/heif' || name.endsWith('.heic') || name.endsWith('.heif');
+}
+
+// Convert HEIC/HEIF file to JPEG using heic2any (loaded dynamically)
+async function convertHeicToJpeg(file: File): Promise<File> {
+  const heic2any = (await import('heic2any')).default;
+  const blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.92 });
+  const resultBlob = Array.isArray(blob) ? blob[0] : blob;
+  return new File(
+    [resultBlob],
+    file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'),
+    { type: 'image/jpeg', lastModified: Date.now() }
+  );
+}
 
 // Compress an image file using canvas (same as technician-facing forms)
 async function compressImage(file: File, maxDimension = 2000, quality = 0.8): Promise<File> {
@@ -364,7 +384,17 @@ export default function ReportDetailPage() {
     setIsUploadingPhoto(true);
 
     try {
-      for (const rawFile of Array.from(e.target.files)) {
+      for (let rawFile of Array.from(e.target.files)) {
+        // Convert HEIC/HEIF to JPEG first
+        if (isHeicFile(rawFile)) {
+          try {
+            rawFile = await convertHeicToJpeg(rawFile);
+          } catch (err) {
+            console.error('HEIC conversion failed:', err);
+            alert(`Could not convert ${rawFile.name} from HEIC format. Please try a JPEG or PNG file.`);
+            continue;
+          }
+        }
         const file = await compressImage(rawFile);
         const formData = new window.FormData();
         formData.append('submission_id', id);
@@ -776,7 +806,7 @@ export default function ReportDetailPage() {
             {data.photo_urls.map((url, i) => (
               <div key={i} style={{ position: 'relative' }}>
                 <a href={url} target="_blank" rel="noopener noreferrer">
-                  <img
+                  <HeicImage
                     src={url}
                     alt={`Photo ${i + 1}`}
                     style={{

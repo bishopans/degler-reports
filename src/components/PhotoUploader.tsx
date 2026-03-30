@@ -2,6 +2,40 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import PhotoAnnotator from './PhotoAnnotator';
 
+// Detect HEIC/HEIF files by MIME type or extension
+function isHeicFile(file: File): boolean {
+  const type = file.type.toLowerCase();
+  const name = file.name.toLowerCase();
+  return (
+    type === 'image/heic' ||
+    type === 'image/heif' ||
+    name.endsWith('.heic') ||
+    name.endsWith('.heif')
+  );
+}
+
+// Convert HEIC/HEIF file to JPEG using heic2any (loaded dynamically)
+async function convertHeicToJpeg(file: File): Promise<File> {
+  try {
+    const heic2any = (await import('heic2any')).default;
+    const blob = await heic2any({
+      blob: file,
+      toType: 'image/jpeg',
+      quality: 0.92,
+    });
+    // heic2any can return a single blob or an array
+    const resultBlob = Array.isArray(blob) ? blob[0] : blob;
+    return new File(
+      [resultBlob],
+      file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'),
+      { type: 'image/jpeg', lastModified: Date.now() }
+    );
+  } catch (err) {
+    console.error('HEIC conversion failed:', err);
+    throw err;
+  }
+}
+
 interface UploadedPhoto {
   url: string;
   name: string;
@@ -10,7 +44,7 @@ interface UploadedPhoto {
 interface PhotoInProgress {
   name: string;
   preview: string;
-  status: 'compressing' | 'uploading' | 'done' | 'error';
+  status: 'converting' | 'compressing' | 'uploading' | 'done' | 'error';
   progress: number; // 0-100
   url?: string;
   errorMsg?: string;
@@ -129,6 +163,37 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
   }, [photos, onCaptionsChange]);
 
   const uploadSinglePhoto = useCallback(async (file: File, idx: number, photoIndex: number) => {
+    let processedFile = file;
+
+    // Convert HEIC/HEIF to JPEG first
+    if (isHeicFile(file)) {
+      setPhotos(prev => {
+        const updated = [...prev];
+        if (updated[idx]) updated[idx] = { ...updated[idx], status: 'converting', progress: 5 };
+        return updated;
+      });
+      try {
+        processedFile = await convertHeicToJpeg(file);
+        // Update the preview with the converted file
+        const newPreview = URL.createObjectURL(processedFile);
+        setPhotos(prev => {
+          const updated = [...prev];
+          if (updated[idx]) {
+            URL.revokeObjectURL(updated[idx].preview);
+            updated[idx] = { ...updated[idx], preview: newPreview };
+          }
+          return updated;
+        });
+      } catch {
+        setPhotos(prev => {
+          const updated = [...prev];
+          if (updated[idx]) updated[idx] = { ...updated[idx], status: 'error', progress: 0, errorMsg: 'HEIC conversion failed' };
+          return updated;
+        });
+        return;
+      }
+    }
+
     // Update status to compressing
     setPhotos(prev => {
       const updated = [...prev];
@@ -139,9 +204,9 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
     // Compress
     let compressedFile: File;
     try {
-      compressedFile = await compressImage(file);
+      compressedFile = await compressImage(processedFile);
     } catch {
-      compressedFile = file;
+      compressedFile = processedFile;
     }
 
     // Keep reference for local PDF generation
@@ -199,11 +264,11 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
     const startIdx = photos.length;
     const startCounter = photoCounterRef.current;
 
-    // Create preview entries
+    // Create preview entries — HEIC files start as 'converting'
     const newPhotos: PhotoInProgress[] = files.map((file) => ({
       name: file.name,
       preview: URL.createObjectURL(file),
-      status: 'compressing' as const,
+      status: (isHeicFile(file) ? 'converting' : 'compressing') as PhotoInProgress['status'],
       progress: 0,
       caption: '',
     }));
@@ -352,7 +417,7 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
 
   const doneCount = photos.filter(p => p.status === 'done').length;
   const errorCount = photos.filter(p => p.status === 'error').length;
-  const inProgressCount = photos.filter(p => p.status === 'compressing' || p.status === 'uploading').length;
+  const inProgressCount = photos.filter(p => p.status === 'converting' || p.status === 'compressing' || p.status === 'uploading').length;
 
   return (
     <div className="space-y-3">
@@ -512,12 +577,12 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
                         width: '100%',
                         height: '100%',
                         objectFit: 'cover',
-                        opacity: photo.status === 'error' ? 0.4 : photo.status !== 'done' ? 0.6 : 1,
+                        opacity: photo.status === 'error' ? 0.4 : (photo.status !== 'done' ? 0.6 : 1),
                       }}
                     />
 
                     {/* Overlay for in-progress */}
-                    {(photo.status === 'compressing' || photo.status === 'uploading') && (
+                    {(photo.status === 'converting' || photo.status === 'compressing' || photo.status === 'uploading') && (
                       <div style={{
                         position: 'absolute', inset: 0,
                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -525,7 +590,7 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
                       }}>
                         <div style={{ width: '2rem', height: '2rem', border: '3px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
                         <span style={{ color: 'white', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                          {photo.status === 'compressing' ? 'Resizing...' : 'Uploading...'}
+                          {photo.status === 'converting' ? 'Converting...' : photo.status === 'compressing' ? 'Resizing...' : 'Uploading...'}
                         </span>
                       </div>
                     )}

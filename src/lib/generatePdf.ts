@@ -2,6 +2,7 @@
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { isHeicUrl, convertHeicUrlToBase64 } from '@/lib/heicSupport';
 
 interface Submission {
   id: string;
@@ -44,6 +45,44 @@ function getContactEmail(submission: Submission): string {
 // Set whiteBackground=true for logos with transparency
 // quality: JPEG quality 0-1, maxDim: cap width/height for PDF size control
 async function loadImageAsBase64(url: string, whiteBackground = false, quality = 0.92, maxDim = 0): Promise<string | null> {
+  // HEIC files can't be loaded by <img> in most browsers — convert first
+  if (isHeicUrl(url)) {
+    try {
+      const base64 = await convertHeicUrlToBase64(url);
+      if (!base64) return null;
+      // If we need to downscale, draw the converted JPEG through canvas
+      if (maxDim > 0) {
+        return new Promise((resolve) => {
+          const img = new window.Image();
+          img.onload = () => {
+            let w = img.naturalWidth;
+            let h = img.naturalHeight;
+            if (w > maxDim || h > maxDim) {
+              if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+              else { w = Math.round((w * maxDim) / h); h = maxDim; }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, w, h);
+              resolve(canvas.toDataURL('image/jpeg', quality));
+            } else {
+              resolve(base64);
+            }
+          };
+          img.onerror = () => resolve(base64);
+          img.src = base64;
+        });
+      }
+      return base64;
+    } catch (e) {
+      console.warn('HEIC PDF conversion failed:', url, e);
+      return null;
+    }
+  }
+
   return new Promise((resolve) => {
     const timeoutId = setTimeout(() => {
       console.warn('Image load timed out:', url);
