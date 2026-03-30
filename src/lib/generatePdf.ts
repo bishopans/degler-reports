@@ -153,6 +153,14 @@ let logoBase64: string | null = null;
 let qrBase64: string | null = null;
 let faviconBase64: string | null = null;
 
+// Cache for pre-loaded photo data (base64 + dimensions)
+interface PhotoCacheEntry {
+  base64: string;
+  width: number;
+  height: number;
+}
+let photoCache: Map<string, PhotoCacheEntry | null> = new Map();
+
 // Load and convert logo to base64
 async function loadLogoAsBase64(): Promise<string> {
   if (logoBase64) return logoBase64;
@@ -1123,6 +1131,144 @@ async function getImageDimensions(base64Data: string): Promise<{ width: number; 
   });
 }
 
+/**
+ * Load a photo and return both base64 data AND dimensions in a single pass.
+ * This avoids loading the image twice (once for base64, once for dimensions).
+ */
+async function loadPhotoWithDimensions(
+  url: string, quality = 0.92, maxDim = 0
+): Promise<PhotoCacheEntry | null> {
+  // Check cache first
+  const cacheKey = `${url}|${quality}|${maxDim}`;
+  if (photoCache.has(cacheKey)) return photoCache.get(cacheKey) || null;
+
+  // HEIC handling
+  if (isHeicUrl(url)) {
+    try {
+      const base64 = await convertHeicUrlToBase64(url);
+      if (!base64) { photoCache.set(cacheKey, null); return null; }
+
+      const dims = await getImageDimensions(base64);
+      let w = dims.width, h = dims.height;
+
+      if (maxDim > 0 && (w > maxDim || h > maxDim)) {
+        // Need to downscale via canvas
+        if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+        else { w = Math.round((w * maxDim) / h); h = maxDim; }
+
+        const resized = await new Promise<string | null>((resolve) => {
+          const img = new window.Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, w, h);
+              resolve(canvas.toDataURL('image/jpeg', quality));
+            } else resolve(base64);
+          };
+          img.onerror = () => resolve(base64);
+          img.src = base64;
+        });
+
+        const entry: PhotoCacheEntry = { base64: resized || base64, width: w, height: h };
+        photoCache.set(cacheKey, entry);
+        return entry;
+      }
+
+      const entry: PhotoCacheEntry = { base64, width: dims.width, height: dims.height };
+      photoCache.set(cacheKey, entry);
+      return entry;
+    } catch {
+      photoCache.set(cacheKey, null);
+      return null;
+    }
+  }
+
+  // Standard image loading — get base64 + dimensions in one Image load
+  return new Promise((resolve) => {
+    const timeoutId = setTimeout(() => {
+      photoCache.set(cacheKey, null);
+      resolve(null);
+    }, 10000);
+
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      clearTimeout(timeoutId);
+      try {
+        let w = img.naturalWidth;
+        let h = img.naturalHeight;
+        const origW = w, origH = h;
+        if (maxDim > 0 && (w > maxDim || h > maxDim)) {
+          if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+          else { w = Math.round((w * maxDim) / h); h = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, w, h);
+          const base64 = canvas.toDataURL('image/jpeg', quality);
+          // Use original dimensions for aspect ratio (before maxDim scaling)
+          const entry: PhotoCacheEntry = { base64, width: origW, height: origH };
+          photoCache.set(cacheKey, entry);
+          resolve(entry);
+        } else {
+          photoCache.set(cacheKey, null);
+          resolve(null);
+        }
+      } catch {
+        photoCache.set(cacheKey, null);
+        resolve(null);
+      }
+    };
+    img.onerror = () => {
+      clearTimeout(timeoutId);
+      photoCache.set(cacheKey, null);
+      resolve(null);
+    };
+    img.src = url;
+  });
+}
+
+/**
+ * Preload ALL photos and signatures in parallel.
+ * Called once at the start of buildPdfDoc so the photo section
+ * doesn't wait for sequential network requests.
+ */
+async function preloadAllImages(submission: Submission, photoQuality = 0.92, photoMaxDim = 0) {
+  const promises: Promise<unknown>[] = [];
+
+  // Preload photos
+  if (submission.photo_urls?.length) {
+    for (const url of submission.photo_urls) {
+      promises.push(loadPhotoWithDimensions(url, photoQuality, photoMaxDim));
+    }
+  }
+
+  // Preload signatures
+  if (submission.signature_urls?.length) {
+    for (const url of submission.signature_urls) {
+      promises.push(loadPhotoWithDimensions(url, 0.92, 0));
+    }
+  }
+
+  // Preload static assets (logo, QR, favicon) — these have their own caches
+  // but kick them off in parallel too
+  promises.push(loadLogoAsBase64());
+  promises.push(loadQrAsBase64());
+  promises.push(loadFaviconAsBase64());
+
+  // Preload collage images for repair reports
+  if (submission.report_type === 'repair') {
+    promises.push(loadCollageImages());
+  }
+
+  await Promise.all(promises);
+}
+
 async function addPhotosSection(doc: jsPDF, submission: Submission, forceNewPage: boolean = false, photoQuality = 0.92, photoMaxDim = 0) {
   if (!submission.photo_urls || submission.photo_urls.length === 0) {
     return;
@@ -1173,12 +1319,11 @@ async function addPhotosSection(doc: jsPDF, submission: Submission, forceNewPage
     const caption = captions?.[photoUrl];
     const label = `Photo ${i + 1}`;
 
-    // Load photo as base64 (with optional quality/size reduction)
-    const photoData = await loadImageAsBase64(submission.photo_urls[i], false, photoQuality, photoMaxDim);
-    if (photoData) {
-      // Get actual image dimensions to preserve aspect ratio
-      const dims = await getImageDimensions(photoData);
-      const aspectRatio = dims.width / dims.height;
+    // Load photo as base64 with dimensions (from cache — preloaded in parallel)
+    const photoEntry = await loadPhotoWithDimensions(submission.photo_urls[i], photoQuality, photoMaxDim);
+    if (photoEntry) {
+      const { base64: photoData, width: photoOrigW, height: photoOrigH } = photoEntry;
+      const aspectRatio = photoOrigW / photoOrigH;
 
       let photoWidth: number;
       let photoHeight: number;
@@ -1264,17 +1409,17 @@ async function addSignaturesSection(doc: jsPDF, submission: Submission) {
     const signatureUrl = submission.signature_urls[index];
     checkPageBreak(doc, 35);
 
-    // Load signature as base64
-    const sigData = await loadImageAsBase64(signatureUrl);
-    if (sigData) {
+    // Load signature as base64 with dimensions (from cache — preloaded in parallel)
+    const sigEntry = await loadPhotoWithDimensions(signatureUrl, 0.92, 0);
+    if (sigEntry) {
+      const sigData = sigEntry.base64;
       try {
         const maxSigWidth = 80;
         const maxSigHeight = 40;
         const signatureCenterX = PAGE_WIDTH / 2;
 
-        // Get actual dimensions and preserve aspect ratio
-        const dims = await getImageDimensions(sigData);
-        const aspectRatio = dims.width / dims.height;
+        // Use preloaded dimensions for aspect ratio
+        const aspectRatio = sigEntry.width / sigEntry.height;
         let signatureWidth: number;
         let signatureHeight: number;
 
@@ -1728,7 +1873,15 @@ const QUALITY_TIERS = [
 ];
 
 async function buildPdfDoc(submission: Submission, photoQuality = 0.92, photoMaxDim = 0): Promise<jsPDF> {
-  // Load logo
+  // Clear photo cache for fresh quality tier (dimensions may change with maxDim)
+  photoCache = new Map();
+
+  // Preload ALL images in parallel — photos, signatures, logo, QR, collage
+  // This is the single biggest performance optimization: instead of loading
+  // each image sequentially during layout, we fetch everything upfront.
+  await preloadAllImages(submission, photoQuality, photoMaxDim);
+
+  // Load logo (will be instant — already cached by preloader)
   const logoData = await loadLogoAsBase64();
 
     // Initialize PDF
