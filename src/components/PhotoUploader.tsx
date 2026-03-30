@@ -341,19 +341,31 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
     processFiles(files);
   }, [processFiles]);
 
+  // Visual feedback for paste
+  const [pasteNotice, setPasteNotice] = useState<string | null>(null);
+
   // Paste handler — listen for Ctrl+V / Cmd+V with image data on clipboard
   useEffect(() => {
-    const handlePaste = (e: ClipboardEvent) => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      // Don't intercept paste if user is typing in an input/textarea
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+
       const items = e.clipboardData?.items;
       if (!items) return;
 
+      // First: check for direct image blobs (from "Copy Image" right-click)
       const imageFiles: File[] = [];
+      let hasHtml = false;
+      let htmlContent = '';
+
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
         if (item.type.startsWith('image/')) {
           const file = item.getAsFile();
           if (file) {
-            // Clipboard images often have no useful name — give them one
             const ext = file.type.split('/')[1] || 'png';
             const named = new File([file], `pasted-photo-${Date.now()}-${i}.${ext}`, {
               type: file.type,
@@ -361,12 +373,75 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
             });
             imageFiles.push(named);
           }
+        } else if (item.type === 'text/html') {
+          hasHtml = true;
+          htmlContent = await new Promise<string>((resolve) => {
+            item.getAsString(resolve);
+          });
         }
       }
 
       if (imageFiles.length > 0) {
         e.preventDefault();
+        setPasteNotice(`Pasting ${imageFiles.length} photo${imageFiles.length > 1 ? 's' : ''}...`);
+        setTimeout(() => setPasteNotice(null), 3000);
         processFiles(imageFiles);
+        return;
+      }
+
+      // Second: if no direct image blobs, check HTML for embedded <img> tags
+      // This handles copy-paste from email bodies where images are inline
+      if (hasHtml && htmlContent) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlContent, 'text/html');
+        const imgs = doc.querySelectorAll('img');
+
+        if (imgs.length > 0) {
+          e.preventDefault();
+          setPasteNotice(`Extracting ${imgs.length} photo${imgs.length > 1 ? 's' : ''} from clipboard...`);
+
+          const extractedFiles: File[] = [];
+          for (let i = 0; i < imgs.length; i++) {
+            const src = imgs[i].getAttribute('src');
+            if (!src) continue;
+
+            try {
+              let blob: Blob;
+              if (src.startsWith('data:')) {
+                // Base64-encoded inline image
+                const resp = await fetch(src);
+                blob = await resp.blob();
+              } else if (src.startsWith('http')) {
+                // External URL — try to fetch (may fail due to CORS)
+                const resp = await fetch(src, { mode: 'cors' });
+                blob = await resp.blob();
+              } else {
+                continue;
+              }
+
+              if (blob.type.startsWith('image/')) {
+                const ext = blob.type.split('/')[1] || 'png';
+                const file = new File([blob], `pasted-photo-${Date.now()}-${i}.${ext}`, {
+                  type: blob.type,
+                  lastModified: Date.now(),
+                });
+                extractedFiles.push(file);
+              }
+            } catch {
+              console.warn('Could not extract pasted image:', src.substring(0, 80));
+            }
+          }
+
+          if (extractedFiles.length > 0) {
+            setPasteNotice(`Pasting ${extractedFiles.length} photo${extractedFiles.length > 1 ? 's' : ''}...`);
+            setTimeout(() => setPasteNotice(null), 3000);
+            processFiles(extractedFiles);
+          } else {
+            setPasteNotice('Could not extract images — try "Copy Image" on individual photos');
+            setTimeout(() => setPasteNotice(null), 4000);
+          }
+          return;
+        }
       }
     };
 
@@ -606,6 +681,22 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
           text-align: center;
         }
       `}</style>
+
+      {/* Paste notification banner */}
+      {pasteNotice && (
+        <div style={{
+          padding: '0.5rem 0.75rem',
+          marginBottom: '0.5rem',
+          backgroundColor: '#dbeafe',
+          color: '#1e40af',
+          borderRadius: '0.5rem',
+          fontSize: '0.85rem',
+          fontWeight: 500,
+          textAlign: 'center',
+        }}>
+          {pasteNotice}
+        </div>
+      )}
 
       <div>
         <input

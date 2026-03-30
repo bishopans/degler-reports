@@ -570,16 +570,28 @@ export default function ReportDetailPage() {
     await uploadPhotoFiles(Array.from(e.dataTransfer.files));
   };
 
+  // Visual feedback for paste
+  const [pasteNotice, setPasteNotice] = useState<string | null>(null);
+
   // Paste handler for admin panel — Ctrl+V / Cmd+V with images on clipboard
   useEffect(() => {
     const handlePaste = async (e: ClipboardEvent) => {
-      // Only handle paste when we have a submission loaded
       if (!submission) return;
+
+      // Don't intercept paste if user is typing in an input/textarea
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
 
       const items = e.clipboardData?.items;
       if (!items) return;
 
+      // Check for direct image blobs (from "Copy Image" right-click)
       const imageFiles: File[] = [];
+      let hasHtml = false;
+      let htmlContent = '';
+
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
         if (item.type.startsWith('image/')) {
@@ -592,12 +604,72 @@ export default function ReportDetailPage() {
             });
             imageFiles.push(named);
           }
+        } else if (item.type === 'text/html') {
+          hasHtml = true;
+          htmlContent = await new Promise<string>((resolve) => {
+            item.getAsString(resolve);
+          });
         }
       }
 
       if (imageFiles.length > 0) {
         e.preventDefault();
+        setPasteNotice(`Pasting ${imageFiles.length} photo${imageFiles.length > 1 ? 's' : ''}...`);
+        setTimeout(() => setPasteNotice(null), 3000);
         await uploadPhotoFiles(imageFiles);
+        return;
+      }
+
+      // Check HTML for embedded <img> tags (from email body copy-paste)
+      if (hasHtml && htmlContent) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlContent, 'text/html');
+        const imgs = doc.querySelectorAll('img');
+
+        if (imgs.length > 0) {
+          e.preventDefault();
+          setPasteNotice(`Extracting ${imgs.length} photo${imgs.length > 1 ? 's' : ''} from clipboard...`);
+
+          const extractedFiles: File[] = [];
+          for (let i = 0; i < imgs.length; i++) {
+            const src = imgs[i].getAttribute('src');
+            if (!src) continue;
+
+            try {
+              let blob: Blob;
+              if (src.startsWith('data:')) {
+                const resp = await fetch(src);
+                blob = await resp.blob();
+              } else if (src.startsWith('http')) {
+                const resp = await fetch(src, { mode: 'cors' });
+                blob = await resp.blob();
+              } else {
+                continue;
+              }
+
+              if (blob.type.startsWith('image/')) {
+                const ext = blob.type.split('/')[1] || 'png';
+                const file = new File([blob], `pasted-photo-${Date.now()}-${i}.${ext}`, {
+                  type: blob.type,
+                  lastModified: Date.now(),
+                });
+                extractedFiles.push(file);
+              }
+            } catch {
+              console.warn('Could not extract pasted image');
+            }
+          }
+
+          if (extractedFiles.length > 0) {
+            setPasteNotice(`Pasting ${extractedFiles.length} photo${extractedFiles.length > 1 ? 's' : ''}...`);
+            setTimeout(() => setPasteNotice(null), 3000);
+            await uploadPhotoFiles(extractedFiles);
+          } else {
+            setPasteNotice('Could not extract images — try "Copy Image" on individual photos');
+            setTimeout(() => setPasteNotice(null), 4000);
+          }
+          return;
+        }
       }
     };
 
@@ -1008,6 +1080,20 @@ export default function ReportDetailPage() {
             fontSize: '0.9rem',
           }}>
             Drop photos here to upload
+          </div>
+        )}
+        {pasteNotice && (
+          <div style={{
+            padding: '0.5rem 0.75rem',
+            marginBottom: '0.75rem',
+            backgroundColor: '#dbeafe',
+            color: '#1e40af',
+            borderRadius: '0.5rem',
+            fontSize: '0.85rem',
+            fontWeight: 500,
+            textAlign: 'center',
+          }}>
+            {pasteNotice}
           </div>
         )}
         {data.photo_urls && data.photo_urls.length > 0 ? (
