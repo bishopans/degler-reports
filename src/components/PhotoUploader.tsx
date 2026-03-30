@@ -341,6 +341,39 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
     processFiles(files);
   }, [processFiles]);
 
+  // Paste handler — listen for Ctrl+V / Cmd+V with image data on clipboard
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      const imageFiles: File[] = [];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) {
+            // Clipboard images often have no useful name — give them one
+            const ext = file.type.split('/')[1] || 'png';
+            const named = new File([file], `pasted-photo-${Date.now()}-${i}.${ext}`, {
+              type: file.type,
+              lastModified: Date.now(),
+            });
+            imageFiles.push(named);
+          }
+        }
+      }
+
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        processFiles(imageFiles);
+      }
+    };
+
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, [processFiles]);
+
   const removePhoto = useCallback((idx: number) => {
     setPhotos(prev => {
       const updated = [...prev];
@@ -606,7 +639,7 @@ export default function PhotoUploader({ uploadId, onPhotosChange, onLocalFilesCh
           <div className="photo-upload-subtitle">
             {isDragging
               ? 'Release to upload'
-              : 'Take a photo, choose from your library, or drag & drop files here.'}
+              : 'Take a photo, choose from library, drag & drop, or paste (Ctrl+V) images.'}
           </div>
         </div>
       </div>

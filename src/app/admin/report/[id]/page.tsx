@@ -570,6 +570,41 @@ export default function ReportDetailPage() {
     await uploadPhotoFiles(Array.from(e.dataTransfer.files));
   };
 
+  // Paste handler for admin panel — Ctrl+V / Cmd+V with images on clipboard
+  useEffect(() => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      // Only handle paste when we have a submission loaded
+      if (!submission) return;
+
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      const imageFiles: File[] = [];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) {
+            const ext = file.type.split('/')[1] || 'png';
+            const named = new File([file], `pasted-photo-${Date.now()}-${i}.${ext}`, {
+              type: file.type,
+              lastModified: Date.now(),
+            });
+            imageFiles.push(named);
+          }
+        }
+      }
+
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        await uploadPhotoFiles(imageFiles);
+      }
+    };
+
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, [submission]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
