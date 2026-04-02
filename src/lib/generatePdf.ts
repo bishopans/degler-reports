@@ -1731,8 +1731,9 @@ async function addEquipmentPromoSection(doc: jsPDF) {
     currentY = MARGIN_TOP;
   }
 
-  // Add spacing before section
-  currentY += 10;
+  // Add spacing before section (less if at top of page)
+  const isTopOfPage = currentY <= MARGIN_TOP + 2;
+  currentY += isTopOfPage ? 2 : 10;
 
   // Background and accent bar - drawn first so content renders on top
   const bgStartY = currentY;
@@ -2045,8 +2046,20 @@ async function buildPdfDoc(submission: Submission, photoQuality = 0.92, photoMax
     }
 
     // Add crest divider + equipment promotion section (both maintenance and repair)
+    // Treat them as a unit so the divider doesn't get orphaned on a previous page
     if (submission.report_type === 'maintenance' || submission.report_type === 'repair') {
-      await addCrestDivider(doc);
+      const DIVIDER_HEIGHT = 22; // 4 + 16 + 2
+      const PROMO_HEIGHT = 95;
+      const combinedHeight = DIVIDER_HEIGHT + PROMO_HEIGHT;
+
+      if (currentY + combinedHeight > PAGE_HEIGHT - MARGIN_BOTTOM - 15) {
+        // Both sections won't fit — move to new page, skip divider (no need at top of page)
+        doc.addPage();
+        currentY = MARGIN_TOP;
+      } else {
+        // Both fit on current page — draw the divider
+        await addCrestDivider(doc);
+      }
       await addEquipmentPromoSection(doc);
     }
 
