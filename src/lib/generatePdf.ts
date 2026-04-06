@@ -1934,6 +1934,19 @@ async function buildPdfDoc(submission: Submission, photoQuality = 0.92, photoMax
     const col2X = MARGIN_LEFT + 85;
     const col2ValX = col2X + 32;
 
+    // Max widths for wrapped values (leave a small gap before next column / right margin)
+    const col1ValMaxWidth = col2X - col1ValX - 3; // ~50mm
+    const col2ValMaxWidth = (PAGE_WIDTH - MARGIN_RIGHT) - col2ValX; // ~63mm
+    const col2ValMaxWidthPhoto = (PAGE_WIDTH - MARGIN_RIGHT) - (col2ValX + 8); // ~55mm
+    const ROW_LINE_HEIGHT = 5; // tighter line height for wrapped values within a row
+
+    // Helper: render a wrapped value and return the number of lines used
+    const drawWrappedValue = (text: string, x: number, y: number, maxWidth: number): number => {
+      const lines = doc.splitTextToSize(text || '—', maxWidth);
+      doc.text(lines, x, y);
+      return Array.isArray(lines) ? lines.length : 1;
+    };
+
     const isTimeSheet = submission.report_type === 'time-sheets';
     const isPhotoUpload = submission.report_type === 'photo-upload';
     const isServiceReport = ['maintenance','repair','material-delivery','material-turnover','training','jobsite-progress'].includes(submission.report_type);
@@ -1945,23 +1958,24 @@ async function buildPdfDoc(submission: Submission, photoQuality = 0.92, photoMax
     doc.setFont('helvetica', 'normal');
     doc.text(formatDate(submission.date), col1ValX, currentY);
 
+    let row1Lines = 1;
     if (isTimeSheet) {
       doc.setFont('helvetica', 'bold');
       doc.text('Name:', col2X, currentY);
       doc.setFont('helvetica', 'normal');
-      doc.text(submission.technician_name || '—', col2ValX, currentY);
+      row1Lines = Math.max(row1Lines, drawWrappedValue(submission.technician_name || '—', col2ValX, currentY, col2ValMaxWidth));
     } else if (isPhotoUpload) {
       doc.setFont('helvetica', 'bold');
       doc.text('Uploaded by:', col2X, currentY);
       doc.setFont('helvetica', 'normal');
-      doc.text(submission.technician_name || '—', col2ValX + 8, currentY);
+      row1Lines = Math.max(row1Lines, drawWrappedValue(submission.technician_name || '—', col2ValX + 8, currentY, col2ValMaxWidthPhoto));
     } else {
       doc.setFont('helvetica', 'bold');
       doc.text('Job Name:', col2X, currentY);
       doc.setFont('helvetica', 'normal');
-      doc.text(submission.job_name || '—', col2ValX, currentY);
+      row1Lines = Math.max(row1Lines, drawWrappedValue(submission.job_name || '—', col2ValX, currentY, col2ValMaxWidth));
     }
-    currentY += LINE_HEIGHT;
+    currentY += LINE_HEIGHT + (row1Lines - 1) * ROW_LINE_HEIGHT;
 
     // Row 2: Job Number + Technician (skip for time-sheets, show optional job name for photo-upload)
     if (isPhotoUpload) {
@@ -1971,21 +1985,23 @@ async function buildPdfDoc(submission: Submission, photoQuality = 0.92, photoMax
         doc.setFont('helvetica', 'bold');
         doc.text('Job Name:', col1X, currentY);
         doc.setFont('helvetica', 'normal');
-        doc.text(photoJobName, col1ValX, currentY);
-        currentY += LINE_HEIGHT;
+        const photoJobNameLines = drawWrappedValue(photoJobName, col1ValX, currentY, col1ValMaxWidth);
+        currentY += LINE_HEIGHT + (photoJobNameLines - 1) * ROW_LINE_HEIGHT;
       }
       currentY += 3;
     } else if (!isTimeSheet) {
       doc.setFont('helvetica', 'bold');
       doc.text('Job Number:', col1X, currentY);
       doc.setFont('helvetica', 'normal');
-      doc.text(submission.job_number || '—', col1ValX, currentY);
+      const jobNumLines = drawWrappedValue(submission.job_number || '—', col1ValX, currentY, col1ValMaxWidth);
 
       doc.setFont('helvetica', 'bold');
       doc.text('Technician:', col2X, currentY);
       doc.setFont('helvetica', 'normal');
-      doc.text(submission.technician_name || '—', col2ValX, currentY);
-      currentY += LINE_HEIGHT + 3;
+      const techLines = drawWrappedValue(submission.technician_name || '—', col2ValX, currentY, col2ValMaxWidth);
+
+      const row2Lines = Math.max(jobNumLines, techLines);
+      currentY += LINE_HEIGHT + (row2Lines - 1) * ROW_LINE_HEIGHT + 3;
     } else {
       currentY += 3;
     }
