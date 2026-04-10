@@ -1142,10 +1142,11 @@ export default function AdminDashboard() {
                             fontWeight: 500,
                             border: 'none',
                             cursor: 'pointer',
-                            backgroundColor: sub.status === 'reviewed' ? '#dcfce7' : sub.status === 'archived' ? '#f3f4f6' : '#fef9c3',
-                            color: sub.status === 'reviewed' ? '#166534' : sub.status === 'archived' ? '#374151' : '#854d0e',
+                            backgroundColor: sub.status === 'new' ? '#dbeafe' : sub.status === 'reviewed' ? '#dcfce7' : sub.status === 'archived' ? '#f3f4f6' : '#fef9c3',
+                            color: sub.status === 'new' ? '#1e40af' : sub.status === 'reviewed' ? '#166534' : sub.status === 'archived' ? '#374151' : '#854d0e',
                           }}
                         >
+                          <option value="new">new</option>
                           <option value="submitted">submitted</option>
                           <option value="reviewed">reviewed</option>
                           <option value="archived">archived</option>
@@ -1245,10 +1246,11 @@ export default function AdminDashboard() {
                         fontWeight: 500,
                         border: 'none',
                         cursor: 'pointer',
-                        backgroundColor: sub.status === 'reviewed' ? '#dcfce7' : sub.status === 'archived' ? '#f3f4f6' : '#fef9c3',
-                        color: sub.status === 'reviewed' ? '#166534' : sub.status === 'archived' ? '#374151' : '#854d0e',
+                        backgroundColor: sub.status === 'new' ? '#dbeafe' : sub.status === 'reviewed' ? '#dcfce7' : sub.status === 'archived' ? '#f3f4f6' : '#fef9c3',
+                        color: sub.status === 'new' ? '#1e40af' : sub.status === 'reviewed' ? '#166534' : sub.status === 'archived' ? '#374151' : '#854d0e',
                       }}
                     >
+                      <option value="new">new</option>
                       <option value="submitted">submitted</option>
                       <option value="reviewed">reviewed</option>
                       <option value="archived">archived</option>
