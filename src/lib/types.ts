@@ -21,7 +21,7 @@ export interface SubmissionRecord {
   form_data: Record<string, unknown>;
   photo_urls: string[];
   signature_urls: string[];
-  status: 'submitted' | 'reviewed' | 'archived';
+  status: 'new' | 'submitted' | 'reviewed' | 'archived';
   notes: string | null;
   edited_by: string | null;
   edited_at: string | null;
