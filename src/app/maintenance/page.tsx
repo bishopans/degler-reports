@@ -360,7 +360,7 @@ export default function MaintenanceForm() {
         job_name: formData.jobName,
         job_number: formData.jobNumber,
         technician_name: formData.technicianName,
-        status: 'submitted',
+        status: 'new',
         photo_urls: photoBlobUrls,
         signature_urls: [],
         notes: null,
