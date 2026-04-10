@@ -106,7 +106,7 @@ export default function PhotoUploadForm() {
         job_name: formData.jobName || 'Photo Upload',
         job_number: 'PHOTOS',
         technician_name: formData.yourName,
-        status: 'submitted',
+        status: 'new',
         photo_urls: photoBlobUrls,
         signature_urls: [],
         notes: null,
