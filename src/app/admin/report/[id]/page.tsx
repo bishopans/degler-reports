@@ -415,6 +415,24 @@ export default function ReportDetailPage() {
     setIsGeneratingPdf(true);
     try {
       await generatePdf(submission);
+
+      // Auto-update status to 'submitted' if currently 'new'
+      if (submission.status === 'new') {
+        try {
+          const response = await fetch(`/api/admin/submissions/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'submitted' }),
+          });
+          if (response.ok) {
+            const updated = await response.json();
+            setSubmission(updated);
+            setEditData(updated);
+          }
+        } catch (statusError) {
+          console.error('Failed to update status:', statusError);
+        }
+      }
     } catch (error) {
       console.error('PDF generation error:', error);
       alert('Failed to generate PDF. Please try again.');
@@ -870,6 +888,7 @@ export default function ReportDetailPage() {
                 onChange={(e) => setEditData({ ...editData, status: e.target.value })}
                 className="w-full p-2 border rounded"
               >
+                <option value="new">New</option>
                 <option value="submitted">Submitted</option>
                 <option value="reviewed">Reviewed</option>
                 <option value="archived">Archived</option>
@@ -881,8 +900,8 @@ export default function ReportDetailPage() {
                 borderRadius: '9999px',
                 fontSize: '0.75rem',
                 fontWeight: 500,
-                backgroundColor: data.status === 'reviewed' ? '#dcfce7' : data.status === 'archived' ? '#f3f4f6' : '#fef9c3',
-                color: data.status === 'reviewed' ? '#166534' : data.status === 'archived' ? '#374151' : '#854d0e',
+                backgroundColor: data.status === 'new' ? '#dbeafe' : data.status === 'reviewed' ? '#dcfce7' : data.status === 'archived' ? '#f3f4f6' : '#fef9c3',
+                color: data.status === 'new' ? '#1e40af' : data.status === 'reviewed' ? '#166534' : data.status === 'archived' ? '#374151' : '#854d0e',
               }}>
                 {data.status}
               </span>
