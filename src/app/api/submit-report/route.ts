@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
         form_data: parsedFormData,
         photo_urls: photoUrls,
         signature_urls: signatureUrls,
-        status: 'submitted',
+        status: 'new',
       }, { onConflict: 'id' })
       .select()
       .single();
