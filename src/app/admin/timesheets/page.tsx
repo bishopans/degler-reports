@@ -313,10 +313,11 @@ export default function TimesheetsAdmin() {
                         fontSize: '0.75rem',
                         fontWeight: 500,
                         border: '1px solid #e5e7eb',
-                        backgroundColor: sub.status === 'reviewed' ? '#dcfce7' : sub.status === 'archived' ? '#f3f4f6' : '#fef9c3',
+                        backgroundColor: sub.status === 'new' ? '#dbeafe' : sub.status === 'reviewed' ? '#dcfce7' : sub.status === 'archived' ? '#f3f4f6' : '#fef9c3',
                         cursor: 'pointer',
                       }}
                     >
+                      <option value="new">New</option>
                       <option value="submitted">Submitted</option>
                       <option value="reviewed">Reviewed</option>
                       <option value="archived">Archived</option>
