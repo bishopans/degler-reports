@@ -90,7 +90,7 @@ export default function MaterialDeliveryForm() {
         job_name: formData.jobName,
         job_number: formData.jobNumber,
         technician_name: formData.installerName,
-        status: 'submitted',
+        status: 'new',    
         photo_urls: photoBlobUrls,
         signature_urls: [],
         notes: null,
