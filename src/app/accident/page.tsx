@@ -180,7 +180,7 @@ export default function IncidentReportForm() {
         },
         photo_urls: photoBlobUrls,
         signature_urls: [],
-        status: 'submitted',
+        status: 'new',
         notes: null,
       });
 
