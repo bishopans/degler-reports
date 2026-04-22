@@ -1332,13 +1332,13 @@ export default function ReportDetailPage() {
             {lightboxIndex + 1} / {data.photo_urls.length}
           </div>
           {/* Main image */}
-          <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: '90vw', maxHeight: '85vh' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <HeicImage
               src={data.photo_urls[lightboxIndex]}
               alt={`Photo ${lightboxIndex + 1}`}
               style={{
-                maxWidth: '90vw',
-                maxHeight: '85vh',
+                maxWidth: '95vw',
+                maxHeight: '92vh',
                 objectFit: 'contain',
                 borderRadius: '0.5rem',
               }}
