@@ -174,7 +174,7 @@ export default function AdminAnnouncementsPage() {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('folder', 'announcements');
-      const res = await fetch('/api/admin/upload-photo', { method: 'POST', body: formData });
+      const res = await fetch('/api/admin/announcements/upload', { method: 'POST', body: formData });
       const data = await res.json();
       if (data.url) { setImageUrl(data.url); }
       else { alert('Upload failed.'); }
