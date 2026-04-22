@@ -1241,8 +1241,8 @@ export default function ReportDetailPage() {
             onClick={(e) => { e.stopPropagation(); setLightboxIndex(null); }}
             style={{
               position: 'absolute',
-              top: '1rem',
-              right: '1rem',
+              top: '1.5rem',
+              right: '1.5rem',
               width: '40px',
               height: '40px',
               borderRadius: '50%',
@@ -1259,7 +1259,7 @@ export default function ReportDetailPage() {
             }}
             title="Close"
           >
-            \u00d7
+            ×
           </button>
           {/* Previous arrow */}
           {lightboxIndex > 0 && (
@@ -1267,7 +1267,7 @@ export default function ReportDetailPage() {
               onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex - 1); }}
               style={{
                 position: 'absolute',
-                left: '1rem',
+                left: '5%',
                 top: '50%',
                 transform: 'translateY(-50%)',
                 width: '48px',
@@ -1277,7 +1277,7 @@ export default function ReportDetailPage() {
                 color: 'white',
                 border: 'none',
                 cursor: 'pointer',
-                fontSize: '1.5rem',
+                fontSize: '2rem',
                 fontWeight: 'bold',
                 display: 'flex',
                 alignItems: 'center',
@@ -1286,7 +1286,7 @@ export default function ReportDetailPage() {
               }}
               title="Previous photo"
             >
-              \u2039
+              ❰
             </button>
           )}
           {/* Next arrow */}
@@ -1295,7 +1295,7 @@ export default function ReportDetailPage() {
               onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex + 1); }}
               style={{
                 position: 'absolute',
-                right: '1rem',
+                right: '5%',
                 top: '50%',
                 transform: 'translateY(-50%)',
                 width: '48px',
@@ -1305,7 +1305,7 @@ export default function ReportDetailPage() {
                 color: 'white',
                 border: 'none',
                 cursor: 'pointer',
-                fontSize: '1.5rem',
+                fontSize: '2rem',
                 fontWeight: 'bold',
                 display: 'flex',
                 alignItems: 'center',
@@ -1314,7 +1314,7 @@ export default function ReportDetailPage() {
               }}
               title="Next photo"
             >
-              \u203a
+              ❱
             </button>
           )}
           {/* Photo counter */}
