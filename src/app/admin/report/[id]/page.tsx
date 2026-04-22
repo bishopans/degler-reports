@@ -600,11 +600,11 @@ export default function ReportDetailPage() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setLightboxIndex(null);
       if (e.key === 'ArrowLeft' && lightboxIndex > 0) setLightboxIndex(lightboxIndex - 1);
-      if (e.key === 'ArrowRight' && data?.photo_urls && lightboxIndex < data.photo_urls.length - 1) setLightboxIndex(lightboxIndex + 1);
+      if (e.key === 'ArrowRight') setLightboxIndex(prev => prev !== null ? prev + 1 : null);
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [lightboxIndex, data?.photo_urls]);
+  }, [lightboxIndex]);
 
   // Paste handler for admin panel — Ctrl+V / Cmd+V with images on clipboard
   useEffect(() => {
@@ -1220,7 +1220,7 @@ export default function ReportDetailPage() {
       </div>
 
       {/* Photo Lightbox Modal */}
-      {lightboxIndex !== null && data.photo_urls && (
+      {lightboxIndex !== null && data.photo_urls && lightboxIndex < data.photo_urls.length && (
         <div
           style={{
             position: 'fixed',
