@@ -591,6 +591,21 @@ export default function ReportDetailPage() {
   // Visual feedback for paste
   const [pasteNotice, setPasteNotice] = useState<string | null>(null);
 
+  // Photo lightbox state
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  // Keyboard navigation for photo lightbox
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightboxIndex(null);
+      if (e.key === 'ArrowLeft' && lightboxIndex > 0) setLightboxIndex(lightboxIndex - 1);
+      if (e.key === 'ArrowRight' && data?.photo_urls && lightboxIndex < data.photo_urls.length - 1) setLightboxIndex(lightboxIndex + 1);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxIndex, data?.photo_urls]);
+
   // Paste handler for admin panel — Ctrl+V / Cmd+V with images on clipboard
   useEffect(() => {
     const handlePaste = async (e: ClipboardEvent) => {
@@ -1119,7 +1134,7 @@ export default function ReportDetailPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
             {data.photo_urls.map((url, i) => (
               <div key={i} style={{ position: 'relative' }}>
-                <a href={url} target="_blank" rel="noopener noreferrer">
+                <div onClick={() => setLightboxIndex(i)} style={{ cursor: 'pointer' }}>
                   <HeicImage
                     src={url}
                     alt={`Photo ${i + 1}`}
@@ -1131,7 +1146,7 @@ export default function ReportDetailPage() {
                       border: '1px solid #e5e7eb',
                     }}
                   />
-                </a>
+                </div>
                 <button
                   onClick={() => handleDeletePhoto(url, i)}
                   style={{
@@ -1203,6 +1218,134 @@ export default function ReportDetailPage() {
           <p className="text-sm" style={{ color: '#374151' }}>No photos uploaded yet.</p>
         )}
       </div>
+
+      {/* Photo Lightbox Modal */}
+      {lightboxIndex !== null && data.photo_urls && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          onClick={() => setLightboxIndex(null)}
+        >
+          {/* Close button */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setLightboxIndex(null); }}
+            style={{
+              position: 'absolute',
+              top: '1rem',
+              right: '1rem',
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '1.5rem',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10001,
+            }}
+            title="Close"
+          >
+            \u00d7
+          </button>
+          {/* Previous arrow */}
+          {lightboxIndex > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex - 1); }}
+              style={{
+                position: 'absolute',
+                left: '1rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                color: 'white',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 10001,
+              }}
+              title="Previous photo"
+            >
+              \u2039
+            </button>
+          )}
+          {/* Next arrow */}
+          {lightboxIndex < data.photo_urls.length - 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex + 1); }}
+              style={{
+                position: 'absolute',
+                right: '1rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                color: 'white',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 10001,
+              }}
+              title="Next photo"
+            >
+              \u203a
+            </button>
+          )}
+          {/* Photo counter */}
+          <div style={{
+            position: 'absolute',
+            bottom: '1rem',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            color: 'white',
+            fontSize: '0.875rem',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            padding: '0.25rem 0.75rem',
+            borderRadius: '1rem',
+          }}>
+            {lightboxIndex + 1} / {data.photo_urls.length}
+          </div>
+          {/* Main image */}
+          <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: '90vw', maxHeight: '85vh' }}>
+            <HeicImage
+              src={data.photo_urls[lightboxIndex]}
+              alt={`Photo ${lightboxIndex + 1}`}
+              style={{
+                maxWidth: '90vw',
+                maxHeight: '85vh',
+                objectFit: 'contain',
+                borderRadius: '0.5rem',
+              }}
+            />
+          </div>
+        </div>
+      )}
 
     </div>
   );
