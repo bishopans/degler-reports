@@ -54,13 +54,17 @@ export default function Home() {
                 background: '#f0f7ff',
               }}
             >
+              {a.title && (
               <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', fontWeight: 700, color: '#1e40af' }}>
                 {a.title}
               </h3>
+              )}
+              {a.body && (
               <div
                 style={{ fontSize: '0.95rem', color: '#1e3a5f', lineHeight: 1.6 }}
                 dangerouslySetInnerHTML={{ __html: a.body }}
               />
+              )}
               {a.image_url && (
                 <div style={{ marginTop: '0.75rem' }}>
                   <img
