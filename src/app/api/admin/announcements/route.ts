@@ -27,15 +27,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { title, body: content, image_url, start_at, end_at } = body;
 
-    if (!title || !content || !start_at || !end_at) {
-      return NextResponse.json({ error: 'Title, body, start_at, and end_at are required' }, { status: 400 });
+    if ((!title && !content) || !start_at || !end_at) {
+      return NextResponse.json({ error: 'At least one of title or body is required, plus start_at and end_at' }, { status: 400 });
     }
 
     const { data, error } = await supabase
       .from('announcements')
       .insert({
-        title,
-        body: content,
+        title: title || '',
+        body: content || '',
         image_url: image_url || null,
         start_at,
         end_at,
