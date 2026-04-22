@@ -123,8 +123,8 @@ export default function AdminAnnouncementsPage() {
 
   const handleSave = async () => {
     const body = editorRef.current?.innerHTML || '';
-    if (!title.trim() || !body.trim() || !startAt || !endAt) {
-      alert('Please fill in all required fields (title, body, start and end date).');
+    if ((!title.trim() && !body.trim()) || !startAt || !endAt) {
+      alert('Please provide at least a title or body, plus start and end dates.');
       return;
     }
     setSaving(true);
@@ -207,12 +207,12 @@ export default function AdminAnnouncementsPage() {
             <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>{editingId ? 'Edit Announcement' : 'New Announcement'}</h2>
 
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontWeight: 500, fontSize: '0.875rem', marginBottom: '0.25rem' }}>Title *</label>
+              <label style={{ display: 'block', fontWeight: 500, fontSize: '0.875rem', marginBottom: '0.25rem' }}>Title</label>
               <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Announcement title" style={{ width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d1d5db', borderRadius: 6, fontSize: '0.95rem', boxSizing: 'border-box' }} />
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontWeight: 500, fontSize: '0.875rem', marginBottom: '0.25rem' }}>Message *</label>
+              <label style={{ display: 'block', fontWeight: 500, fontSize: '0.875rem', marginBottom: '0.25rem' }}>Message</label>
               <div style={{ display: 'flex', gap: '0.25rem', padding: '0.375rem', border: '1px solid #d1d5db', borderBottom: 'none', borderRadius: '6px 6px 0 0', background: '#f9fafb', flexWrap: 'wrap' }}>
                 <button type="button" onClick={() => execCommand('bold')} style={toolbarBtn} title="Bold"><b>B</b></button>
                 <button type="button" onClick={() => execCommand('italic')} style={toolbarBtn} title="Italic"><i>I</i></button>
