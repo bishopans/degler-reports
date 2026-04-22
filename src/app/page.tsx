@@ -1,20 +1,84 @@
 'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
+import { useEffect, useState } from 'react';
+
+interface Announcement {
+  id: string;
+  title: string;
+  body: string;
+  image_url: string | null;
+  start_at: string;
+  end_at: string;
+}
 
 export default function Home() {
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+
+  useEffect(() => {
+    fetch('/api/announcements')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.announcements) setAnnouncements(data.announcements);
+      })
+      .catch((err) => console.error('Failed to load announcements:', err));
+  }, []);
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem 1.5rem', background: 'white' }}>
-      <div style={{ maxWidth: 300, width: '100%', marginBottom: '2rem' }}>
+
+      <div style={{ maxWidth: 200, width: '100%', marginBottom: '1.5rem' }}>
         <Image
           src="/images/logo.png"
           alt="Degler Whiting Logo"
-          width={300}
-          height={300}
+          width={200}
+          height={200}
           style={{ width: '100%', height: 'auto' }}
           priority
         />
       </div>
+
+      {/* ─── Announcements ─── */}
+      {announcements.length > 0 && (
+        <div style={{ width: '100%', maxWidth: 900, marginBottom: '2rem' }}>
+          {announcements.map((a) => (
+            <div
+              key={a.id}
+              style={{
+                border: '1px solid #bfdbfe',
+                borderLeft: '4px solid #2563eb',
+                borderRadius: 8,
+                padding: '1rem 1.25rem',
+                marginBottom: '0.75rem',
+                background: '#f0f7ff',
+              }}
+            >
+              <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', fontWeight: 700, color: '#1e40af' }}>
+                {a.title}
+              </h3>
+              <div
+                style={{ fontSize: '0.95rem', color: '#1e3a5f', lineHeight: 1.6 }}
+                dangerouslySetInnerHTML={{ __html: a.body }}
+              />
+              {a.image_url && (
+                <div style={{ marginTop: '0.75rem' }}>
+                  <img
+                    src={a.image_url}
+                    alt=""
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: 300,
+                      borderRadius: 6,
+                      border: '1px solid #dbeafe',
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ─── Select a Report ─── */}
       <h1 style={{ fontSize: '1.875rem', fontWeight: 700, marginBottom: '1.5rem', textAlign: 'center' }}>Select a Report</h1>
@@ -70,7 +134,7 @@ export default function Home() {
 
       {/* ─── Service & Install Support ─── */}
       <h2 style={{ fontSize: '1.875rem', fontWeight: 700, marginBottom: '0.75rem', textAlign: 'center', color: '#00457c' }}>
-        Service & Install Support
+        Service &amp; Install Support
       </h2>
       <p style={{ fontSize: '0.95rem', color: '#6b7280', marginBottom: '2rem', textAlign: 'center', maxWidth: 500 }}>
         Access installation manuals, troubleshooting guides, and AI-powered service assistance.
