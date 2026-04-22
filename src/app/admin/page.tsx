@@ -531,6 +531,20 @@ export default function AdminDashboard() {
           >
             Raffle
           </Link>
+                  <Link
+                    href="/admin/announcements"
+                    style={{
+                      padding: '0.5rem 1rem',
+                      backgroundColor: '#2563eb',
+                      color: 'white',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    Announcements
+                  </Link>
           {/* Vulcan Chatbot Toggle */}
           <div style={{ position: 'relative' }}>
             <button
