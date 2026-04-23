@@ -170,7 +170,7 @@ export default function JobSiteProgressForm() {
       </div>
 
       <h1 className="text-2xl font-bold text-center mb-8">
-        Job Site Progress Report
+        Install Progress Report Report
       </h1>
 
       <div className="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-md">
@@ -220,7 +220,7 @@ export default function JobSiteProgressForm() {
           <DraftBanner draftRestored={draftRestored} draftTimestamp={draftTimestamp} lastSaveTime={lastSaveTime} onDismiss={dismissDraftBanner} onClear={() => { clearDraft(); setFormData({ date: '', jobName: '', technicianName: '', jobNumber: '', equipment: '', notes: '', estimatedCompletionDate: '', photos: [] }); }} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block mb-1">Date of Service</label>
+              <label className="block mb-1">Date of Install</label>
               <input
                 type="date"
                 value={formData.date}
