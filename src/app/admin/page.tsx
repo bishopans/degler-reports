@@ -35,7 +35,7 @@ const REPORT_TYPE_LABELS: Record<string, string> = {
   'material-delivery': 'Material Delivery',
   'material-turnover': 'Material Turnover',
   'training': 'Training',
-  'jobsite-progress': 'Job Site Progress',
+  'jobsite-progress': 'Install Progress Report',
   'accident': 'Accident/Incident',
   'photo-upload': 'Photo Upload',
 };
