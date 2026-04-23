@@ -60,7 +60,7 @@ const REPORT_TYPE_LABELS: Record<string, string> = {
   'material-delivery': 'Material Delivery',
   'material-turnover': 'Material Turnover',
   'training': 'Training',
-  'jobsite-progress': 'Job Site Progress',
+  'jobsite-progress': 'Install Progress Report',
   'time-sheets': 'Time Sheets',
   'accident': 'Accident/Incident',
   'photo-upload': 'Photo Upload',
@@ -859,7 +859,7 @@ export default function ReportDetailPage() {
         <h2 className="font-bold mb-4" style={{ fontSize: '1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem', color: '#111827' }}>Report Information</h2>
         <div className="admin-report-info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <FieldDisplay
-            label={['maintenance','repair','material-delivery','material-turnover','training','jobsite-progress'].includes(data.report_type) ? 'Date of Service' : 'Date'}
+            label={['maintenance','repair','material-delivery','material-turnover','training','jobsite-progress'].includes(data.report_type) ? 'Date of Install' : 'Date'}
             value={data.date}
             isEditing={isEditing}
             type="date"
