@@ -19,6 +19,7 @@ interface FormData {
   additionalRepairs: Record<string, string>;
   futurePartsNeeded: Record<string, string>;
   equipmentSafe: Record<string, string>;
+  unsafeReasons: Record<string, string>;
   equipmentTurnover: string;
   otherNotes: string;
   photos: File[];
@@ -56,12 +57,14 @@ export default function MaintenanceForm() {
     const initialAdditionalRepairs: Record<string, string> = {};
     const initialFuturePartsNeeded: Record<string, string> = {};
     const initialEquipmentSafe: Record<string, string> = {};
+    const initialUnsafeReasons: Record<string, string> = {};
 
     equipmentTypes.forEach(type => {
       initialEquipmentChecks[type] = Array(equipmentChecklists[type].length).fill(true);
       initialAdditionalRepairs[type] = '';
       initialFuturePartsNeeded[type] = '';
       initialEquipmentSafe[type] = '';
+      initialUnsafeReasons[type] = '';
     });
 
     return {
@@ -74,6 +77,7 @@ export default function MaintenanceForm() {
       additionalRepairs: initialAdditionalRepairs,
       futurePartsNeeded: initialFuturePartsNeeded,
       equipmentSafe: initialEquipmentSafe,
+      unsafeReasons: initialUnsafeReasons,
       equipmentTurnover: '',
       otherNotes: '',
       photos: []
@@ -134,6 +138,15 @@ export default function MaintenanceForm() {
       return;
     }
 
+    // For any equipment marked unsafe, require a reason
+    const missingUnsafeReason = formData.selectedEquipment.filter(
+      equip => formData.equipmentSafe[equip] === 'No' && !(formData.unsafeReasons[equip] && formData.unsafeReasons[equip].trim())
+    );
+    if (missingUnsafeReason.length > 0) {
+      alert(`Please describe why these items are not safe for use: ${missingUnsafeReason.join(', ')}`);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -148,6 +161,7 @@ export default function MaintenanceForm() {
       const filteredRepairs: Record<string, string> = {};
       const filteredFutureParts: Record<string, string> = {};
       const filteredEquipmentSafe: Record<string, string> = {};
+      const filteredUnsafeReasons: Record<string, string> = {};
       formData.selectedEquipment.forEach(equip => {
         if (formData.equipmentChecks[equip]) {
           filteredChecks[equip] = formData.equipmentChecks[equip];
@@ -160,6 +174,10 @@ export default function MaintenanceForm() {
         }
         if (formData.equipmentSafe[equip]) {
           filteredEquipmentSafe[equip] = formData.equipmentSafe[equip];
+        }
+        // Only persist a reason when this equipment is marked unsafe
+        if (formData.equipmentSafe[equip] === 'No' && formData.unsafeReasons[equip]?.trim()) {
+          filteredUnsafeReasons[equip] = formData.unsafeReasons[equip];
         }
       });
       // Also include Other sub-fields if Other is selected
@@ -181,6 +199,7 @@ export default function MaintenanceForm() {
         additionalRepairs: filteredRepairs,
         futurePartsNeeded: filteredFutureParts,
         equipmentSafe: filteredEquipmentSafe,
+        unsafeReasons: filteredUnsafeReasons,
         equipmentTurnover: formData.equipmentTurnover,
         otherNotes: formData.otherNotes,
         photo_captions: photoCaptions,
@@ -231,6 +250,7 @@ export default function MaintenanceForm() {
           additionalRepairs: filteredRepairs,
           futurePartsNeeded: filteredFutureParts,
           equipmentSafe: filteredEquipmentSafe,
+          unsafeReasons: filteredUnsafeReasons,
           equipmentTurnover: formData.equipmentTurnover,
           otherNotes: formData.otherNotes,
           photo_captions: snapshotCaptions,
@@ -338,14 +358,22 @@ export default function MaintenanceForm() {
     }));
   };
 
-  // Handle equipment safe change
+  // Handle equipment safe change. Switching back to "Yes" clears the unsafe reason for that equipment.
   const handleEquipmentSafeChange = (equipment: string, value: string) => {
     setFormData(prev => ({
       ...prev,
-      equipmentSafe: {
-        ...prev.equipmentSafe,
-        [equipment]: value
-      }
+      equipmentSafe: { ...prev.equipmentSafe, [equipment]: value },
+      unsafeReasons: value === 'Yes'
+        ? { ...prev.unsafeReasons, [equipment]: '' }
+        : prev.unsafeReasons,
+    }));
+  };
+
+  // Update the reason text shown when an equipment is marked Not Safe.
+  const handleUnsafeReasonChange = (equipment: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      unsafeReasons: { ...prev.unsafeReasons, [equipment]: value },
     }));
   };
 
@@ -673,6 +701,27 @@ export default function MaintenanceForm() {
                             </label>
                           </div>
                         </div>
+                        {formData.equipmentSafe['Other'] === 'No' && (
+                          <div className="p-3 bg-red-50 border border-red-200 rounded">
+                            <label className="block mb-1 font-medium text-sm text-red-800">
+                              Why is this equipment not safe for use? <span className="text-red-600">*</span>
+                            </label>
+                            <textarea
+                              value={formData.unsafeReasons['Other'] || ''}
+                              onChange={(e) => handleUnsafeReasonChange('Other', e.target.value)}
+                              onInput={(e) => handleTextAreaInput(e, 'unsafe-Other')}
+                              className="w-full p-2 border border-red-300 rounded text-sm"
+                              placeholder="Describe the safety issue, what's broken, what needs to be done before it can be used..."
+                              style={{
+                                minHeight: '70px',
+                                height: textareaHeights['unsafe-Other'] ? `${textareaHeights['unsafe-Other']}px` : 'auto',
+                                resize: 'none',
+                                backgroundColor: '#fff',
+                              }}
+                              required
+                            />
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -735,6 +784,27 @@ export default function MaintenanceForm() {
                             </label>
                           </div>
                         </div>
+                        {formData.equipmentSafe[equipment] === 'No' && (
+                          <div className="p-3 bg-red-50 border border-red-200 rounded">
+                            <label className="block mb-1 font-medium text-sm text-red-800">
+                              Why is this equipment not safe for use? <span className="text-red-600">*</span>
+                            </label>
+                            <textarea
+                              value={formData.unsafeReasons[equipment] || ''}
+                              onChange={(e) => handleUnsafeReasonChange(equipment, e.target.value)}
+                              onInput={(e) => handleTextAreaInput(e, `unsafe-${equipment}`)}
+                              className="w-full p-2 border border-red-300 rounded text-sm"
+                              placeholder="Describe the safety issue, what's broken, what needs to be done before it can be used..."
+                              style={{
+                                minHeight: '70px',
+                                height: textareaHeights[`unsafe-${equipment}`] ? `${textareaHeights[`unsafe-${equipment}`]}px` : 'auto',
+                                resize: 'none',
+                                backgroundColor: '#fff',
+                              }}
+                              required
+                            />
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

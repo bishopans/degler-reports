@@ -1499,6 +1499,7 @@ function FormDataDisplay({
       const repairs = (formData.additionalRepairs as Record<string, string>) || {};
       const futureParts = (formData.futurePartsNeeded as Record<string, string>) || {};
       const maintEquipSafe = (formData.equipmentSafe as Record<string, string>) || {};
+      const maintUnsafeReasons = (formData.unsafeReasons as Record<string, string>) || {};
       const bleacherData = formData.outdoorBleacherData as Record<string, string> | undefined;
       const bleacherLabels: Record<string, string> = {
         location: 'Location of Outdoor Bleachers',
@@ -1694,6 +1695,25 @@ function FormDataDisplay({
                   </div>
                 )}
 
+                {/* Reason Not Safe for Use — visible whenever Safe = No */}
+                {maintEquipSafe[equipment] === 'No' && (
+                  <div style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.25rem' }}>
+                    <label className="block text-xs font-medium" style={{ color: '#991b1b' }}>Reason Not Safe for Use</label>
+                    {isEditing ? (
+                      <textarea
+                        value={maintUnsafeReasons[equipment] || ''}
+                        onChange={(e) => onUpdate('unsafeReasons', { ...maintUnsafeReasons, [equipment]: e.target.value })}
+                        className="w-full p-2 border rounded text-sm mt-1"
+                        style={{ minHeight: '50px', backgroundColor: '#fff', borderColor: '#fca5a5' }}
+                      />
+                    ) : (
+                      <p className="text-sm" style={{ color: '#7f1d1d', whiteSpace: 'pre-wrap', marginTop: '0.25rem' }}>
+                        {maintUnsafeReasons[equipment] || '—'}
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 {/* Outdoor Bleacher Details — inline with its checklist */}
                 {equipment === 'Outdoor Bleachers/Grandstands' && bleacherData && (
                   <div style={{ marginTop: '0.75rem', padding: '0.75rem', backgroundColor: '#f0f9ff', borderRadius: '0.5rem' }}>
@@ -1811,6 +1831,25 @@ function FormDataDisplay({
                   ) : (
                     <p className="text-sm" style={{ color: maintEquipSafe['Other'] === 'No' ? '#dc2626' : '#16a34a', fontWeight: 600 }}>
                       {maintEquipSafe['Other'] === 'Yes' ? '✅ ' : maintEquipSafe['Other'] === 'No' ? '❌ ' : ''}{maintEquipSafe['Other']}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Reason Not Safe for Use — Other */}
+              {maintEquipSafe['Other'] === 'No' && (
+                <div style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.25rem' }}>
+                  <label className="block text-xs font-medium" style={{ color: '#991b1b' }}>Reason Not Safe for Use</label>
+                  {isEditing ? (
+                    <textarea
+                      value={maintUnsafeReasons['Other'] || ''}
+                      onChange={(e) => onUpdate('unsafeReasons', { ...maintUnsafeReasons, ['Other']: e.target.value })}
+                      className="w-full p-2 border rounded text-sm mt-1"
+                      style={{ minHeight: '50px', backgroundColor: '#fff', borderColor: '#fca5a5' }}
+                    />
+                  ) : (
+                    <p className="text-sm" style={{ color: '#7f1d1d', whiteSpace: 'pre-wrap', marginTop: '0.25rem' }}>
+                      {maintUnsafeReasons['Other'] || '—'}
                     </p>
                   )}
                 </div>

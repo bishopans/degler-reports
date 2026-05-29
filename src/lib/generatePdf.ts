@@ -638,6 +638,7 @@ function handleMaintenanceReport(doc: jsPDF, submission: Submission) {
   const additionalRepairs: Record<string, string> = data.additionalRepairs || {};
   const futurePartsNeeded: Record<string, string> = data.futurePartsNeeded || {};
   const equipmentSafe: Record<string, string> = data.equipmentSafe || {};
+  const unsafeReasons: Record<string, string> = data.unsafeReasons || {};
 
   // Section header before all equipment
   if (selectedEquipment.length > 0) {
@@ -677,6 +678,11 @@ function handleMaintenanceReport(doc: jsPDF, submission: Submission) {
     const safe = equipmentSafe[equipment];
     if (safe) {
       addSafeStatusNote(doc, 'Equipment Working & Safe for Use:', safe);
+    }
+
+    // When marked unsafe, render the reason on the next line.
+    if (safe === 'No') {
+      addLabeledNote(doc, 'Reason Not Safe for Use:', unsafeReasons[equipment] || '');
     }
 
     // Outdoor bleacher extra data — always show labels when this equipment is selected.
