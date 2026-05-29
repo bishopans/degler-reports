@@ -218,23 +218,31 @@ export default function LcpsInspectionForm() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    // Collect every missing required field so the user sees one consolidated list,
+    // not one-at-a-time browser tooltips.
+    const missing: string[] = [];
+    if (!formData.date) missing.push('Date of Inspection');
+    if (!formData.jobName.trim()) missing.push('Facility / Job Name');
+    if (!formData.technicianName.trim()) missing.push('Inspector Name');
+    if (!formData.jobNumber.trim()) missing.push('Service Request / Job Number');
+
     if (formData.inspectedEquipment.length === 0) {
-      alert('Please add at least one piece of equipment before submitting.');
-      return;
+      missing.push('At least one piece of equipment must be added');
+    } else {
+      formData.inspectedEquipment.forEach(i => {
+        if (!i.equipmentSafe) {
+          missing.push(`"Equipment Safe for Use" answer for ${i.label}`);
+        }
+      });
+      formData.inspectedEquipment.forEach(i => {
+        if (i.equipmentSafe === 'No' && !(i.unsafeReason && i.unsafeReason.trim())) {
+          missing.push(`Reason why ${i.label} is not safe for use`);
+        }
+      });
     }
 
-    const missingSafe = formData.inspectedEquipment.filter(i => !i.equipmentSafe);
-    if (missingSafe.length > 0) {
-      alert(`Please select "Equipment Safe for Use" for: ${missingSafe.map(i => i.label).join(', ')}`);
-      return;
-    }
-
-    // If any instance is marked unsafe, require an explanation
-    const missingReason = formData.inspectedEquipment.filter(
-      i => i.equipmentSafe === 'No' && !(i.unsafeReason && i.unsafeReason.trim())
-    );
-    if (missingReason.length > 0) {
-      alert(`Please provide the reason why these items are not safe for use: ${missingReason.map(i => i.label).join(', ')}`);
+    if (missing.length > 0) {
+      alert(`Please complete the following before submitting:\n\n• ${missing.join('\n• ')}`);
       return;
     }
 
@@ -404,7 +412,7 @@ export default function LcpsInspectionForm() {
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6" noValidate>
             <DraftBanner
               draftRestored={draftRestored}
               draftTimestamp={draftTimestamp}
