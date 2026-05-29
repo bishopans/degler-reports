@@ -7,7 +7,8 @@ export type ReportType =
   | 'jobsite-progress'
   | 'time-sheets'
   | 'accident'
-  | 'photo-upload';
+  | 'photo-upload'
+  | 'lcps-inspection';
 
 export interface SubmissionRecord {
   id: string;

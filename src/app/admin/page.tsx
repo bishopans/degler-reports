@@ -38,6 +38,7 @@ const REPORT_TYPE_LABELS: Record<string, string> = {
   'jobsite-progress': 'Install Progress Report',
   'accident': 'Accident/Incident',
   'photo-upload': 'Photo Upload',
+  'lcps-inspection': 'LCPS Building Inspection',
 };
 
 export default function AdminDashboard() {

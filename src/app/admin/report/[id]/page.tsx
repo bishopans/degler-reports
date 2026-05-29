@@ -6,6 +6,13 @@ import Image from 'next/image';
 import HeicImage from '@/components/HeicImage';
 import { isHeicUrl } from '@/lib/heicSupport';
 import { generatePdf } from '@/lib/generatePdf';
+import {
+  equipmentChecklists as LCPS_CHECKLISTS,
+  CONDITION_GRADE_LABELS,
+  CONDITION_GRADE_COLORS,
+  type ConditionGrade,
+  type EquipmentType,
+} from '@/lib/equipmentChecklists';
 
 // Detect HEIC/HEIF files by MIME type or extension
 function isHeicFile(file: File): boolean {
@@ -2149,6 +2156,358 @@ function FormDataDisplay({
           <p className="text-sm" style={{ color: '#374151' }}>See photos below.</p>
         </div>
       );
+
+    case 'lcps-inspection': {
+      type LcpsInstance = {
+        id?: string;
+        type: EquipmentType;
+        label?: string;
+        conditionGrade: ConditionGrade;
+        additionalRepairs?: string;
+        futurePartsNeeded?: string;
+        equipmentSafe?: string;
+        unsafeReason?: string;
+        outdoorBleacherData?: {
+          location?: string;
+          manufacturer?: string;
+          height?: string;
+          length?: string;
+          meetCode?: string;
+          codeIssues?: string;
+        };
+        otherEquipmentDescription?: string;
+        otherTasksPerformed?: string;
+      };
+
+      const instances: LcpsInstance[] = Array.isArray(formData.inspectedEquipment)
+        ? (formData.inspectedEquipment as LcpsInstance[])
+        : [];
+      const typeChecks = (formData.typeChecks as Partial<Record<EquipmentType, boolean[]>>) || {};
+
+      const patchInstance = (idx: number, patch: Partial<LcpsInstance>) => {
+        const next = instances.map((inst, i) => (i === idx ? { ...inst, ...patch } : inst));
+        onUpdate('inspectedEquipment', next);
+      };
+
+      const toggleTypeCheck = (type: EquipmentType, checkIdx: number) => {
+        const checklist = LCPS_CHECKLISTS[type] || [];
+        const current = typeChecks[type] || Array(checklist.length).fill(true);
+        const next = [...current];
+        next[checkIdx] = !next[checkIdx];
+        onUpdate('typeChecks', { ...typeChecks, [type]: next });
+      };
+
+      const removeInstance = (idx: number) => {
+        if (!window.confirm('Remove this equipment instance from the report?')) return;
+        const removed = instances[idx];
+        const nextInstances = instances.filter((_, i) => i !== idx);
+        onUpdate('inspectedEquipment', nextInstances);
+        // If we removed the LAST instance of this type, drop the shared checklist too
+        if (removed && !nextInstances.some(i => i.type === removed.type)) {
+          const nextTypeChecks = { ...typeChecks };
+          delete nextTypeChecks[removed.type];
+          onUpdate('typeChecks', nextTypeChecks);
+        }
+      };
+
+      const GRADE_OPTIONS: ConditionGrade[] = [4, 3, 2, 1, 0];
+
+      // Group by type, preserving first-added order
+      type Group = { type: EquipmentType; entries: { inst: LcpsInstance; idx: number }[] };
+      const groups: Group[] = [];
+      const seen = new Map<EquipmentType, Group>();
+      instances.forEach((inst, idx) => {
+        let g = seen.get(inst.type);
+        if (!g) {
+          g = { type: inst.type, entries: [] };
+          seen.set(inst.type, g);
+          groups.push(g);
+        }
+        g.entries.push({ inst, idx });
+      });
+
+      return (
+        <div>
+          {/* Condition grade legend */}
+          <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#f9fafb', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}>
+            <div className="text-sm font-medium mb-2" style={{ color: '#1f2937' }}>Condition Grade Key</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+              {GRADE_OPTIONS.map(g => (
+                <span key={g} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem',
+                  padding: '0.125rem 0.5rem', borderRadius: '0.25rem',
+                  backgroundColor: CONDITION_GRADE_COLORS[g].bg,
+                  color: CONDITION_GRADE_COLORS[g].text,
+                  border: `1px solid ${CONDITION_GRADE_COLORS[g].border}`,
+                }}>
+                  <strong>{g}</strong> — {CONDITION_GRADE_LABELS[g]}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {groups.length === 0 ? (
+            <p className="text-sm" style={{ color: '#374151' }}>No equipment recorded.</p>
+          ) : (
+            groups.map(group => {
+              const checklist = LCPS_CHECKLISTS[group.type] || [];
+              const checks = typeChecks[group.type] || Array(checklist.length).fill(true);
+              return (
+                <div key={group.type} style={{ marginBottom: '1.25rem', border: '1px solid #e5e7eb', borderRadius: '0.5rem', overflow: 'hidden' }}>
+                  {/* Type header */}
+                  <div style={{ backgroundColor: '#1d4ed8', color: '#fff', padding: '0.5rem 0.75rem', fontWeight: 600 }}>
+                    {group.type} <span style={{ color: '#dbeafe', fontSize: '0.75rem', fontWeight: 400 }}>({group.entries.length} inspected)</span>
+                  </div>
+
+                  <div style={{ padding: '0.75rem', backgroundColor: '#fff' }}>
+                    {/* Shared service-task checklist */}
+                    {group.type !== 'Other' && checklist.length > 0 && (
+                      <div style={{ marginBottom: '0.75rem' }}>
+                        <div className="text-xs font-medium mb-1" style={{ color: '#374151' }}>
+                          Service Tasks Performed
+                          <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', color: '#6b7280', fontWeight: 400 }}>
+                            (applies to all {group.entries.length})
+                          </span>
+                        </div>
+                        <div style={{ backgroundColor: '#f9fafb', padding: '0.5rem', borderRadius: '0.25rem' }}>
+                          {checklist.map((item, ci) => {
+                            const isChecked = checks[ci] !== false;
+                            return (
+                              <label
+                                key={ci}
+                                style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', padding: '0.25rem 0', fontSize: '0.8rem', cursor: isEditing ? 'pointer' : 'default' }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  disabled={!isEditing}
+                                  onChange={() => toggleTypeCheck(group.type, ci)}
+                                  style={{ marginTop: '0.125rem' }}
+                                />
+                                <span style={{ color: '#1f2937' }}>{item}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Instances */}
+                    {group.entries.map(({ inst, idx }, iIdx) => {
+                      const colors = CONDITION_GRADE_COLORS[inst.conditionGrade] || CONDITION_GRADE_COLORS[4];
+                      return (
+                        <div
+                          key={inst.id || idx}
+                          style={{
+                            marginTop: iIdx === 0 ? 0 : '0.75rem',
+                            padding: '0.5rem 0.75rem',
+                            backgroundColor: '#f9fafb',
+                            borderRadius: '0.25rem',
+                            borderLeft: `4px solid ${colors.border}`,
+                          }}
+                        >
+                          {/* Header row: label, grade, remove */}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                            <div style={{ flex: '1 1 160px' }}>
+                              <div className="text-xs uppercase" style={{ color: '#6b7280' }}>Label</div>
+                              {isEditing ? (
+                                <input
+                                  type="text"
+                                  value={inst.label || ''}
+                                  onChange={(e) => patchInstance(idx, { label: e.target.value })}
+                                  className="w-full p-1 border rounded text-sm font-medium"
+                                />
+                              ) : (
+                                <div className="font-medium text-sm" style={{ color: '#111827' }}>{inst.label || `${inst.type} #${iIdx + 1}`}</div>
+                              )}
+                            </div>
+                            <div>
+                              <div className="text-xs uppercase" style={{ color: '#6b7280' }}>Condition</div>
+                              {isEditing ? (
+                                <select
+                                  value={inst.conditionGrade}
+                                  onChange={(e) => patchInstance(idx, { conditionGrade: Number(e.target.value) as ConditionGrade })}
+                                  className="p-1 border rounded font-bold text-sm"
+                                  style={{ backgroundColor: colors.bg, color: colors.text, borderColor: colors.border }}
+                                >
+                                  {GRADE_OPTIONS.map(g => (
+                                    <option key={g} value={g}>{g} — {CONDITION_GRADE_LABELS[g]}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span style={{
+                                  display: 'inline-block', padding: '0.125rem 0.5rem', borderRadius: '0.25rem',
+                                  backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`,
+                                  fontWeight: 700, fontSize: '0.8rem',
+                                }}>
+                                  {inst.conditionGrade} — {CONDITION_GRADE_LABELS[inst.conditionGrade]}
+                                </span>
+                              )}
+                            </div>
+                            {isEditing && (
+                              <button
+                                type="button"
+                                onClick={() => removeInstance(idx)}
+                                className="text-xs px-2 py-1 rounded border border-red-300 text-red-700 hover:bg-red-50"
+                              >
+                                Remove
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Outdoor Bleacher fields */}
+                          {inst.type === 'Outdoor Bleachers/Grandstands' && inst.outdoorBleacherData && (
+                            <div style={{ marginBottom: '0.5rem', padding: '0.5rem', backgroundColor: '#fff', borderRadius: '0.25rem' }}>
+                              <div className="text-xs font-medium mb-1" style={{ color: '#374151' }}>Outdoor Bleacher Details</div>
+                              {(['location', 'manufacturer', 'height', 'length', 'meetCode', 'codeIssues'] as const).map(key => {
+                                const labelMap: Record<string, string> = {
+                                  location: 'Location', manufacturer: 'Manufacturer', height: 'Height / Rows',
+                                  length: 'Length', meetCode: 'Meets Code', codeIssues: 'Code Issues',
+                                };
+                                const value = inst.outdoorBleacherData?.[key] || '';
+                                return (
+                                  <div key={key} style={{ marginBottom: '0.375rem' }}>
+                                    <label className="block text-xs" style={{ color: '#1f2937' }}>{labelMap[key]}</label>
+                                    {isEditing ? (
+                                      <input
+                                        type="text"
+                                        value={value}
+                                        onChange={(e) => patchInstance(idx, {
+                                          outdoorBleacherData: { ...(inst.outdoorBleacherData || {}), [key]: e.target.value },
+                                        })}
+                                        className="w-full p-1 border rounded text-sm"
+                                      />
+                                    ) : (
+                                      <p className="text-sm" style={{ color: '#1f2937', whiteSpace: 'pre-wrap' }}>{value || '—'}</p>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {/* Other equipment fields */}
+                          {inst.type === 'Other' && (
+                            <div style={{ marginBottom: '0.5rem' }}>
+                              <div style={{ marginBottom: '0.375rem' }}>
+                                <label className="block text-xs" style={{ color: '#1f2937' }}>Equipment Inspected</label>
+                                {isEditing ? (
+                                  <textarea
+                                    value={inst.otherEquipmentDescription || ''}
+                                    onChange={(e) => patchInstance(idx, { otherEquipmentDescription: e.target.value })}
+                                    className="w-full p-1 border rounded text-sm"
+                                    style={{ minHeight: '40px' }}
+                                  />
+                                ) : (
+                                  <p className="text-sm" style={{ color: '#1f2937', whiteSpace: 'pre-wrap' }}>{inst.otherEquipmentDescription || '—'}</p>
+                                )}
+                              </div>
+                              <div>
+                                <label className="block text-xs" style={{ color: '#1f2937' }}>Tasks Performed</label>
+                                {isEditing ? (
+                                  <textarea
+                                    value={inst.otherTasksPerformed || ''}
+                                    onChange={(e) => patchInstance(idx, { otherTasksPerformed: e.target.value })}
+                                    className="w-full p-1 border rounded text-sm"
+                                    style={{ minHeight: '40px' }}
+                                  />
+                                ) : (
+                                  <p className="text-sm" style={{ color: '#1f2937', whiteSpace: 'pre-wrap' }}>{inst.otherTasksPerformed || '—'}</p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Repairs / future parts / safe */}
+                          <div style={{ marginBottom: '0.375rem' }}>
+                            <label className="block text-xs font-medium" style={{ color: '#374151' }}>Repairs / Notes</label>
+                            {isEditing ? (
+                              <textarea
+                                value={inst.additionalRepairs || ''}
+                                onChange={(e) => patchInstance(idx, { additionalRepairs: e.target.value })}
+                                className="w-full p-1 border rounded text-sm"
+                                style={{ minHeight: '40px' }}
+                              />
+                            ) : (
+                              <p className="text-sm" style={{ color: '#1f2937', whiteSpace: 'pre-wrap' }}>{inst.additionalRepairs || '—'}</p>
+                            )}
+                          </div>
+                          <div style={{ marginBottom: '0.375rem' }}>
+                            <label className="block text-xs font-medium" style={{ color: '#374151' }}>Future Parts / Service Needed</label>
+                            {isEditing ? (
+                              <textarea
+                                value={inst.futurePartsNeeded || ''}
+                                onChange={(e) => patchInstance(idx, { futurePartsNeeded: e.target.value })}
+                                className="w-full p-1 border rounded text-sm"
+                                style={{ minHeight: '40px' }}
+                              />
+                            ) : (
+                              <p className="text-sm" style={{ color: '#1f2937', whiteSpace: 'pre-wrap' }}>{inst.futurePartsNeeded || '—'}</p>
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium" style={{ color: '#374151' }}>Equipment Working &amp; Safe for Use</label>
+                            {isEditing ? (
+                              <select
+                                value={inst.equipmentSafe || ''}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  if (v === 'Yes') {
+                                    patchInstance(idx, { equipmentSafe: v, unsafeReason: '' });
+                                  } else {
+                                    patchInstance(idx, { equipmentSafe: v });
+                                  }
+                                }}
+                                className="p-1 border rounded text-sm mt-1"
+                              >
+                                <option value="">—</option>
+                                <option value="Yes">Yes</option>
+                                <option value="No">No</option>
+                              </select>
+                            ) : (
+                              <p className="text-sm" style={{
+                                color: inst.equipmentSafe === 'No' ? '#dc2626' : '#16a34a',
+                                fontWeight: 600,
+                              }}>
+                                {inst.equipmentSafe === 'Yes' ? '✅ Yes' : inst.equipmentSafe === 'No' ? '❌ No' : '—'}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Conditional unsafe reason — when Safe = No */}
+                          {inst.equipmentSafe === 'No' && (
+                            <div style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.25rem' }}>
+                              <label className="block text-xs font-medium" style={{ color: '#991b1b' }}>
+                                Reason Not Safe for Use
+                              </label>
+                              {isEditing ? (
+                                <textarea
+                                  value={inst.unsafeReason || ''}
+                                  onChange={(e) => patchInstance(idx, { unsafeReason: e.target.value })}
+                                  className="w-full p-1 border rounded text-sm mt-1"
+                                  style={{ minHeight: '50px', backgroundColor: '#fff', borderColor: '#fca5a5' }}
+                                />
+                              ) : (
+                                <p className="text-sm" style={{ color: '#7f1d1d', whiteSpace: 'pre-wrap', marginTop: '0.25rem' }}>
+                                  {inst.unsafeReason || '—'}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })
+          )}
+
+          {renderTextField('equipmentTurnover', 'Equipment Turnover')}
+          {renderTextField('otherNotes', 'Other Notes')}
+        </div>
+      );
+    }
 
     default:
       // Generic fallback — render all form_data keys

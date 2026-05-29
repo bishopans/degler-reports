@@ -387,9 +387,12 @@ function addChecklistItem(doc: jsPDF, text: string, checked: boolean, index: num
   currentY = rowTopY + rowHeight + 0.5;
 }
 
-// Sub-label in bold with value text below — for notes under equipment
+// Sub-label in bold with value text below — for notes under equipment.
+// Always renders the label, even when the value is empty (shows "—" placeholder).
 function addLabeledNote(doc: jsPDF, label: string, value: string) {
-  if (!value || !value.trim()) return;
+  const trimmed = (value || '').trim();
+  const displayValue = trimmed.length > 0 ? value : '—';
+  const isPlaceholder = trimmed.length === 0;
   checkPageBreak(doc, 14);
   currentY += 2; // breathing room before label
   doc.setFont('helvetica', 'bold');
@@ -400,12 +403,14 @@ function addLabeledNote(doc: jsPDF, label: string, value: string) {
   currentY += 5;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  const wrapped = doc.splitTextToSize(value, CONTENT_WIDTH - 8);
+  if (isPlaceholder) doc.setTextColor(150, 150, 150);
+  const wrapped = doc.splitTextToSize(displayValue, CONTENT_WIDTH - 8);
   wrapped.forEach((line: string) => {
     checkPageBreak(doc, 5);
     doc.text(line, MARGIN_LEFT + 4, currentY);
     currentY += 4.5;
   });
+  if (isPlaceholder) doc.setTextColor(0, 0, 0);
   currentY += 3;
 }
 
@@ -661,17 +666,11 @@ function handleMaintenanceReport(doc: jsPDF, submission: Submission) {
       addSpacer(3);
     }
 
-    // Repairs and future parts for non-Other equipment (Other has its own custom block below)
+    // Repairs and future parts for non-Other equipment (Other has its own custom block below).
+    // Labels render even when empty — addLabeledNote shows a "—" placeholder.
     if (equipment !== 'Other') {
-      const repairNote = additionalRepairs[equipment];
-      if (repairNote && repairNote.trim()) {
-        addLabeledNote(doc, 'Repairs Made During This Service:', repairNote);
-      }
-
-      const futureParts = futurePartsNeeded[equipment];
-      if (futureParts && futureParts.trim()) {
-        addLabeledNote(doc, 'Future Parts or Service Needed:', futureParts);
-      }
+      addLabeledNote(doc, 'Repairs Made During This Service:', additionalRepairs[equipment] || '');
+      addLabeledNote(doc, 'Future Parts or Service Needed:', futurePartsNeeded[equipment] || '');
     }
 
     // Equipment Working & Safe for Use
@@ -680,30 +679,23 @@ function handleMaintenanceReport(doc: jsPDF, submission: Submission) {
       addSafeStatusNote(doc, 'Equipment Working & Safe for Use:', safe);
     }
 
-    // Outdoor bleacher extra data
-    if (equipment === 'Outdoor Bleachers/Grandstands' && data.outdoorBleacherData) {
-      const bleacherData = data.outdoorBleacherData as Record<string, string>;
-      if (bleacherData.location) addLabeledNote(doc, 'Location:', bleacherData.location);
-      if (bleacherData.manufacturer) addLabeledNote(doc, 'Manufacturer:', bleacherData.manufacturer);
-      if (bleacherData.height) addLabeledNote(doc, 'Height / Rows:', bleacherData.height);
-      if (bleacherData.length) addLabeledNote(doc, 'Length:', bleacherData.length);
-      if (bleacherData.meetCode) addLabeledNote(doc, 'Meets Code:', bleacherData.meetCode);
-      if (bleacherData.codeIssues) addLabeledNote(doc, 'Code Issues:', bleacherData.codeIssues);
+    // Outdoor bleacher extra data — always show labels when this equipment is selected.
+    if (equipment === 'Outdoor Bleachers/Grandstands') {
+      const bleacherData = (data.outdoorBleacherData as Record<string, string>) || {};
+      addLabeledNote(doc, 'Location:', bleacherData.location || '');
+      addLabeledNote(doc, 'Manufacturer:', bleacherData.manufacturer || '');
+      addLabeledNote(doc, 'Height / Rows:', bleacherData.height || '');
+      addLabeledNote(doc, 'Length:', bleacherData.length || '');
+      addLabeledNote(doc, 'Meets Code:', bleacherData.meetCode || '');
+      addLabeledNote(doc, 'Code Issues:', bleacherData.codeIssues || '');
     }
 
-    // "Other" equipment special fields — Equipment first, then Tasks, then Future Parts
+    // "Other" equipment special fields — Equipment first, then Tasks, then Future Parts.
+    // Labels render even when empty.
     if (equipment === 'Other') {
-      if (additionalRepairs['Other-Equipment']) {
-        addLabeledNote(doc, 'Equipment Serviced:', additionalRepairs['Other-Equipment']);
-      }
-      if (additionalRepairs['Other-Tasks']) {
-        addLabeledNote(doc, 'Tasks Performed:', additionalRepairs['Other-Tasks']);
-      }
-      // Only show future parts once (from futurePartsNeeded, not additionalRepairs)
-      const otherFutureParts = futurePartsNeeded['Other'];
-      if (otherFutureParts && otherFutureParts.trim()) {
-        addLabeledNote(doc, 'Future Parts or Service Needed:', otherFutureParts);
-      }
+      addLabeledNote(doc, 'Equipment Serviced:', additionalRepairs['Other-Equipment'] || '');
+      addLabeledNote(doc, 'Tasks Performed:', additionalRepairs['Other-Tasks'] || '');
+      addLabeledNote(doc, 'Future Parts or Service Needed:', futurePartsNeeded['Other'] || '');
     }
   });
 
@@ -712,16 +704,12 @@ function handleMaintenanceReport(doc: jsPDF, submission: Submission) {
     addBrandDivider(doc);
   }
 
-  // Equipment Turnover
-  if (data.equipmentTurnover) {
-    addText(doc, data.equipmentTurnover, 'Equipment Turnover');
-    addSpacer();
-  }
+  // Equipment Turnover — always show label
+  addText(doc, (data.equipmentTurnover as string) || '—', 'Equipment Turnover');
+  addSpacer();
 
-  // Other Notes
-  if (data.otherNotes) {
-    addText(doc, data.otherNotes, 'Other Notes');
-  }
+  // Other Notes — always show label
+  addText(doc, (data.otherNotes as string) || '—', 'Other Notes');
 }
 
 function handleRepairReport(doc: jsPDF, submission: Submission) {
@@ -1117,6 +1105,200 @@ function handlePhotoUploadReport(doc: jsPDF, submission: Submission) {
   addBrandDivider(doc);
 }
 
+// LCPS condition grade rendering — used by handleLcpsInspectionReport.
+const LCPS_GRADE_LABELS: Record<number, string> = {
+  4: 'Excellent Condition',
+  3: 'Good Condition',
+  2: 'Fair Condition',
+  1: 'Poor Condition',
+  0: 'Unserviceable',
+};
+const LCPS_GRADE_COLORS: Record<number, [number, number, number]> = {
+  4: [22, 163, 74],
+  3: [37, 99, 235],
+  2: [217, 119, 6],
+  1: [234, 88, 12],
+  0: [220, 38, 38],
+};
+
+// Draw a small colored condition-grade badge inline. Used next to equipment headers.
+function addConditionGradeBadge(doc: jsPDF, grade: number) {
+  const labelText = `Grade ${grade} — ${LCPS_GRADE_LABELS[grade] || 'Unrated'}`;
+  const [r, g, b] = LCPS_GRADE_COLORS[grade] || [120, 120, 120];
+
+  checkPageBreak(doc, 10);
+  currentY += 2;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  const padding = 3;
+  const textWidth = doc.getTextWidth(labelText);
+  const badgeWidth = textWidth + padding * 2;
+  const badgeHeight = 7;
+  doc.setFillColor(r, g, b);
+  doc.rect(MARGIN_LEFT, currentY, badgeWidth, badgeHeight, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.text(labelText, MARGIN_LEFT + padding, currentY + 5);
+  doc.setTextColor(0, 0, 0);
+  currentY += badgeHeight + 3;
+}
+
+// Condition Grade key block — printed once at the top of every LCPS report.
+function addConditionGradeLegend(doc: jsPDF) {
+  checkPageBreak(doc, 32);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(BRAND_BLUE.r, BRAND_BLUE.g, BRAND_BLUE.b);
+  doc.text('Condition Grade Key', MARGIN_LEFT, currentY);
+  doc.setTextColor(0, 0, 0);
+  currentY += 5;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  const grades = [4, 3, 2, 1, 0];
+  grades.forEach(g => {
+    checkPageBreak(doc, 5);
+    const [r, gr, b] = LCPS_GRADE_COLORS[g];
+    doc.setFillColor(r, gr, b);
+    doc.rect(MARGIN_LEFT + 1, currentY - 3.5, 3.5, 3.5, 'F');
+    doc.text(`${g} = ${LCPS_GRADE_LABELS[g]}`, MARGIN_LEFT + 7, currentY);
+    currentY += 4.5;
+  });
+  currentY += 3;
+}
+
+interface LcpsInstance {
+  id?: string;
+  type: string;
+  label?: string;
+  conditionGrade: number;
+  checks?: boolean[];
+  additionalRepairs?: string;
+  futurePartsNeeded?: string;
+  equipmentSafe?: string;
+  unsafeReason?: string;
+  outdoorBleacherData?: {
+    location?: string;
+    manufacturer?: string;
+    height?: string;
+    length?: string;
+    meetCode?: string;
+    codeIssues?: string;
+  };
+  otherEquipmentDescription?: string;
+  otherTasksPerformed?: string;
+}
+
+function handleLcpsInspectionReport(doc: jsPDF, submission: Submission) {
+  const data = submission.form_data as Record<string, unknown>;
+  const instances: LcpsInstance[] = Array.isArray(data.inspectedEquipment)
+    ? (data.inspectedEquipment as LcpsInstance[])
+    : [];
+  const typeChecks = (data.typeChecks as Record<string, boolean[]>) || {};
+
+  addConditionGradeLegend(doc);
+  addBrandDivider(doc);
+
+  if (instances.length === 0) {
+    addText(doc, String(data.equipmentTurnover || '—'), 'Equipment Turnover');
+    addText(doc, String(data.otherNotes || '—'), 'Other Notes');
+    return;
+  }
+
+  // Group instances by type, preserving first-added order
+  const groups: { type: string; instances: LcpsInstance[] }[] = [];
+  const seen = new Map<string, LcpsInstance[]>();
+  instances.forEach(inst => {
+    let bucket = seen.get(inst.type);
+    if (!bucket) {
+      bucket = [];
+      seen.set(inst.type, bucket);
+      groups.push({ type: inst.type, instances: bucket });
+    }
+    bucket.push(inst);
+  });
+
+  addHeading(doc, 'Equipment Inspected');
+
+  groups.forEach((group, gIdx) => {
+    if (gIdx > 0) addBrandDivider(doc);
+
+    // Type header with count
+    addEquipmentHeader(doc, `${group.type}  (${group.instances.length} inspected)`);
+
+    // Shared service-task checklist for this type (rendered once)
+    const checklist = EQUIPMENT_CHECKLISTS[group.type];
+    const checks = typeChecks[group.type] || [];
+    if (group.type !== 'Other' && checklist && checklist.length > 0) {
+      checklist.forEach((item, idx) => {
+        const isChecked = checks[idx] !== false;
+        addChecklistItem(doc, item, isChecked, idx);
+      });
+      addSpacer(3);
+    }
+
+    // Per-instance ratings, notes, safe status
+    group.instances.forEach((inst, iIdx) => {
+      // Small separator between instances within a group
+      if (iIdx > 0) {
+        currentY += 2;
+        doc.setDrawColor(210, 220, 230);
+        doc.setLineWidth(0.2);
+        doc.line(MARGIN_LEFT, currentY, PAGE_WIDTH - MARGIN_RIGHT, currentY);
+        currentY += 4;
+      }
+
+      // Instance label + condition grade badge
+      const labelText = inst.label && inst.label.trim() ? inst.label : `${inst.type} #${iIdx + 1}`;
+      checkPageBreak(doc, 10);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10.5);
+      doc.setTextColor(BRAND_BLUE.r, BRAND_BLUE.g, BRAND_BLUE.b);
+      doc.text(labelText, MARGIN_LEFT, currentY);
+      doc.setTextColor(0, 0, 0);
+      currentY += 5;
+
+      addConditionGradeBadge(doc, inst.conditionGrade);
+
+      // Outdoor Bleachers extras — always show labels when this equipment is selected
+      if (inst.type === 'Outdoor Bleachers/Grandstands') {
+        const ob = inst.outdoorBleacherData || {};
+        addLabeledNote(doc, 'Location:', ob.location || '');
+        addLabeledNote(doc, 'Manufacturer:', ob.manufacturer || '');
+        addLabeledNote(doc, 'Height / Rows:', ob.height || '');
+        addLabeledNote(doc, 'Length:', ob.length || '');
+        addLabeledNote(doc, 'Meets Code:', ob.meetCode || '');
+        addLabeledNote(doc, 'Code Issues:', ob.codeIssues || '');
+      }
+
+      // Other equipment description — always show labels when 'Other' is selected
+      if (inst.type === 'Other') {
+        addLabeledNote(doc, 'Equipment Inspected:', inst.otherEquipmentDescription || '');
+        addLabeledNote(doc, 'Tasks Performed:', inst.otherTasksPerformed || '');
+      }
+
+      addLabeledNote(doc, 'Repairs / Notes:', inst.additionalRepairs || '');
+      addLabeledNote(doc, 'Future Parts or Service Needed:', inst.futurePartsNeeded || '');
+
+      if (inst.equipmentSafe) {
+        addSafeStatusNote(doc, 'Equipment Working & Safe for Use:', inst.equipmentSafe);
+      }
+
+      // Unsafe-reason callout: only when Safe = No
+      if (inst.equipmentSafe === 'No' && inst.unsafeReason && inst.unsafeReason.trim()) {
+        addLabeledNote(doc, 'Reason Not Safe for Use:', inst.unsafeReason);
+      }
+    });
+  });
+
+  addBrandDivider(doc);
+
+  // Equipment Turnover + Other Notes — always show labels
+  addText(doc, String(data.equipmentTurnover || '—'), 'Equipment Turnover');
+  addSpacer();
+  addText(doc, String(data.otherNotes || '—'), 'Other Notes');
+}
+
+
 async function getImageDimensions(base64Data: string): Promise<{ width: number; height: number }> {
   return new Promise((resolve) => {
     const img = new window.Image();
@@ -1486,6 +1668,7 @@ function getReportTypeTitle(reportType: string): string {
     'time-sheets': 'Time Sheets Report',
     accident: 'Accident Report',
     'photo-upload': 'Photo Upload Report',
+    'lcps-inspection': 'LCPS Building Inspection Report',
   };
   return titles[reportType] || 'Field Report';
 }
@@ -2039,6 +2222,9 @@ async function buildPdfDoc(submission: Submission, photoQuality = 0.92, photoMax
         break;
       case 'photo-upload':
         handlePhotoUploadReport(doc, submission);
+        break;
+      case 'lcps-inspection':
+        handleLcpsInspectionReport(doc, submission);
         break;
       default:
         break;
