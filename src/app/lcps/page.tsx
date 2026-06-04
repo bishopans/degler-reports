@@ -251,8 +251,8 @@ export default function LcpsInspectionForm() {
     const missing: string[] = [];
     if (!formData.date) missing.push('Date of Inspection');
     if (!formData.jobName.trim()) missing.push('Facility / Job Name');
-    if (!formData.technicianName.trim()) missing.push('Inspector Name');
-    if (!formData.jobNumber.trim()) missing.push('Service Request / Job Number');
+    if (!formData.technicianName.trim()) missing.push('Technician Name');
+    if (!formData.jobNumber.trim()) missing.push('Job Number');
 
     if (formData.inspectedEquipment.length === 0) {
       missing.push('At least one piece of equipment must be added');
@@ -477,7 +477,7 @@ export default function LcpsInspectionForm() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block mb-1">Inspector Name</label>
+                <label className="block mb-1">Technician Name</label>
                 <input
                   type="text"
                   value={formData.technicianName}
@@ -487,7 +487,7 @@ export default function LcpsInspectionForm() {
                 />
               </div>
               <div>
-                <label className="block mb-1">Service Request / Job Number</label>
+                <label className="block mb-1">Job Number</label>
                 <input
                   type="text"
                   value={formData.jobNumber}
@@ -505,7 +505,7 @@ export default function LcpsInspectionForm() {
                 {CONDITION_GRADE_OPTIONS.map(g => (
                   <div key={g} className="flex items-center gap-2">
                     <span
-                      className="inline-flex items-center justify-center w-7 h-7 rounded font-bold text-sm"
+                      className="inline-flex items-center justify-center w-7 h-7 rounded-full font-bold text-sm"
                       style={{
                         backgroundColor: CONDITION_GRADE_COLORS[g].bg,
                         color: CONDITION_GRADE_COLORS[g].text,
