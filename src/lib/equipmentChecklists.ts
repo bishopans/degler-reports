@@ -145,21 +145,39 @@ export const equipmentChecklists: Record<EquipmentType, string[]> = {
 };
 
 // LCPS Condition Grade — applies per equipment instance on /lcps reports.
-export type ConditionGrade = 0 | 1 | 2 | 3 | 4;
+export type ConditionGrade = 0 | 1 | 2 | 3 | 4 | 5;
 
 export const CONDITION_GRADE_LABELS: Record<ConditionGrade, string> = {
-  4: 'Excellent Condition',
+  5: 'Excellent Condition',
+  4: 'Very Good Condition',
   3: 'Good Condition',
   2: 'Fair Condition',
-  1: 'Poor Condition',
+  1: 'Poor',
   0: 'Unserviceable',
 };
 
 // Color hints for the badge / left border per grade. Used by both the form and the PDF.
 export const CONDITION_GRADE_COLORS: Record<ConditionGrade, { bg: string; border: string; text: string; rgb: [number, number, number] }> = {
-  4: { bg: '#dcfce7', border: '#16a34a', text: '#15803d', rgb: [22, 163, 74] },   // green
+  5: { bg: '#d1fae5', border: '#10b981', text: '#065f46', rgb: [16, 185, 129] },   // emerald
+  4: { bg: '#dcfce7', border: '#16a34a', text: '#15803d', rgb: [22, 163, 74] },    // green
   3: { bg: '#dbeafe', border: '#2563eb', text: '#1d4ed8', rgb: [37, 99, 235] },    // blue
   2: { bg: '#fef3c7', border: '#d97706', text: '#b45309', rgb: [217, 119, 6] },    // amber
   1: { bg: '#ffedd5', border: '#ea580c', text: '#c2410c', rgb: [234, 88, 12] },    // orange
   0: { bg: '#fee2e2', border: '#dc2626', text: '#b91c1c', rgb: [220, 38, 38] },    // red
 };
+
+// Equipment types that get a type-level Product Info block (Manufacturer / Serial # / Make / Model)
+// at the top of their section on the LCPS form. Shared across all instances of that type.
+export const PRODUCT_INFO_TYPES: EquipmentType[] = [
+  'Bleachers',
+  'Outdoor Bleachers/Grandstands',
+  'Backstops',
+  'Gym Divider Curtain',
+];
+
+export interface ProductInfo {
+  manufacturer: string;
+  serial: string;
+  make: string;
+  model: string;
+}

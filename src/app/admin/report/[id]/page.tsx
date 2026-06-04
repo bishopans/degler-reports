@@ -10,8 +10,10 @@ import {
   equipmentChecklists as LCPS_CHECKLISTS,
   CONDITION_GRADE_LABELS,
   CONDITION_GRADE_COLORS,
+  PRODUCT_INFO_TYPES,
   type ConditionGrade,
   type EquipmentType,
+  type ProductInfo,
 } from '@/lib/equipmentChecklists';
 
 // Detect HEIC/HEIF files by MIME type or extension
@@ -2222,6 +2224,12 @@ function FormDataDisplay({
         ? (formData.inspectedEquipment as LcpsInstance[])
         : [];
       const typeChecks = (formData.typeChecks as Partial<Record<EquipmentType, boolean[]>>) || {};
+      const typeProductInfo = (formData.typeProductInfo as Partial<Record<EquipmentType, ProductInfo>>) || {};
+
+      const patchTypeProductInfo = (type: EquipmentType, patch: Partial<ProductInfo>) => {
+        const current = typeProductInfo[type] || { manufacturer: '', serial: '', make: '', model: '' };
+        onUpdate('typeProductInfo', { ...typeProductInfo, [type]: { ...current, ...patch } });
+      };
 
       const patchInstance = (idx: number, patch: Partial<LcpsInstance>) => {
         const next = instances.map((inst, i) => (i === idx ? { ...inst, ...patch } : inst));
@@ -2249,7 +2257,7 @@ function FormDataDisplay({
         }
       };
 
-      const GRADE_OPTIONS: ConditionGrade[] = [4, 3, 2, 1, 0];
+      const GRADE_OPTIONS: ConditionGrade[] = [5, 4, 3, 2, 1, 0];
 
       // Group by type, preserving first-added order
       type Group = { type: EquipmentType; entries: { inst: LcpsInstance; idx: number }[] };
@@ -2299,6 +2307,39 @@ function FormDataDisplay({
                   </div>
 
                   <div style={{ padding: '0.75rem', backgroundColor: '#fff' }}>
+                    {/* Shared product info — only for select types */}
+                    {PRODUCT_INFO_TYPES.includes(group.type) && (
+                      <div style={{ marginBottom: '0.75rem', padding: '0.5rem', backgroundColor: '#f9fafb', borderRadius: '0.25rem' }}>
+                        <div className="text-xs font-medium mb-1" style={{ color: '#374151' }}>
+                          Product Information
+                          <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', color: '#6b7280', fontWeight: 400 }}>
+                            (applies to all {group.entries.length})
+                          </span>
+                        </div>
+                        {(['manufacturer', 'serial', 'make', 'model'] as const).map(key => {
+                          const labelMap: Record<string, string> = {
+                            manufacturer: 'Manufacturer', serial: 'Serial #', make: 'Make', model: 'Model',
+                          };
+                          const value = typeProductInfo[group.type]?.[key] || '';
+                          return (
+                            <div key={key} style={{ marginBottom: '0.375rem' }}>
+                              <label className="block text-xs" style={{ color: '#1f2937' }}>{labelMap[key]}</label>
+                              {isEditing ? (
+                                <input
+                                  type="text"
+                                  value={value}
+                                  onChange={(e) => patchTypeProductInfo(group.type, { [key]: e.target.value })}
+                                  className="w-full p-1 border rounded text-sm"
+                                />
+                              ) : (
+                                <p className="text-sm" style={{ color: '#1f2937', whiteSpace: 'pre-wrap' }}>{value || '—'}</p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
                     {/* Shared service-task checklist */}
                     {group.type !== 'Other' && checklist.length > 0 && (
                       <div style={{ marginBottom: '0.75rem' }}>

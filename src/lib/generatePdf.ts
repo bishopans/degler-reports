@@ -1113,13 +1113,15 @@ function handlePhotoUploadReport(doc: jsPDF, submission: Submission) {
 
 // LCPS condition grade rendering — used by handleLcpsInspectionReport.
 const LCPS_GRADE_LABELS: Record<number, string> = {
-  4: 'Excellent Condition',
+  5: 'Excellent Condition',
+  4: 'Very Good Condition',
   3: 'Good Condition',
   2: 'Fair Condition',
-  1: 'Poor Condition',
+  1: 'Poor',
   0: 'Unserviceable',
 };
 const LCPS_GRADE_COLORS: Record<number, [number, number, number]> = {
+  5: [16, 185, 129],
   4: [22, 163, 74],
   3: [37, 99, 235],
   2: [217, 119, 6],
@@ -1160,7 +1162,7 @@ function addConditionGradeLegend(doc: jsPDF) {
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
-  const grades = [4, 3, 2, 1, 0];
+  const grades = [5, 4, 3, 2, 1, 0];
   grades.forEach(g => {
     checkPageBreak(doc, 5);
     const [r, gr, b] = LCPS_GRADE_COLORS[g];
@@ -1200,6 +1202,7 @@ function handleLcpsInspectionReport(doc: jsPDF, submission: Submission) {
     ? (data.inspectedEquipment as LcpsInstance[])
     : [];
   const typeChecks = (data.typeChecks as Record<string, boolean[]>) || {};
+  const typeProductInfo = (data.typeProductInfo as Record<string, { manufacturer?: string; serial?: string; make?: string; model?: string }>) || {};
 
   addConditionGradeLegend(doc);
   addBrandDivider(doc);
@@ -1230,6 +1233,23 @@ function handleLcpsInspectionReport(doc: jsPDF, submission: Submission) {
 
     // Type header with count
     addEquipmentHeader(doc, `${group.type}  (${group.instances.length} inspected)`);
+
+    // Shared product info — only when type supports it (Bleachers, Outdoor Bleachers, Backstops, Gym Divider Curtain)
+    const productInfoForType = typeProductInfo[group.type];
+    const PRODUCT_INFO_TYPES_PDF = new Set([
+      'Bleachers',
+      'Outdoor Bleachers/Grandstands',
+      'Backstops',
+      'Gym Divider Curtain',
+    ]);
+    if (PRODUCT_INFO_TYPES_PDF.has(group.type)) {
+      const pi = productInfoForType || { manufacturer: '', serial: '', make: '', model: '' };
+      addLabeledNote(doc, 'Manufacturer:', pi.manufacturer || '');
+      addLabeledNote(doc, 'Serial #:', pi.serial || '');
+      addLabeledNote(doc, 'Make:', pi.make || '');
+      addLabeledNote(doc, 'Model:', pi.model || '');
+      addSpacer(2);
+    }
 
     // Shared service-task checklist for this type (rendered once)
     const checklist = EQUIPMENT_CHECKLISTS[group.type];

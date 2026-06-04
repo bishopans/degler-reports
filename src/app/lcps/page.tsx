@@ -12,6 +12,8 @@ import {
   type ConditionGrade,
   CONDITION_GRADE_LABELS,
   CONDITION_GRADE_COLORS,
+  PRODUCT_INFO_TYPES,
+  type ProductInfo,
 } from '@/lib/equipmentChecklists';
 
 // One inspected piece of equipment on an LCPS report.
@@ -47,11 +49,12 @@ interface LcpsFormData {
   // Service-task checks shared across all instances of a given type.
   // Keyed by equipment type, length matches equipmentChecklists[type].
   typeChecks: Partial<Record<EquipmentType, boolean[]>>;
+  typeProductInfo: Partial<Record<EquipmentType, ProductInfo>>;
   equipmentTurnover: string;
   otherNotes: string;
 }
 
-const CONDITION_GRADE_OPTIONS: ConditionGrade[] = [4, 3, 2, 1, 0];
+const CONDITION_GRADE_OPTIONS: ConditionGrade[] = [5, 4, 3, 2, 1, 0];
 const EQUIPMENT_TYPES: EquipmentType[] = Object.keys(equipmentChecklists) as EquipmentType[];
 
 const outdoorBleacherQuestions = [
@@ -68,7 +71,7 @@ function makeInstance(type: EquipmentType, index: number): InspectionInstance {
     id: crypto.randomUUID(),
     type,
     label: `${type} #${index}`,
-    conditionGrade: 4,
+    conditionGrade: 5,
     additionalRepairs: '',
     futurePartsNeeded: '',
     equipmentSafe: '',
@@ -93,6 +96,7 @@ export default function LcpsInspectionForm() {
     jobNumber: '',
     inspectedEquipment: [],
     typeChecks: {},
+    typeProductInfo: {},
     equipmentTurnover: '',
     otherNotes: '',
   });
@@ -141,10 +145,16 @@ export default function LcpsInspectionForm() {
         // Initialize this type's shared checklist with all items checked
         nextTypeChecks[type] = Array(equipmentChecklists[type].length).fill(true);
       }
+      const nextTypeProductInfo = { ...prev.typeProductInfo };
+      if (PRODUCT_INFO_TYPES.includes(type) && !nextTypeProductInfo[type]) {
+        // Initialize this type's shared product-info block when first added
+        nextTypeProductInfo[type] = { manufacturer: '', serial: '', make: '', model: '' };
+      }
       return {
         ...prev,
         inspectedEquipment: [...prev.inspectedEquipment, ...newInstances],
         typeChecks: nextTypeChecks,
+        typeProductInfo: nextTypeProductInfo,
       };
     });
   };
@@ -154,12 +164,19 @@ export default function LcpsInspectionForm() {
     setFormData(prev => {
       const removed = prev.inspectedEquipment.find(i => i.id === id);
       const nextInstances = prev.inspectedEquipment.filter(i => i.id !== id);
-      // If we just removed the LAST instance of this type, drop its shared checklist too
+      // If we just removed the LAST instance of this type, drop its shared checklist + product info
       const nextTypeChecks = { ...prev.typeChecks };
+      const nextTypeProductInfo = { ...prev.typeProductInfo };
       if (removed && !nextInstances.some(i => i.type === removed.type)) {
         delete nextTypeChecks[removed.type];
+        delete nextTypeProductInfo[removed.type];
       }
-      return { ...prev, inspectedEquipment: nextInstances, typeChecks: nextTypeChecks };
+      return {
+        ...prev,
+        inspectedEquipment: nextInstances,
+        typeChecks: nextTypeChecks,
+        typeProductInfo: nextTypeProductInfo,
+      };
     });
   };
 
@@ -187,6 +204,17 @@ export default function LcpsInspectionForm() {
         i.id === id ? { ...i, ...patch } : i
       ),
     }));
+  };
+
+  // Update one or more product-info fields for a given equipment type.
+  const updateTypeProductInfo = (type: EquipmentType, patch: Partial<ProductInfo>) => {
+    setFormData(prev => {
+      const current = prev.typeProductInfo[type] || { manufacturer: '', serial: '', make: '', model: '' };
+      return {
+        ...prev,
+        typeProductInfo: { ...prev.typeProductInfo, [type]: { ...current, ...patch } },
+      };
+    });
   };
 
   // Toggle a single check in a type-level checklist.
@@ -259,6 +287,7 @@ export default function LcpsInspectionForm() {
       submitData.append('form_data', JSON.stringify({
         inspectedEquipment: formData.inspectedEquipment,
         typeChecks: formData.typeChecks,
+        typeProductInfo: formData.typeProductInfo,
         equipmentTurnover: formData.equipmentTurnover,
         otherNotes: formData.otherNotes,
         photo_captions: photoCaptions,
@@ -294,6 +323,7 @@ export default function LcpsInspectionForm() {
         form_data: {
           inspectedEquipment: formData.inspectedEquipment,
           typeChecks: formData.typeChecks,
+          typeProductInfo: formData.typeProductInfo,
           equipmentTurnover: formData.equipmentTurnover,
           otherNotes: formData.otherNotes,
           photo_captions: snapshotCaptions,
@@ -533,6 +563,56 @@ export default function LcpsInspectionForm() {
                       </div>
 
                       <div className="p-4 space-y-4 bg-white">
+                        {/* Shared product info — only for select equipment types */}
+                        {PRODUCT_INFO_TYPES.includes(type) && (
+                          <div>
+                            <div className="text-sm font-medium text-gray-700 mb-2">
+                              Product Information
+                              <span className="ml-2 text-xs text-gray-500 font-normal">
+                                (applies to all {instances.length} {type})
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              <div>
+                                <label className="block mb-1 text-xs text-gray-600">Manufacturer</label>
+                                <input
+                                  type="text"
+                                  value={formData.typeProductInfo[type]?.manufacturer || ''}
+                                  onChange={e => updateTypeProductInfo(type, { manufacturer: e.target.value })}
+                                  className="w-full p-2 border rounded text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="block mb-1 text-xs text-gray-600">Serial #</label>
+                                <input
+                                  type="text"
+                                  value={formData.typeProductInfo[type]?.serial || ''}
+                                  onChange={e => updateTypeProductInfo(type, { serial: e.target.value })}
+                                  className="w-full p-2 border rounded text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="block mb-1 text-xs text-gray-600">Make</label>
+                                <input
+                                  type="text"
+                                  value={formData.typeProductInfo[type]?.make || ''}
+                                  onChange={e => updateTypeProductInfo(type, { make: e.target.value })}
+                                  className="w-full p-2 border rounded text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="block mb-1 text-xs text-gray-600">Model</label>
+                                <input
+                                  type="text"
+                                  value={formData.typeProductInfo[type]?.model || ''}
+                                  onChange={e => updateTypeProductInfo(type, { model: e.target.value })}
+                                  className="w-full p-2 border rounded text-sm"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Shared service-task checklist (once per type) */}
                         {type !== 'Other' && checklist.length > 0 && (
                           <div>
