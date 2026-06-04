@@ -1255,6 +1255,14 @@ function handleLcpsInspectionReport(doc: jsPDF, submission: Submission) {
     const checklist = EQUIPMENT_CHECKLISTS[group.type];
     const checks = typeChecks[group.type] || [];
     if (group.type !== 'Other' && checklist && checklist.length > 0) {
+      // Heading above the checklist — matches what the form shows the inspector
+      checkPageBreak(doc, 9);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(BRAND_BLUE.r, BRAND_BLUE.g, BRAND_BLUE.b);
+      doc.text(`Service Tasks Performed  (applies to all ${group.instances.length} ${group.type})`, MARGIN_LEFT, currentY);
+      doc.setTextColor(0, 0, 0);
+      currentY += 5;
       checklist.forEach((item, idx) => {
         const isChecked = checks[idx] !== false;
         addChecklistItem(doc, item, isChecked, idx);

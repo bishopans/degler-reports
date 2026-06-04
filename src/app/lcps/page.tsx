@@ -505,8 +505,17 @@ export default function LcpsInspectionForm() {
                 {CONDITION_GRADE_OPTIONS.map(g => (
                   <div key={g} className="flex items-center gap-2">
                     <span
-                      className="inline-flex items-center justify-center w-7 h-7 rounded-full font-bold text-sm"
                       style={{
+                        display: 'inline-block',
+                        width: '28px',
+                        height: '28px',
+                        lineHeight: '26px',
+                        textAlign: 'center',
+                        borderRadius: '9999px',
+                        flexShrink: 0,
+                        fontWeight: 700,
+                        fontSize: '0.875rem',
+                        boxSizing: 'border-box',
                         backgroundColor: CONDITION_GRADE_COLORS[g].bg,
                         color: CONDITION_GRADE_COLORS[g].text,
                         border: `1px solid ${CONDITION_GRADE_COLORS[g].border}`,
