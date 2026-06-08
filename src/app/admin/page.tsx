@@ -35,7 +35,7 @@ const REPORT_TYPE_LABELS: Record<string, string> = {
   'material-delivery': 'Material Delivery',
   'material-turnover': 'Material Turnover',
   'training': 'Training',
-  'jobsite-progress': 'Install Progress Report',
+  'jobsite-progress': 'Job Status',
   'accident': 'Accident/Incident',
   'photo-upload': 'Photo Upload',
   'lcps-inspection': 'LCPS Building Inspection',
@@ -1128,17 +1128,32 @@ export default function AdminDashboard() {
                         {new Date(sub.date + 'T00:00:00').toLocaleDateString('en-US')}
                       </td>
                       <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.875rem' }}>
-                        <span style={{
-                          display: 'inline-block',
-                          padding: '0.125rem 0.5rem',
-                          borderRadius: '9999px',
-                          fontSize: '0.75rem',
-                          fontWeight: 500,
-                          backgroundColor: '#dbeafe',
-                          color: '#1e40af',
-                        }}>
-                          {REPORT_TYPE_LABELS[sub.report_type] || sub.report_type}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap' }}>
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '0.125rem 0.5rem',
+                            borderRadius: '9999px',
+                            fontSize: '0.75rem',
+                            fontWeight: 500,
+                            backgroundColor: '#dbeafe',
+                            color: '#1e40af',
+                          }}>
+                            {REPORT_TYPE_LABELS[sub.report_type] || sub.report_type}
+                          </span>
+                          {sub.report_type === 'jobsite-progress' && sub.form_data?.isJobComplete === 'Yes' && (
+                            <span title="Job Complete" style={{
+                              display: 'inline-block',
+                              padding: '0.125rem 0.5rem',
+                              borderRadius: '9999px',
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              backgroundColor: '#16a34a',
+                              color: '#ffffff',
+                            }}>
+                              ✓ Complete
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.875rem', fontWeight: 500 }}>{sub.job_name}</td>
                       <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.875rem' }}>{sub.job_number}</td>
@@ -1248,6 +1263,19 @@ export default function AdminDashboard() {
                     }}>
                       {REPORT_TYPE_LABELS[sub.report_type] || sub.report_type}
                     </span>
+                    {sub.report_type === 'jobsite-progress' && sub.form_data?.isJobComplete === 'Yes' && (
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '0.125rem 0.5rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        backgroundColor: '#16a34a',
+                        color: '#ffffff',
+                      }}>
+                        ✓ Complete
+                      </span>
+                    )}
                     {(sub.photo_urls?.length || 0) > 0 && (
                       <span style={{ color: '#6b7280' }}>{sub.photo_urls.length} photos</span>
                     )}

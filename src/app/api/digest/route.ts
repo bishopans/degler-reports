@@ -12,7 +12,7 @@ const reportTypeLabels: Record<string, string> = {
   'material-delivery': 'Material Delivery',
   'material-turnover': 'Material Turnover',
   training: 'Training',
-  'jobsite-progress': 'Install Progress Report',
+  'jobsite-progress': 'Job Status',
   'time-sheets': 'Time Sheets',
   accident: 'Accident/Incident',
   'photo-upload': 'Photo Upload',

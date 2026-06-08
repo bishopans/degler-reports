@@ -97,7 +97,7 @@ export default function Home() {
         {[
           { href: '/maintenance', label: 'Preventative Maintenance\n/Inspection' },
           { href: '/repair', label: 'Repair' },
-          { href: '/jobsite-progress', label: 'Install Progress' },
+          { href: '/jobsite-progress', label: 'Job Status' },
           { href: '/material-delivery', label: 'Material Delivery' },
           { href: '/material-turnover', label: 'Material Turnover' },
           { href: '/training', label: 'Training' },

@@ -895,19 +895,45 @@ function handleJobsiteProgressReport(doc: jsPDF, submission: Submission) {
 
   if (data.notes) {
     if (data.equipment) { addBrandDivider(doc); }
-    addEquipmentHeader(doc, 'Progress Notes');
+    addEquipmentHeader(doc, 'Job Status Notes');
     addLabeledNote(doc, 'Details:', data.notes);
   }
 
-  if (data.estimatedCompletionDate) {
+  if (data.isJobComplete) {
     if (data.equipment || data.notes) { addBrandDivider(doc); }
+    if (data.isJobComplete === 'Yes') {
+      addJobCompleteBanner(doc, data.completionDate ? formatDate(data.completionDate) : '');
+    } else {
+      addEquipmentHeader(doc, 'Job Status');
+      addLabeledNote(doc, 'Job Complete:', data.isJobComplete);
+    }
+  }
+
+  // Estimated completion is only relevant while the job is still in progress
+  if (data.estimatedCompletionDate && data.isJobComplete !== 'Yes') {
+    if (data.equipment || data.notes || data.isJobComplete) { addBrandDivider(doc); }
     addEquipmentHeader(doc, 'Estimated Completion');
     addLabeledNote(doc, 'Target Date:', formatDate(data.estimatedCompletionDate));
   }
 
-  if (data.equipment || data.notes || data.estimatedCompletionDate) {
+  if (data.equipment || data.notes || data.isJobComplete || data.estimatedCompletionDate) {
     addBrandDivider(doc);
   }
+}
+
+// Green "Job Complete" banner for the PDF
+function addJobCompleteBanner(doc: jsPDF, completionDate: string) {
+  checkPageBreak(doc, 18);
+  const bannerHeight = 12;
+  doc.setFillColor(22, 163, 74);
+  doc.roundedRect(MARGIN_LEFT, currentY - 1, CONTENT_WIDTH, bannerHeight, 1.5, 1.5, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(255, 255, 255);
+  const label = completionDate ? `JOB COMPLETE  —  ${completionDate}` : 'JOB COMPLETE';
+  doc.text(label, MARGIN_LEFT + 6, currentY + 6.5);
+  doc.setTextColor(0, 0, 0);
+  currentY += bannerHeight + 4;
 }
 
 function handleTimeSheetsReport(doc: jsPDF, submission: Submission) {
@@ -1698,7 +1724,7 @@ function getReportTypeTitle(reportType: string): string {
     'material-delivery': 'Material Delivery Report',
     'material-turnover': 'Material Turnover Report',
     training: 'Training Report',
-    'jobsite-progress': 'Jobsite Progress Report',
+    'jobsite-progress': 'Job Status Report',
     'time-sheets': 'Time Sheets Report',
     accident: 'Accident Report',
     'photo-upload': 'Photo Upload Report',
@@ -2328,7 +2354,7 @@ function getPdfFilename(submission: Submission): string {
     'material-delivery': 'Material Delivery',
     'material-turnover': 'Material Turnover',
     training: 'Training',
-    'jobsite-progress': 'Jobsite Progress',
+    'jobsite-progress': 'Job Status',
     'time-sheets': 'Time Sheets',
     accident: 'Accident',
     'photo-upload': 'Photo Upload',

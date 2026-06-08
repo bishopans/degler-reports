@@ -69,7 +69,7 @@ const REPORT_TYPE_LABELS: Record<string, string> = {
   'material-delivery': 'Material Delivery',
   'material-turnover': 'Material Turnover',
   'training': 'Training',
-  'jobsite-progress': 'Install Progress Report',
+  'jobsite-progress': 'Job Status',
   'time-sheets': 'Time Sheets',
   'accident': 'Accident/Incident',
   'photo-upload': 'Photo Upload',
@@ -745,9 +745,26 @@ export default function ReportDetailPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <Image src="/images/logo.png" alt="Logo" width={50} height={50} />
           <div>
-            <h1 className="text-xl font-bold" style={{ color: '#111827' }}>
-              {REPORT_TYPE_LABELS[data.report_type] || data.report_type} Report
-            </h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <h1 className="text-xl font-bold" style={{ color: '#111827' }}>
+                {REPORT_TYPE_LABELS[data.report_type] || data.report_type} Report
+              </h1>
+              {data.report_type === 'jobsite-progress' && data.form_data?.isJobComplete === 'Yes' && (
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  padding: '0.25rem 0.625rem',
+                  borderRadius: '9999px',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  backgroundColor: '#16a34a',
+                  color: '#ffffff',
+                }}>
+                  ✓ Job Complete{data.form_data?.completionDate ? ` — ${new Date((data.form_data.completionDate as string) + 'T00:00:00').toLocaleDateString('en-US')}` : ''}
+                </span>
+              )}
+            </div>
             <p className="text-sm" style={{ color: '#4b5563' }}>
               Submitted {new Date(data.created_at).toLocaleString('en-US')}
               {data.edited_at && ` • Last edited ${new Date(data.edited_at).toLocaleString('en-US')}`}
@@ -1398,7 +1415,7 @@ function FormDataDisplay({
   onUpdate: (key: string, value: unknown) => void;
 }) {
   // Keys that hold date values (YYYY-MM-DD format)
-  const dateFieldKeys = ['incidentDate', 'reportedDate', 'estimatedCompletionDate'];
+  const dateFieldKeys = ['incidentDate', 'reportedDate', 'estimatedCompletionDate', 'completionDate'];
 
   // Helper to render a text field from form_data
   const renderTextField = (key: string, label: string) => {
@@ -1489,6 +1506,31 @@ function FormDataDisplay({
             )}
           </div>
         ))}
+      </div>
+    );
+  };
+
+  // Helper to render a Yes/No "Is Job Complete?" field
+  const renderJobCompleteField = () => {
+    const value = (formData.isJobComplete as string) || '';
+    return (
+      <div style={{ marginBottom: '1rem' }}>
+        <label className="block text-sm mb-1" style={{ color: '#1f2937' }}>Is Job Complete?</label>
+        {isEditing ? (
+          <select
+            value={value}
+            onChange={(e) => onUpdate('isJobComplete', e.target.value)}
+            className="w-full p-2 border rounded"
+          >
+            <option value="">—</option>
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+          </select>
+        ) : (
+          <p className="text-sm" style={{ color: value === 'Yes' ? '#16a34a' : '#1f2937', fontWeight: value === 'Yes' ? 600 : 400 }}>
+            {value === 'Yes' ? '✅ Yes' : (value || '—')}
+          </p>
+        )}
       </div>
     );
   };
@@ -2069,8 +2111,10 @@ function FormDataDisplay({
       return (
         <div>
           {renderTextField('equipment', 'Equipment Being Installed')}
-          {renderTextField('notes', 'Progress Notes')}
-          {renderTextField('estimatedCompletionDate', 'Estimated Completion Date')}
+          {renderTextField('notes', 'Job Status Notes')}
+          {renderJobCompleteField()}
+          {formData.isJobComplete === 'Yes' && renderTextField('completionDate', 'Completion Date')}
+          {formData.isJobComplete !== 'Yes' && renderTextField('estimatedCompletionDate', 'Estimated Completion Date')}
         </div>
       );
 

@@ -7,17 +7,28 @@ import { useDraftSave } from '@/hooks/useDraftSave';
 import { DraftBanner } from '@/components/DraftBanner';
 import PhotoUploader from '@/components/PhotoUploader';
 
+// Returns today's date in the user's local timezone as YYYY-MM-DD
+const getTodayLocal = () => {
+  const d = new Date();
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+};
+
+const emptyForm = {
+  date: '',
+  jobName: '',
+  technicianName: '',
+  jobNumber: '',
+  equipment: '',
+  notes: '',
+  isJobComplete: '',
+  completionDate: '',
+  estimatedCompletionDate: '',
+  photos: [] as File[]
+};
+
 export default function JobSiteProgressForm() {
-  const [formData, setFormData] = useState({
-    date: '',
-    jobName: '',
-    technicianName: '',
-    jobNumber: '',
-    equipment: '',
-    notes: '',
-    estimatedCompletionDate: '',
-    photos: [] as File[]
-  });
+  const [formData, setFormData] = useState({ ...emptyForm });
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -50,6 +61,8 @@ export default function JobSiteProgressForm() {
       submitData.append('form_data', JSON.stringify({
         equipment: formData.equipment,
         notes: formData.notes,
+        isJobComplete: formData.isJobComplete,
+        completionDate: formData.completionDate,
         estimatedCompletionDate: formData.estimatedCompletionDate,
         photo_captions: photoCaptions
       }));
@@ -95,22 +108,15 @@ export default function JobSiteProgressForm() {
         form_data: {
           equipment: formData.equipment,
           notes: formData.notes,
+          isJobComplete: formData.isJobComplete,
+          completionDate: formData.completionDate,
           estimatedCompletionDate: formData.estimatedCompletionDate,
           photo_captions: snapshotCaptions
         },
       });
 
       setIsSubmitted(true);
-      setFormData({
-        date: '',
-        jobName: '',
-        technicianName: '',
-        jobNumber: '',
-        equipment: '',
-        notes: '',
-        estimatedCompletionDate: '',
-        photos: []
-      });
+      setFormData({ ...emptyForm });
     } catch (error) {
       console.error('Submission error:', error);
       alert('Error submitting report. Please try again.');
@@ -170,7 +176,7 @@ export default function JobSiteProgressForm() {
       </div>
 
       <h1 className="text-2xl font-bold text-center mb-8">
-        Install Progress Report Report
+        Job Status Report
       </h1>
 
       <div className="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-md">
@@ -217,7 +223,7 @@ export default function JobSiteProgressForm() {
           </div>
         ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
-          <DraftBanner draftRestored={draftRestored} draftTimestamp={draftTimestamp} lastSaveTime={lastSaveTime} onDismiss={dismissDraftBanner} onClear={() => { clearDraft(); setFormData({ date: '', jobName: '', technicianName: '', jobNumber: '', equipment: '', notes: '', estimatedCompletionDate: '', photos: [] }); }} />
+          <DraftBanner draftRestored={draftRestored} draftTimestamp={draftTimestamp} lastSaveTime={lastSaveTime} onDismiss={dismissDraftBanner} onClear={() => { clearDraft(); setFormData({ ...emptyForm }); }} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block mb-1">Date of Install</label>
@@ -280,26 +286,73 @@ export default function JobSiteProgressForm() {
 
           {/* Notes Section */}
           <div className="space-y-2">
-            <label className="block mb-1">Progress Notes</label>
+            <label className="block mb-1">Job Status Notes</label>
             <textarea
               value={formData.notes}
               onChange={e => setFormData({...formData, notes: e.target.value})}
               className="w-full p-2 border rounded min-h-[150px]"
-              placeholder="Install progress notes; site conditions, equipment being worked on, issues found onsite, etc"
+              placeholder="Job status notes; site conditions, equipment being worked on, issues found onsite, etc"
               required
             />
           </div>
 
-          {/* Estimated Completion Date */}
+          {/* Is Job Complete? */}
           <div className="space-y-2">
-            <label className="block mb-1">Estimated Completion Date</label>
-            <input
-              type="date"
-              value={formData.estimatedCompletionDate}
-              onChange={e => setFormData({...formData, estimatedCompletionDate: e.target.value})}
-              className="w-full p-2 border rounded"
-            />
+            <label className="block mb-1">Is Job Complete?</label>
+            <div className="flex gap-6">
+              <label className="inline-flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="isJobComplete"
+                  value="Yes"
+                  checked={formData.isJobComplete === 'Yes'}
+                  onChange={() => setFormData(prev => ({
+                    ...prev,
+                    isJobComplete: 'Yes',
+                    completionDate: prev.completionDate || getTodayLocal(),
+                    estimatedCompletionDate: '',
+                  }))}
+                />
+                Yes
+              </label>
+              <label className="inline-flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="isJobComplete"
+                  value="No"
+                  checked={formData.isJobComplete === 'No'}
+                  onChange={() => setFormData(prev => ({ ...prev, isJobComplete: 'No' }))}
+                />
+                No
+              </label>
+            </div>
           </div>
+
+          {/* Completion Date — shown when job is complete, defaults to today */}
+          {formData.isJobComplete === 'Yes' && (
+            <div className="space-y-2 p-3 rounded" style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+              <label className="block mb-1 font-medium" style={{ color: '#166534' }}>✓ Job Complete — Completion Date</label>
+              <input
+                type="date"
+                value={formData.completionDate}
+                onChange={e => setFormData({...formData, completionDate: e.target.value})}
+                className="w-full p-2 border rounded"
+              />
+            </div>
+          )}
+
+          {/* Estimated Completion Date — hidden once the job is marked complete */}
+          {formData.isJobComplete !== 'Yes' && (
+            <div className="space-y-2">
+              <label className="block mb-1">Estimated Completion Date</label>
+              <input
+                type="date"
+                value={formData.estimatedCompletionDate}
+                onChange={e => setFormData({...formData, estimatedCompletionDate: e.target.value})}
+                className="w-full p-2 border rounded"
+              />
+            </div>
+          )}
 
           {/* Photo Upload Section */}
           <PhotoUploader
