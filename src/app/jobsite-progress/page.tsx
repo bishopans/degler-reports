@@ -305,6 +305,7 @@ export default function JobSiteProgressForm() {
                   type="radio"
                   name="isJobComplete"
                   value="Yes"
+                  required
                   checked={formData.isJobComplete === 'Yes'}
                   onChange={() => setFormData(prev => ({
                     ...prev,
@@ -320,6 +321,7 @@ export default function JobSiteProgressForm() {
                   type="radio"
                   name="isJobComplete"
                   value="No"
+                  required
                   checked={formData.isJobComplete === 'No'}
                   onChange={() => setFormData(prev => ({ ...prev, isJobComplete: 'No' }))}
                 />
