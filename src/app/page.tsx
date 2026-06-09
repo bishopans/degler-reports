@@ -103,7 +103,7 @@ export default function Home() {
           { href: '/training', label: 'Training' },
           { href: '/time-sheets', label: 'Time Sheets' },
           { href: '/accident', label: 'Accident/Incident' },
-          { href: '/photo-upload', label: 'Photo Upload' },
+          { href: '/photo-upload', label: 'Site Visit' },
         ].map(({ href, label }) => (
           <Link
             key={href}

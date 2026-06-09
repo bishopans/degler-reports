@@ -72,7 +72,7 @@ const REPORT_TYPE_LABELS: Record<string, string> = {
   'jobsite-progress': 'Job Status',
   'time-sheets': 'Time Sheets',
   'accident': 'Accident/Incident',
-  'photo-upload': 'Photo Upload',
+  'photo-upload': 'Site Visit',
 };
 
 // Equipment checklists (mirrored from maintenance form)
@@ -2236,6 +2236,18 @@ function FormDataDisplay({
             <div style={{ marginBottom: '0.75rem' }}>
               <label className="block text-sm mb-1" style={{ color: '#1f2937' }}>Job Name</label>
               <p className="text-sm" style={{ color: '#1f2937' }}>{String(formData.jobName)}</p>
+            </div>
+          )}
+          {(formData.jobNumber as string) && (
+            <div style={{ marginBottom: '0.75rem' }}>
+              <label className="block text-sm mb-1" style={{ color: '#1f2937' }}>Job Number</label>
+              <p className="text-sm" style={{ color: '#1f2937' }}>{String(formData.jobNumber)}</p>
+            </div>
+          )}
+          {(formData.notes as string) && (
+            <div style={{ marginBottom: '0.75rem' }}>
+              <label className="block text-sm mb-1" style={{ color: '#1f2937' }}>Notes</label>
+              <p className="text-sm whitespace-pre-wrap" style={{ color: '#1f2937' }}>{String(formData.notes)}</p>
             </div>
           )}
           <p className="text-sm" style={{ color: '#374151' }}>See photos below.</p>

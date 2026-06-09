@@ -394,7 +394,7 @@ export default function RafflePage() {
               Raffle Leaderboard ({totalEntries} pts)
             </h2>
             <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.75rem' }}>
-              Excludes: Photo Uploads, Time Sheets, Accident Reports
+              Excludes: Site Visits, Time Sheets, Accident Reports
             </p>
             {entries.length === 0 ? (
               <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No eligible submissions yet.</p>

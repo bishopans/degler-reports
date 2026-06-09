@@ -15,7 +15,7 @@ const reportTypeLabels: Record<string, string> = {
   'jobsite-progress': 'Job Status',
   'time-sheets': 'Time Sheets',
   accident: 'Accident/Incident',
-  'photo-upload': 'Photo Upload',
+  'photo-upload': 'Site Visit',
 };
 
 interface Submission {

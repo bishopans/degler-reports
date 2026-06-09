@@ -10,6 +10,8 @@ import PhotoUploader from '@/components/PhotoUploader';
 interface FormData {
   yourName: string;
   jobName: string;
+  jobNumber: string;
+  notes: string;
   photos: File[];
 }
 
@@ -32,6 +34,8 @@ export default function PhotoUploadForm() {
   const initialFormData: FormData = {
     yourName: '',
     jobName: '',
+    jobNumber: '',
+    notes: '',
     photos: []
   };
 
@@ -64,11 +68,13 @@ export default function PhotoUploadForm() {
       submitData.append('report_type', 'photo-upload');
       submitData.append('date', new Date().toISOString().split('T')[0]);
       submitData.append('job_name', formData.jobName || 'Photo Upload');
-      submitData.append('job_number', 'PHOTOS');
+      submitData.append('job_number', formData.jobNumber.trim() || 'PHOTOS');
       submitData.append('technician_name', formData.yourName);
       submitData.append('form_data', JSON.stringify({
         uploadedBy: formData.yourName,
         jobName: formData.jobName,
+        jobNumber: formData.jobNumber,
+        notes: formData.notes,
         photo_captions: photoCaptions
       }));
 
@@ -104,7 +110,7 @@ export default function PhotoUploadForm() {
         report_type: 'photo-upload',
         date: new Date().toISOString().split('T')[0],
         job_name: formData.jobName || 'Photo Upload',
-        job_number: 'PHOTOS',
+        job_number: formData.jobNumber.trim() || 'PHOTOS',
         technician_name: formData.yourName,
         status: 'new',
         photo_urls: photoBlobUrls,
@@ -113,6 +119,8 @@ export default function PhotoUploadForm() {
         form_data: {
           uploadedBy: formData.yourName,
           jobName: formData.jobName,
+          jobNumber: formData.jobNumber,
+          notes: formData.notes,
           photo_captions: snapshotCaptions
         },
       });
@@ -179,9 +187,12 @@ export default function PhotoUploadForm() {
         />
       </div>
 
-      <h1 className="text-2xl font-bold text-center mb-8">
-        Photos to PDF Upload
+      <h1 className="text-2xl font-bold text-center mb-2">
+        Site Visit
       </h1>
+      <p className="text-center text-gray-600 mb-8">
+        Report for sales visits, field checks, and general site photos.
+      </p>
 
       <div className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-md">
         {isSubmitted ? (
@@ -251,6 +262,30 @@ export default function PhotoUploadForm() {
                 value={formData.jobName}
                 onChange={(e) => setFormData({ ...formData, jobName: e.target.value })}
                 placeholder="optional"
+                className="w-full p-3 border rounded"
+              />
+            </div>
+
+            {/* Job Number (optional) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Job Number</label>
+              <input
+                type="text"
+                value={formData.jobNumber}
+                onChange={(e) => setFormData({ ...formData, jobNumber: e.target.value })}
+                placeholder="optional"
+                className="w-full p-3 border rounded"
+              />
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="optional"
+                rows={4}
                 className="w-full p-3 border rounded"
               />
             </div>

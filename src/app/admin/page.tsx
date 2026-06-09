@@ -37,7 +37,7 @@ const REPORT_TYPE_LABELS: Record<string, string> = {
   'training': 'Training',
   'jobsite-progress': 'Job Status',
   'accident': 'Accident/Incident',
-  'photo-upload': 'Photo Upload',
+  'photo-upload': 'Site Visit',
   'lcps-inspection': 'LCPS Building Inspection',
 };
 

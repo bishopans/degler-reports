@@ -1123,17 +1123,25 @@ function handleAccidentReport(doc: jsPDF, submission: Submission) {
 }
 
 function handlePhotoUploadReport(doc: jsPDF, submission: Submission) {
-  addEquipmentHeader(doc, 'Photo Upload Summary');
+  addEquipmentHeader(doc, 'Site Visit Summary');
 
   const data = submission.form_data as Record<string, unknown> | null;
   const uploadedBy = (data?.uploadedBy as string) || submission.technician_name || '—';
   const jobName = (data?.jobName as string) || '';
+  const jobNumber = (data?.jobNumber as string) || '';
+  const notes = (data?.notes as string) || '';
 
   addLabeledNote(doc, 'Uploaded by:', uploadedBy);
   if (jobName) {
     addLabeledNote(doc, 'Job Name:', jobName);
   }
+  if (jobNumber) {
+    addLabeledNote(doc, 'Job Number:', jobNumber);
+  }
   addLabeledNote(doc, 'Total Photos:', `${submission.photo_urls?.length || 0}`);
+  if (notes) {
+    addLabeledNote(doc, 'Notes:', notes);
+  }
   addBrandDivider(doc);
 }
 
@@ -1727,7 +1735,7 @@ function getReportTypeTitle(reportType: string): string {
     'jobsite-progress': 'Job Status Report',
     'time-sheets': 'Time Sheets Report',
     accident: 'Accident Report',
-    'photo-upload': 'Photo Upload Report',
+    'photo-upload': 'Site Visit Report',
     'lcps-inspection': 'LCPS Building Inspection Report',
   };
   return titles[reportType] || 'Field Report';
@@ -2357,7 +2365,7 @@ function getPdfFilename(submission: Submission): string {
     'jobsite-progress': 'Job Status',
     'time-sheets': 'Time Sheets',
     accident: 'Accident',
-    'photo-upload': 'Photo Upload',
+    'photo-upload': 'Site Visit',
   };
   const serviceType = serviceTypeLabels[submission.report_type] || 'Field';
   if (submission.report_type === 'time-sheets') {
