@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import HeicImage from '@/components/HeicImage';
-import { isHeicUrl } from '@/lib/heicSupport';
+import { isHeicUrl, convertHeicUrlToJpeg } from '@/lib/heicSupport';
 import { generatePdf } from '@/lib/generatePdf';
 import {
   equipmentChecklists as LCPS_CHECKLISTS,
@@ -248,6 +248,7 @@ export default function ReportDetailPage() {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [rotatingIndex, setRotatingIndex] = useState<number | null>(null);
   const [editData, setEditData] = useState<Submission | null>(null);
   const [isConvertingHeic, setIsConvertingHeic] = useState(false);
   const heicConvertedRef = useRef(false);
@@ -507,6 +508,79 @@ export default function ReportDetailPage() {
     } catch (error) {
       console.error('Photo delete error:', error);
       alert('Error deleting photo.');
+    }
+  };
+
+  const handleRotatePhoto = async (photoUrl: string, index: number) => {
+    if (!submission || rotatingIndex !== null) return;
+    setRotatingIndex(index);
+    let objectUrl: string | null = null;
+    try {
+      // Get a browser-displayable source. HEIC must be converted first;
+      // everything else is fetched into a same-origin blob URL so the
+      // canvas isn't tainted by cross-origin storage and can be exported.
+      let sourceUrl: string;
+      if (isHeicUrl(photoUrl)) {
+        const converted = await convertHeicUrlToJpeg(photoUrl);
+        if (!converted) throw new Error('Could not read HEIC photo');
+        objectUrl = converted;
+        sourceUrl = converted;
+      } else {
+        const resp = await fetch(photoUrl);
+        if (!resp.ok) throw new Error('Could not load photo');
+        const blob = await resp.blob();
+        objectUrl = URL.createObjectURL(blob);
+        sourceUrl = objectUrl;
+      }
+
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const im = new window.Image();
+        im.onload = () => resolve(im);
+        im.onerror = () => reject(new Error('Image load failed'));
+        im.src = sourceUrl;
+      });
+
+      // Rotate 90° clockwise onto a canvas with swapped dimensions
+      const canvas = document.createElement('canvas');
+      canvas.width = img.height;
+      canvas.height = img.width;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas not supported');
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(Math.PI / 2);
+      ctx.drawImage(img, -img.width / 2, -img.height / 2);
+
+      const rotatedBlob: Blob = await new Promise((resolve, reject) => {
+        canvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error('Rotation failed'))),
+          'image/jpeg',
+          0.9
+        );
+      });
+
+      const rotatedFile = new File([rotatedBlob], `rotated-${Date.now()}.jpg`, {
+        type: 'image/jpeg',
+      });
+      const formData = new window.FormData();
+      formData.append('submission_id', id);
+      formData.append('index', String(index));
+      formData.append('photo', rotatedFile);
+
+      const response = await fetch('/api/admin/rotate-photo', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) throw new Error('Save failed');
+
+      const updated = await response.json();
+      setSubmission(updated);
+      setEditData(updated);
+    } catch (error) {
+      console.error('Photo rotate error:', error);
+      alert('Error rotating photo.');
+    } finally {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      setRotatingIndex(null);
     }
   };
 
@@ -1173,6 +1247,32 @@ export default function ReportDetailPage() {
                     }}
                   />
                 </div>
+                <button
+                  onClick={() => handleRotatePhoto(url, i)}
+                  disabled={rotatingIndex !== null}
+                  style={{
+                    position: 'absolute',
+                    top: '0.375rem',
+                    right: '2.75rem',
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(37, 99, 235, 0.9)',
+                    color: 'white',
+                    border: 'none',
+                    cursor: rotatingIndex !== null ? 'default' : 'pointer',
+                    opacity: rotatingIndex !== null && rotatingIndex !== i ? 0.5 : 1,
+                    fontSize: '1rem',
+                    fontWeight: 'bold',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    lineHeight: 1,
+                  }}
+                  title={`Rotate Photo ${i + 1} 90°`}
+                >
+                  {rotatingIndex === i ? '…' : '↻'}
+                </button>
                 <button
                   onClick={() => handleDeletePhoto(url, i)}
                   style={{
