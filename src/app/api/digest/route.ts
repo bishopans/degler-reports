@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import nodemailer from 'nodemailer';
 
+// Allow up to 60s so the send loop never gets cut off partway through the
+// subscriber list (the default Hobby limit is 10s).
+export const maxDuration = 60;
+
 // App URL for admin links
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://deglerwhitingreports.com';
 
@@ -142,11 +146,15 @@ export async function GET(request: NextRequest) {
       countsByType[sub.report_type] = (countsByType[sub.report_type] || 0) + 1;
     }
 
-    // 5. Create transporter
+    // 5. Create transporter — pooled so connections are reused and multiple
+    // recipients send concurrently (Office365 allows up to 3 concurrent
+    // authenticated SMTP connections).
     const transporter = nodemailer.createTransport({
       host: 'smtp.office365.com',
       port: 587,
       secure: false,
+      pool: true,
+      maxConnections: 3,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
@@ -159,12 +167,14 @@ export async function GET(request: NextRequest) {
 
     const weekLabel = `${oneWeekAgo.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 
-    // 6. Send personalized email to each subscriber (with their own unsubscribe link)
+    // 6. Send personalized email to each subscriber (with their own unsubscribe
+    // link), concurrently. The pooled transporter caps actual concurrency, and
+    // Promise.allSettled ensures one failed recipient never blocks the others.
     const sentTo: string[] = [];
     const errors: string[] = [];
 
-    for (const subscriber of subscribers) {
-      try {
+    const results = await Promise.allSettled(
+      subscribers.map((subscriber) => {
         const emailHtml = buildDigestEmail({
           submissions: typedSubmissions,
           countsByType,
@@ -176,19 +186,27 @@ export async function GET(request: NextRequest) {
           unsubscribeToken: subscriber.unsubscribe_token,
         });
 
-        await transporter.sendMail({
+        return transporter.sendMail({
           from: process.env.EMAIL_USER || 'reports@deglerwhiting.com',
           to: subscriber.email,
           subject: `DW Reports Weekly Digest — ${weekLabel}`,
           html: emailHtml,
         });
+      })
+    );
 
-        sentTo.push(subscriber.email);
-      } catch (err) {
-        console.error(`Failed to send to ${subscriber.email}:`, err);
-        errors.push(subscriber.email);
+    results.forEach((result, i) => {
+      const email = subscribers[i].email;
+      if (result.status === 'fulfilled') {
+        sentTo.push(email);
+      } else {
+        console.error(`Failed to send to ${email}:`, result.reason);
+        errors.push(email);
       }
-    }
+    });
+
+    // Close the pooled connections so the function can exit cleanly.
+    transporter.close();
 
     return NextResponse.json({
       success: true,
