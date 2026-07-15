@@ -11,12 +11,14 @@ const DRAWINGS = [
     title: 'DW North',
     subtitle: 'Quarterly Report Raffle Drawing',
     src: '/videos/raffle-north-q2-2026.mp4',
+    poster: '/videos/raffle-poster-north-q2-2026.jpg',
   },
   {
     key: 'south',
     title: 'DW South',
     subtitle: 'Quarterly Report Raffle Drawing',
     src: '/videos/raffle-south-q2-2026.mp4',
+    poster: '/videos/raffle-poster-south-q2-2026.jpg',
   },
 ];
 // ─────────────────────────────────────────────────────────────────────────
@@ -150,6 +152,7 @@ export default function RaffleWinners() {
                   controls
                   preload="metadata"
                   playsInline
+                  poster={d.poster}
                   style={{ display: 'block', width: '100%', aspectRatio: '16 / 9' }}
                 >
                   <source src={d.src} type="video/mp4" />
