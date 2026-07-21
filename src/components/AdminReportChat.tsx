@@ -54,15 +54,17 @@ export default function AdminReportChat() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const threadRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) inputRef.current?.focus();
   }, [open]);
 
+  // Scroll ONLY the chat thread to the bottom — never the page itself
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = threadRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   }, [messages, isLoading]);
 
   const send = async (question?: string) => {
@@ -124,6 +126,7 @@ export default function AdminReportChat() {
         <div style={{ padding: '0 1.25rem 1.25rem 1.25rem' }}>
           {/* Message thread */}
           <div
+            ref={threadRef}
             style={{
               maxHeight: '24rem',
               overflowY: 'auto',
@@ -194,7 +197,6 @@ export default function AdminReportChat() {
                 Searching reports…
               </div>
             )}
-            <div ref={messagesEndRef} />
           </div>
 
           {error && (
