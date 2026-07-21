@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
+import AdminReportChat from '@/components/AdminReportChat';
 
 const ADMIN_PASSWORD = 'dwadmin2026';
 
@@ -981,6 +982,9 @@ export default function AdminDashboard() {
           </div>
         </form>
       </div>
+
+      {/* Ask Vulcan About Reports */}
+      <AdminReportChat />
 
       {/* Service Reminders Section */}
       {(() => {
