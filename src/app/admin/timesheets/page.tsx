@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { isAdminUnlocked, setAdminUnlocked } from '@/lib/adminAuth';
 
 const ADMIN_PASSWORD = 'dwadmin2026';
 
@@ -66,8 +67,7 @@ export default function TimesheetsAdmin() {
   const [isFetching, setIsFetching] = useState(false);
 
   useEffect(() => {
-    const unlocked = sessionStorage.getItem('dw-admin-unlocked');
-    if (unlocked === 'true') {
+    if (isAdminUnlocked()) {
       setIsUnlocked(true);
     }
     setIsLoading(false);
@@ -106,7 +106,7 @@ export default function TimesheetsAdmin() {
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (password === ADMIN_PASSWORD) {
-      sessionStorage.setItem('dw-admin-unlocked', 'true');
+      setAdminUnlocked();
       setIsUnlocked(true);
       setPasswordError('');
     } else {

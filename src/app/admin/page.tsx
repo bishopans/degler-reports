@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import AdminReportChat from '@/components/AdminReportChat';
+import { isAdminUnlocked, setAdminUnlocked } from '@/lib/adminAuth';
 
 const ADMIN_PASSWORD = 'dwadmin2026';
 
@@ -173,8 +174,7 @@ export default function AdminDashboard() {
 
 
   useEffect(() => {
-    const unlocked = sessionStorage.getItem('dw-admin-unlocked');
-    if (unlocked === 'true') {
+    if (isAdminUnlocked()) {
       setIsUnlocked(true);
     }
     setIsLoading(false);
@@ -410,7 +410,7 @@ export default function AdminDashboard() {
     e.preventDefault();
     if (password === ADMIN_PASSWORD) {
       setIsUnlocked(true);
-      sessionStorage.setItem('dw-admin-unlocked', 'true');
+      setAdminUnlocked();
       setPasswordError('');
     } else {
       setPasswordError('Incorrect admin password.');

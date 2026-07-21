@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { isAdminUnlocked } from '@/lib/adminAuth';
 
 interface RaffleEntry {
   name: string;
@@ -65,8 +66,7 @@ export default function RafflePage() {
   }, []);
 
   useEffect(() => {
-    const unlocked = sessionStorage.getItem('dw-admin-unlocked');
-    if (unlocked !== 'true') {
+    if (!isAdminUnlocked()) {
       router.push('/admin');
       return;
     }

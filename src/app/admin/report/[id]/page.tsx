@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { isAdminUnlocked } from '@/lib/adminAuth';
 import Image from 'next/image';
 import HeicImage from '@/components/HeicImage';
 import { isHeicUrl, convertHeicUrlToJpeg } from '@/lib/heicSupport';
@@ -353,8 +354,7 @@ export default function ReportDetailPage() {
   }, [id]);
 
   useEffect(() => {
-    const unlocked = sessionStorage.getItem('dw-admin-unlocked');
-    if (unlocked !== 'true') {
+    if (!isAdminUnlocked()) {
       router.push('/admin');
       return;
     }
