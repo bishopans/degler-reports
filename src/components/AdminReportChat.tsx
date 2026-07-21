@@ -17,30 +17,34 @@ const SUGGESTIONS = [
 ];
 
 // Render assistant text: markdown links become clickable, **bold** works,
-// everything else is plain text with preserved line breaks.
+// bare /admin/report/... paths are auto-linkified, everything else is plain
+// text with preserved line breaks.
+const linkStyle: React.CSSProperties = { color: '#2563eb', textDecoration: 'underline', fontWeight: 500 };
+
 function renderContent(text: string): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
-  const pattern = /\[([^\]]+)\]\(([^)]+)\)|\*\*([^*]+)\*\*/g;
+  const pattern = /\[([^\]]+)\]\(([^)]+)\)|\*\*([^*]+)\*\*|(\/admin\/report\/[A-Za-z0-9-]+)/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
   let key = 0;
   while ((match = pattern.exec(text)) !== null) {
     if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index));
     if (match[1] !== undefined) {
-      const href = match[2];
+      // Markdown link: [text](url)
       nodes.push(
-        <a
-          key={key++}
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: '#2563eb', textDecoration: 'underline', fontWeight: 500 }}
-        >
+        <a key={key++} href={match[2]} target="_blank" rel="noopener noreferrer" style={linkStyle}>
           {match[1]}
         </a>
       );
     } else if (match[3] !== undefined) {
       nodes.push(<strong key={key++}>{match[3]}</strong>);
+    } else if (match[4] !== undefined) {
+      // Bare report path — make it clickable
+      nodes.push(
+        <a key={key++} href={match[4]} target="_blank" rel="noopener noreferrer" style={linkStyle}>
+          View report ↗
+        </a>
+      );
     }
     lastIndex = pattern.lastIndex;
   }

@@ -300,7 +300,7 @@ Photos:
 
 Answering:
 - Base answers ONLY on what the search returns. If reports don't contain the answer, say so plainly — never guess or invent job names, dates, or details.
-- When you reference a specific report, include a markdown link to it, e.g. [Springfield High — 2026-03-12](/admin/report/REPORT_ID), using the real id from the search results.
+- When you reference a specific report, ALWAYS format it as a markdown link — [Springfield High — 2026-03-12](/admin/report/REPORT_ID) — using the real id from the search results. Never paste a bare /admin/report/... path or raw URL as plain text; the link text should be the job name and date.
 - Be concise and practical. Lead with the answer, then supporting details.
 - Today's date is ${new Date().toISOString().slice(0, 10)}.`;
 
