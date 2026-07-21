@@ -1,7 +1,8 @@
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { supabase } from '@/lib/supabase';
 
 const ADMIN_PASSWORD = 'dwadmin2026';
 
@@ -178,8 +179,8 @@ export default function AdminDashboard() {
     setIsLoading(false);
   }, []);
 
-  const fetchSubmissions = useCallback(async () => {
-    setIsFetching(true);
+  const fetchSubmissions = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setIsFetching(true);
     try {
       const params = new URLSearchParams();
       if (search) params.set('search', search);
@@ -199,7 +200,7 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Fetch error:', error);
     } finally {
-      setIsFetching(false);
+      if (!opts?.silent) setIsFetching(false);
     }
   }, [search, reportTypeFilter, dateFrom, dateTo, page]);
 
@@ -262,8 +263,8 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchDeletedReports = useCallback(async () => {
-    setDeletedLoading(true);
+  const fetchDeletedReports = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setDeletedLoading(true);
     try {
       const response = await fetch('/api/admin/submissions?deleted=true&limit=100');
       if (response.ok) {
@@ -273,7 +274,7 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Fetch deleted error:', error);
     } finally {
-      setDeletedLoading(false);
+      if (!opts?.silent) setDeletedLoading(false);
     }
   }, []);
 
@@ -308,6 +309,53 @@ export default function AdminDashboard() {
       cleanupOldDeletedReports();
     }
   }, [isUnlocked, fetchSubmissions, fetchReminders, fetchSubscribers, fetchChatbotStatus, fetchDeletedReports, cleanupOldDeletedReports]);
+
+  // Keep the latest fetchers in refs so the realtime subscription below
+  // doesn't tear down and reconnect every time a filter or page changes.
+  const fetchSubmissionsRef = useRef(fetchSubmissions);
+  useEffect(() => { fetchSubmissionsRef.current = fetchSubmissions; }, [fetchSubmissions]);
+  const fetchDeletedReportsRef = useRef(fetchDeletedReports);
+  useEffect(() => { fetchDeletedReportsRef.current = fetchDeletedReports; }, [fetchDeletedReports]);
+
+  // Live updates: refresh the list automatically whenever a submission is
+  // added, updated, or deleted in Supabase — no manual page refresh needed.
+  useEffect(() => {
+    if (!isUnlocked) return;
+
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleRefresh = () => {
+      // Debounce so a burst of changes only triggers one refetch
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        fetchSubmissionsRef.current({ silent: true });
+        fetchDeletedReportsRef.current({ silent: true });
+      }, 500);
+    };
+
+    const channel = supabase
+      .channel('admin-submissions-feed')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'submissions' },
+        scheduleRefresh
+      )
+      .subscribe();
+
+    // Fallback: also refresh when the tab regains focus, in case the
+    // realtime connection dropped while the window was in the background.
+    const handleRefocus = () => {
+      if (document.visibilityState === 'visible') scheduleRefresh();
+    };
+    document.addEventListener('visibilitychange', handleRefocus);
+    window.addEventListener('focus', handleRefocus);
+
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      supabase.removeChannel(channel);
+      document.removeEventListener('visibilitychange', handleRefocus);
+      window.removeEventListener('focus', handleRefocus);
+    };
+  }, [isUnlocked]);
 
   const updateReportStatus = async (id: string, status: string) => {
     try {
